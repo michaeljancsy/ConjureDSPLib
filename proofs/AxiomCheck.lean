@@ -18,7 +18,7 @@ open Lean
 
 def allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
 
-/-- Module names of every `.lean` file under `dir`, e.g. `ConjureDSPLib.OnePole.Spec`. -/
+/-- Module names of every `.lean` file under `dir`, e.g. `ConjureDSPLib.OnePole.SpecF64`. -/
 partial def modulesUnder (dir : System.FilePath) (pre : Name) : IO (Array Name) := do
   let mut out := #[]
   for e in (← dir.readDir).qsort (·.fileName < ·.fileName) do

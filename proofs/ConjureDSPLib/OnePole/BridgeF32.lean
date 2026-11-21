@@ -22,8 +22,9 @@ open FloatLib.Floats FloatLib.Floats.ExecFloat.Binary FloatLib.Floats.Formats.Bi
 
 namespace conjure_dsp_lib.one_pole
 
-/-- When `a`, `y`, `x`, the rounded product `a * y` and the result are all finite, the real value of the Rust f32 step's
-result is `x + a·y` with the product rounded to the nearest binary32 number, then the sum. -/
+/-- When `a`, `y`, `x`, the rounded product `a * y` and the result are all finite, the real
+value of one f32 step's result is `x + a·y` with the product rounded to the nearest binary32
+number, then the sum. -/
 theorem step_f32_toReal (a y x : Float32)
     (ha : a.isFinite = true) (hy : y.isFinite = true) (hx : x.isFinite = true)
     (hp : (a * y).isFinite = true) (hr : (x + a * y).isFinite = true) :

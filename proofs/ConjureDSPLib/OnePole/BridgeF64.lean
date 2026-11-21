@@ -1,10 +1,19 @@
 module
 
-public import ConjureDSPLib.OnePole.Spec
+public import ConjureDSPLib.OnePole.SpecF64
+public import ConjureDSPLib.FloatFacts
 public import FloatLib.Floats.Formats.IEEE754.Native.AddSub
 public import FloatLib.Floats.Formats.IEEE754.Native.MulDiv
 public import FloatLib.Floats.Formats.BinaryInterchange.Analysis.StandardModel
 public import FloatLib.Floats.Formats.BinaryInterchange.Configured.Real
+
+/-!
+# The one-pole filter in f64: from one step to real numbers
+
+FloatLib's `Binary64` model of Lean's `Float` gives the exact real value of one step,
+`x + a * y`, and its distance from exact real arithmetic. `step_f64_eq` in `SpecF64.lean` says
+the Rust `step_f64` computes exactly this expression, so these facts apply to it.
+-/
 
 @[expose] public section
 
@@ -12,17 +21,7 @@ open FloatLib.Floats FloatLib.Floats.ExecFloat.Binary FloatLib.Floats.Formats.Bi
 
 namespace conjure_dsp_lib.one_pole
 
-/-- A finite Lean `Float`, imported into FloatLib's binary64 type, is still finite. (FloatLib
-proves this internally but keeps the lemma private.) -/
-theorem isFinite_ofFloat (v : Float) (h : v.isFinite = true) :
-    isFinite (ofFloat v : Binary64) = true := by
-  unfold isFinite
-  simp only [toModel_ofFloat]
-  have h' : (Model.toModel (Model.ofFloatModel v.toModel)).isFinite = true := by
-    simpa only [Model.toModel_ofFloatModel, Float.isFinite, Float.Model.isFinite] using h
-  rwa [Model.isFinite_toModel (by decide)] at h'
-
-/-- **Proof 2, exact form.** For finite values, the real value of the Rust step's result is
+/-- When `a`, `y`, `x`, the rounded product `a * y` and the result are all finite, the real value of the Rust step's result is
 `x + a·y` rounded twice: the product `a·y` is rounded to the nearest binary64 number, then the sum
 is rounded again. `toReal` reads off a binary64 value's exact real number. -/
 theorem step_f64_toReal (a y x : Float)
@@ -41,7 +40,8 @@ theorem step_f64_toReal (a y x : Float)
   rw [toReal_mul_eq_roundAt hprod]
   rfl
 
-/-- **Proof 2, error bound.** One Rust step differs from exact real arithmetic by at most
+/-- When `a`, `y`, `x`, the rounded product `a * y` and the result are all finite (no
+overflow), one step differs from exact real arithmetic by at most
 `u·|x + a·y| + (1 + u)·(u·|a·y| + η) + η`, where `u = unitRoundoffAt binary64` is the relative
 rounding error (2⁻⁵³ for binary64) and `η = underflowErrorAt binary64` is the tiny absolute error
 possible for results near zero (half the smallest subnormal spacing). Here `x`, `a`, `y` stand for

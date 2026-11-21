@@ -20,27 +20,27 @@ set_option maxRecDepth 2048
 
 namespace conjure_dsp_lib
 
-/-- [conjure_dsp_lib::gain::apply_gain_f64]:
+/-- [conjure_dsp_lib::gain::apply_f64]:
     Source: 'src/gain.rs', lines 5:0-7:1
     Visibility: public -/
-def gain.apply_gain_f64 (gain : Float) (x : Float) : Result Float := do
+def gain.apply_f64 (gain : Float) (x : Float) : Result Float := do
   ok (Float.mul gain x)
 
-/-- [conjure_dsp_lib::gain::apply_gain_f32]:
+/-- [conjure_dsp_lib::gain::apply_f32]:
     Source: 'src/gain.rs', lines 11:0-13:1
     Visibility: public -/
-def gain.apply_gain_f32 (gain : Float32) (x : Float32) : Result Float32 := do
+def gain.apply_f32 (gain : Float32) (x : Float32) : Result Float32 := do
   ok (Float32.mul gain x)
 
 /-- [conjure_dsp_lib::one_pole::step_f64]:
-    Source: 'src/one_pole.rs', lines 9:0-11:1
+    Source: 'src/one_pole.rs', lines 19:0-21:1
     Visibility: public -/
 def one_pole.step_f64
-  (a : Float) (y_prev : Float) (x : Float) : Result Float := do
-  ok (Float.add x (Float.mul a y_prev))
+  (a : Float) (state : Float) (x : Float) : Result Float := do
+  ok (Float.add x (Float.mul a state))
 
 /-- [conjure_dsp_lib::one_pole::process_f64]: loop body 0:
-    Source: 'src/one_pole.rs', lines 18:4-23:5
+    Source: 'src/one_pole.rs', lines 28:4-33:5
     Visibility: public -/
 @[rust_loop_body]
 def one_pole.process_f64_loop.body
@@ -59,7 +59,7 @@ def one_pole.process_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::one_pole::process_f64]: loop 0:
-    Source: 'src/one_pole.rs', lines 18:4-23:5
+    Source: 'src/one_pole.rs', lines 28:4-33:5
     Visibility: public -/
 @[rust_loop]
 def one_pole.process_f64_loop
@@ -71,7 +71,7 @@ def one_pole.process_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::one_pole::process_f64]:
-    Source: 'src/one_pole.rs', lines 15:0-24:1
+    Source: 'src/one_pole.rs', lines 25:0-34:1
     Visibility: public -/
 @[reducible]
 def one_pole.process_f64
@@ -81,14 +81,14 @@ def one_pole.process_f64
   one_pole.process_f64_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_f32]:
-    Source: 'src/one_pole.rs', lines 28:0-30:1
+    Source: 'src/one_pole.rs', lines 39:0-41:1
     Visibility: public -/
 def one_pole.step_f32
-  (a : Float32) (y_prev : Float32) (x : Float32) : Result Float32 := do
-  ok (Float32.add x (Float32.mul a y_prev))
+  (a : Float32) (state : Float32) (x : Float32) : Result Float32 := do
+  ok (Float32.add x (Float32.mul a state))
 
 /-- [conjure_dsp_lib::one_pole::process_f32]: loop body 0:
-    Source: 'src/one_pole.rs', lines 35:4-40:5
+    Source: 'src/one_pole.rs', lines 48:4-53:5
     Visibility: public -/
 @[rust_loop_body]
 def one_pole.process_f32_loop.body
@@ -107,7 +107,7 @@ def one_pole.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::one_pole::process_f32]: loop 0:
-    Source: 'src/one_pole.rs', lines 35:4-40:5
+    Source: 'src/one_pole.rs', lines 48:4-53:5
     Visibility: public -/
 @[rust_loop]
 def one_pole.process_f32_loop
@@ -119,7 +119,7 @@ def one_pole.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::one_pole::process_f32]:
-    Source: 'src/one_pole.rs', lines 33:0-41:1
+    Source: 'src/one_pole.rs', lines 45:0-54:1
     Visibility: public -/
 @[reducible]
 def one_pole.process_f32

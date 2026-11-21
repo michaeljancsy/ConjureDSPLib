@@ -7,7 +7,9 @@
 //! The code is written so that Aeneas can translate it to Lean (see `proofs/`): plain loops with
 //! an index rather than iterators, and no trait objects or closures in proved functions.
 //!
-//! Each function comes in `_f32` and `_f64` versions, named that way so both read alike.
+//! Naming: each function comes in `_f32` and `_f64` versions, and is called through its module,
+//! which names the algorithm: `gain::apply_f32`, `one_pole::process_f64`. Function names inside a
+//! module are short (`step`, `process`, `apply`) and repeat across modules.
 
 #![no_std]
 

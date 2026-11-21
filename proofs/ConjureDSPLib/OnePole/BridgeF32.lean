@@ -1,17 +1,19 @@
 module
 
 public import ConjureDSPLib.OnePole.SpecF32
+public import ConjureDSPLib.FloatFacts
 public import FloatLib.Floats.Formats.IEEE754.Native.AddSub
 public import FloatLib.Floats.Formats.IEEE754.Native.MulDiv
 public import FloatLib.Floats.Formats.BinaryInterchange.Analysis.StandardModel
 public import FloatLib.Floats.Formats.BinaryInterchange.Configured.Real
 
 /-!
-# From the translated f32 Rust step to real numbers
+# The one-pole filter in f32: from one step to real numbers
 
-The single-precision version of `Bridge.lean`: FloatLib's `Binary32` model of Lean's `Float32`
+The single-precision version of `BridgeF64.lean`: FloatLib's `Binary32` model of Lean's `Float32`
 gives the exact real value of each step, and its error bound. For binary32 the unit roundoff
-`u` is 2⁻²⁴.
+`u` is 2⁻²⁴. `step_f32_eq` in `SpecF32.lean` says the Rust `step_f32` computes exactly
+`x + a * y`, so these facts apply to it.
 -/
 
 @[expose] public section
@@ -20,16 +22,7 @@ open FloatLib.Floats FloatLib.Floats.ExecFloat.Binary FloatLib.Floats.Formats.Bi
 
 namespace conjure_dsp_lib.one_pole
 
-/-- A finite Lean `Float32`, imported into FloatLib's binary32 type, is still finite. -/
-theorem isFinite_ofFloat32 (v : Float32) (h : v.isFinite = true) :
-    isFinite (ofFloat32 v : Binary32) = true := by
-  unfold isFinite
-  simp only [toModel_ofFloat32]
-  have h' : (Model.toModel (Model.ofFloat32Model v.toModel)).isFinite = true := by
-    simpa only [Model.toModel_ofFloat32Model, Float32.isFinite, Float32.Model.isFinite] using h
-  rwa [Model.isFinite_toModel (by decide)] at h'
-
-/-- **Proof 2 (f32), exact form.** For finite values, the real value of the Rust f32 step's
+/-- When `a`, `y`, `x`, the rounded product `a * y` and the result are all finite, the real value of the Rust f32 step's
 result is `x + a·y` with the product rounded to the nearest binary32 number, then the sum. -/
 theorem step_f32_toReal (a y x : Float32)
     (ha : a.isFinite = true) (hy : y.isFinite = true) (hx : x.isFinite = true)
@@ -47,7 +40,8 @@ theorem step_f32_toReal (a y x : Float32)
   rw [toReal_mul_eq_roundAt hprod]
   rfl
 
-/-- **Proof 2 (f32), error bound.** One Rust f32 step is within
+/-- When `a`, `y`, `x`, the rounded product `a * y` and the result are all finite (no
+overflow), one f32 step is within
 `u·|x + a·y| + (1 + u)·(u·|a·y| + η) + η` of exact real arithmetic, with the binary32 constants
 `u = unitRoundoffAt binary32` (2⁻²⁴) and `η = underflowErrorAt binary32`. -/
 theorem step_f32_error (a y x : Float32)

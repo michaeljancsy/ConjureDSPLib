@@ -1,0 +1,11 @@
+# Exact versions the proofs in this folder are built and checked with.
+# scripts/prove.sh refuses to run if the tools it finds do not match.
+# Only KEY=value lines: the script reads this file as shell.
+AENEAS_REPO=https://github.com/michaeljancsy/aeneas.git
+AENEAS_BRANCH=conjure
+AENEAS_COMMIT=92fb2e46b14cd2e683cb5f9fe5128879150ee782
+CHARON_COMMIT=de8736f7c995ac54dc490345cef9ea5143c06c62
+LEAN=v4.35.0
+MATHLIB=v4.35.0
+FLOATLIB_COMMIT=acba2057e452f32f4ed4f06bb0adbeda5342ba92
+RUST=1.93.1

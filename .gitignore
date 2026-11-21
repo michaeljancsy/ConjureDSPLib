@@ -1,0 +1,4 @@
+/target
+*.llbc
+/proofs/.lake
+/proofs/.toolchain

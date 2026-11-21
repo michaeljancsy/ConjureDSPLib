@@ -20,6 +20,11 @@ index, no arithmetic overflow on indices, and it terminates.
 | `one_pole::process_f64` | `one_pole.process_f64_block_error` (and `filt_f64_block_error`, the same about `filt_f64`) | `OnePole/BlockF64.lean` | **Whole-block error.** Under the conditions below: never fails, and every output sample and the final state are within `E` of the exact real-number filter `filt_real`, for a block of any length. |
 | `one_pole::process_f32` | `one_pole.process_f32_block_error` (and `filt_f32_block_error`) | `OnePole/BlockF32.lean` | The same in binary32. |
 
+The `toReal` and error theorems are stated about the expression `x + a * y`; the `step_*_eq`
+theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
+about `process_f64` / `process_f32` directly. Their real-number argument is in `OnePole/Block.lean`
+(`block_error_real`), shared by both precisions.
+
 The whole-block theorems compare the Rust outputs with the exact filter run on the exact real
 values of the stored floats: `A` is the value of `a`, `S` of the starting `state`, and the inputs
 are the values of the stored samples. (So turning a decimal coefficient into a float is not
@@ -29,16 +34,12 @@ covered: 0.99 is stored in f32 as 0.9900000095.) Their conditions:
   `NoOverflow_f32`: every rounded product `a * state` and every output is finite);
 - every input is at most `M` in size;
 - `|A| + |A|·u·(2 + u) < 1`, which is `|A|·(1 + u)² < 1`: stable, with a little room for
-  rounding. Any `|A| ≤ 1 - 2⁻⁵¹` (f64) or `|A| ≤ 1 - 2⁻²²` (f32) satisfies it.
+  rounding. Any `|A| ≤ 1 - 2⁻⁵¹` (f64) or `|A| ≤ 1 - 2⁻²²` (f32) satisfies it (simple
+  algebra, not a Lean theorem).
 
 Then, with `B = |S| + M / (1 - |A|)` (a bound on the exact filter's outputs):
 
 `E = (u·M + η·(2 + u) + |A|·u·(2 + u)·B) / (1 - |A| - |A|·u·(2 + u))`
-
-The `toReal` and error theorems are stated about the expression `x + a * y`; the `step_*_eq`
-theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
-about `process_f64` / `process_f32` directly. Their real-number argument is in `OnePole/Block.lean`
-(`block_error_real`), shared by both precisions.
 
 ### What the whole-block bound means in practice
 
@@ -79,8 +80,9 @@ The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 
   the whole-block argument on real numbers only, shared by both precisions, and
   `BlockF64.lean`/`BlockF32.lean` apply it to the Rust functions.
 - Names: Lean names about one precision end in `_f64` or `_f32`, like the Rust names
-  (`filt_f64`, `real_f32`, `NoOverflow_f64`). Otherwise Lean names follow Mathlib's style:
-  definitions that are statements start with a capital (`WithinStepErr`), other definitions and
-  theorems are in snake case.
+  (`filt_f64`, `real_f32`, `NoOverflow_f64`), and the filter functions keep the `filt_` prefix
+  (`filt_real`). Otherwise Lean names follow Mathlib: definitions that are statements start with
+  a capital (`WithinStepErr`), other definitions are lowerCamelCase (`stepErr`), and theorems are
+  snake case, keeping the casing of any definition they mention (`filt_f64_withinStepErr`).
 - `FloatFacts.lean` holds facts about floats shared by every module's proofs, including
   `real_f64` / `real_f32` (the exact real value of a float).

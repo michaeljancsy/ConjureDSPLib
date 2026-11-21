@@ -10,7 +10,7 @@ public import Mathlib.Tactic.Ring
 # The one-pole filter over a whole block: the real-number argument
 
 Each floating-point step of the filter `y = x + a * y_prev` is close to the exact step (the
-per-step bounds in `BridgeF64.lean` and `BridgeF32.lean`). This file shows, on real numbers only,
+per-step bounds in `BridgeF64.lean` and `BridgeF32.lean`, not imported here). This file shows, on real numbers only,
 that with a stable coefficient (`|A| < 1`, with a little room to spare) those per-step errors do
 not pile up: over a block of any length, every computed output stays within one fixed distance
 `E` of the exact real-number filter's output.

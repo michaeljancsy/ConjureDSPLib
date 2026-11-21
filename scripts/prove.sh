@@ -30,6 +30,7 @@ source proofs/PINS
 step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
+command -v python3 >/dev/null 2>&1 || fail "python3 is needed (install Apple's command-line tools)"
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
   || fail "run this from a git checkout of ConjureDSPLib (it compares generated Lean with the last commit)"
 
@@ -100,6 +101,10 @@ for p in json.load(open("proofs/lake-manifest.json"))["packages"]:
     if head != p["rev"]:
         print(f"  {p['name']}: {head}, manifest says {p['rev']}", file=sys.stderr)
         bad = True
+    elif subprocess.run(["git", "-C", d, "status", "--porcelain", "--untracked-files=no"],
+                        capture_output=True, text=True).stdout.strip():
+        print(f"  {p['name']}: has local changes", file=sys.stderr)
+        bad = True
 sys.exit(1 if bad else 0)
 PY
   link "$LAKE_PACKAGES" proofs/.lake/packages
@@ -129,10 +134,12 @@ step "4. Axiom check"
 ( cd proofs && lake env lean --run AxiomCheck.lean )
 
 step "5. Kernel replay (leanchecker)"
-modules="$(cd proofs && find ConjureDSPLib -name '*.lean' | sed 's/\.lean$//; s#/#.#g' | sort)"
-for m in ConjureDSPLib $modules; do
-  ( cd proofs && lake env leanchecker "$m" ) || fail "leanchecker rejected $m"
-  echo "$m: OK"
-done
+# leanchecker re-checks every compiled module whose name starts with ConjureDSPLib, so first make
+# sure no compiled file is left over from a deleted source file.
+stale="$(cd proofs/.lake/build/lib/lean && find ConjureDSPLib -name '*.olean' | while read -r f; do
+  src="../../../../${f%.olean}.lean"; [ -f "$src" ] || [ "$f" = ConjureDSPLib.olean ] || echo "$f"; done)"
+[ -z "$stale" ] || fail "compiled files with no source (delete them from proofs/.lake/build): $stale"
+( cd proofs && lake env leanchecker ConjureDSPLib ) || fail "leanchecker rejected the proofs"
+echo "Every ConjureDSPLib module: OK"
 
 printf '\nAll proofs built and checked.\n'

@@ -17,9 +17,28 @@ index, no arithmetic overflow on indices, and it terminates.
 | `one_pole::step_f64` | `one_pole.step_f64_error` | `OnePole/BridgeF64.lean` | Under the same no-overflow conditions: one step is within `u·\|x + a·y\| + (1 + u)(u·\|a·y\| + η) + η` of exact real arithmetic (`y` = `state`, `u = 2⁻⁵³`, `η` = half the smallest subnormal gap). |
 | `one_pole::step_f32`, `process_f32` | `one_pole.step_f32_eq`, `one_pole.process_f32_spec` | `OnePole/SpecF32.lean` | The same two facts in binary32 (Lean's `filt_f32`). |
 | `one_pole::step_f32` | `one_pole.step_f32_toReal`, `one_pole.step_f32_error` | `OnePole/BridgeF32.lean` | The same real-number link and error bound in binary32 (`u = 2⁻²⁴`), under the same no-overflow conditions. |
+| `one_pole::process_f64` | `one_pole.process_f64_block_error` | `OnePole/BlockF64.lean` | **Whole-block error.** If no step overflows, every input is at most `M` in size, and `\|A\| + \|A\|·u·(2 + u) < 1` (stable, with room for rounding): never fails, and every output sample and the final state are within `E` of the exact real-number filter (`filt_real`), for a block of any length. `B = \|S\| + M / (1 - \|A\|)` bounds the exact filter (`S` = starting state) and `E = (u·M + η·(2 + u) + \|A\|·u·(2 + u)·B) / (1 - \|A\| - \|A\|·u·(2 + u))`. |
+| `one_pole::process_f32` | `one_pole.process_f32_block_error` | `OnePole/BlockF32.lean` | The same in binary32. |
 
 The `toReal` and error theorems are stated about the expression `x + a * y`; the `step_*_eq`
-theorems are what tie that expression to the Rust functions.
+theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
+about `process_f64` / `process_f32` directly. Their real-number argument is in `OnePole/Block.lean`
+(`block_error_real`), shared by both precisions.
+
+### What the whole-block bound means in practice
+
+Worked out from the formula for `E` (not themselves proved), for inputs at most 1.0 in size and a
+starting state of 0, so the exact output stays within `B = 1 / (1 - a)`:
+
+| Precision | `a` | `B` | `E` | `E` relative to `B` |
+|---|---|---|---|---|
+| f32 | 0.5 | 2 | 3.6 × 10⁻⁷ | −135 dB |
+| f32 | 0.99 | 100 | 1.2 × 10⁻³ | −99 dB |
+| f32 | 0.999 | 1000 | 0.12 | −78 dB |
+| f64 | 0.99 | 100 | 2.2 × 10⁻¹² | −273 dB |
+| f64 | 0.999 | 1000 | 2.2 × 10⁻¹⁰ | −253 dB |
+
+The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 lose the most.
 
 ## What is assumed, not proved
 
@@ -29,7 +48,8 @@ theorems are what tie that expression to the Rust functions.
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
   separate multiply and add: Rust does not fuse `x + a * y` into one multiply-add instruction
   unless the code asks for `mul_add`, and this code does not.
-- The one-pole error bound covers one step. A bound over a whole block is issue #3.
+- The whole-block bound needs no step to overflow (`NoOverflowF64` / `NoOverflowF32`). It is a
+  worst case: typical rounding errors partly cancel and are much smaller.
 
 ## Layout
 

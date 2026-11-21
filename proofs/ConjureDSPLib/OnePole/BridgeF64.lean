@@ -23,7 +23,8 @@ namespace conjure_dsp_lib.one_pole
 
 /-- When `a`, `y`, `x`, the rounded product `a * y` and the result are all finite, the real
 value of one step's result is `x + a·y` rounded twice: the product `a·y` is rounded to the
-nearest binary64 number, then the sum is rounded again. `toReal` reads off a binary64 value's exact real number. -/
+nearest binary64 number, then the sum is rounded again. `toReal` reads off a binary64 value's
+exact real number. -/
 theorem step_f64_toReal (a y x : Float)
     (ha : a.isFinite = true) (hy : y.isFinite = true) (hx : x.isFinite = true)
     (hp : (a * y).isFinite = true) (hr : (x + a * y).isFinite = true) :

@@ -1,6 +1,10 @@
 module
 
-public import ConjureDSPLib.FloatFacts
+public import Mathlib.Data.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
 
 /-!
 # The one-pole filter over a whole block: the real-number argument
@@ -11,7 +15,8 @@ that with a stable coefficient (`|A| < 1`, with a little room to spare) those pe
 not pile up: over a block of any length, every computed output stays within one fixed distance
 `E` of the exact real-number filter's output.
 
-`BlockF64.lean` and `BlockF32.lean` apply this to the Rust functions.
+It uses real numbers only, so it serves both precisions: `BlockF64.lean` and `BlockF32.lean`
+apply it to the Rust functions.
 -/
 
 @[expose] public section
@@ -27,22 +32,25 @@ noncomputable def filt_real (A : ℝ) : ℝ → List ℝ → ℝ × List ℝ
     let t := filt_real A y xs
     (t.1, y :: t.2)
 
-/-- The per-step error bound of `step_f64_error` / `step_f32_error`, for previous output `y` and
-input `x`, with unit roundoff `u` and underflow error `η`. -/
-def stepErr (u η A y x : ℝ) : ℝ :=
+/-- The per-step error bound of `step_f64_error` / `step_f32_error`, for state `y` (the previous
+output) and input `x`, with unit roundoff `u` and underflow error `η`. It must stay exactly the
+right-hand side of those theorems: `filt_f64_withinStepErr` and `filt_f32_withinStepErr` check
+that it does. -/
+def stepErr (A u η y x : ℝ) : ℝ :=
   |x + A * y| * u + (|A * y| * u + η) * (1 + u) + η
 
-/-- `WithinStepErr A u η y xs f ys`: starting from previous output `y`, the computed outputs
-`ys` and final state `f` come from inputs `xs`, each step within `stepErr` of the exact step
-taken from the previous computed output. -/
+/-- `WithinStepErr A u η y xs f ys`: starting from state `y` (the previous output), the
+computed outputs `ys` and final state `f` come from inputs `xs`, each step within `stepErr` of
+the exact step taken from the previous computed output. -/
 def WithinStepErr (A u η : ℝ) : ℝ → List ℝ → ℝ → List ℝ → Prop
   | y, [], f, [] => f = y
   | y, x :: xs, f, y' :: ys =>
-    |y' - (x + A * y)| ≤ stepErr u η A y x ∧ WithinStepErr A u η y' xs f ys
+    |y' - (x + A * y)| ≤ stepErr A u η y x ∧ WithinStepErr A u η y' xs f ys
   | _, _, _, _ => False
 
-/-- The induction behind `block_error_real`, with the bounds `B` (on the exact filter) and `E`
-(on the error) as parameters satisfying the two inequalities that make them invariant. -/
+/-- The induction behind `block_error_real` (its auxiliary lemma), with the bounds `B` (on the
+exact filter) and `E` (on the error) as parameters satisfying the two inequalities that make
+them invariant. -/
 theorem block_error_core (A u η M B E : ℝ) (hu : 0 ≤ u) (hB : M + |A| * B ≤ B)
     (hE : u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E) :
     ∀ (xs : List ℝ) (y r f : ℝ) (ys : List ℝ),
@@ -73,7 +81,7 @@ theorem block_error_core (A u η M B E : ℝ) (hu : 0 ≤ u) (hB : M + |A| * B �
           _ ≤ |y - r| + |r| := abs_add_le _ _
           _ ≤ B + E := by linarith
       -- One step's rounding error, bounded using |x| ≤ M and |y| ≤ B + E.
-      have hs : stepErr u η A y x ≤ u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) := by
+      have hs : stepErr A u η y x ≤ u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) := by
         unfold stepErr
         have h1 : |x + A * y| ≤ M + |A| * (B + E) := by
           calc |x + A * y| ≤ |x| + |A * y| := abs_add_le _ _

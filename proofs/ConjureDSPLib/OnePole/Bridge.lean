@@ -25,7 +25,7 @@ theorem isFinite_ofFloat (v : Float) (h : v.isFinite = true) :
 /-- **Proof 2, exact form.** For finite values, the real value of the Rust step's result is
 `x + a·y` rounded twice: the product `a·y` is rounded to the nearest binary64 number, then the sum
 is rounded again. `toReal` reads off a binary64 value's exact real number. -/
-theorem step_toReal (a y x : Float)
+theorem step_f64_toReal (a y x : Float)
     (ha : a.isFinite = true) (hy : y.isFinite = true) (hx : x.isFinite = true)
     (hp : (a * y).isFinite = true) (hr : (x + a * y).isFinite = true) :
     toReal (ofFloat (x + a * y) : Binary64) =
@@ -46,7 +46,7 @@ theorem step_toReal (a y x : Float)
 rounding error (2⁻⁵³ for binary64) and `η = underflowErrorAt binary64` is the tiny absolute error
 possible for results near zero (half the smallest subnormal spacing). Here `x`, `a`, `y` stand for
 the exact real values of the inputs. -/
-theorem step_error (a y x : Float)
+theorem step_f64_error (a y x : Float)
     (ha : a.isFinite = true) (hy : y.isFinite = true) (hx : x.isFinite = true)
     (hp : (a * y).isFinite = true) (hr : (x + a * y).isFinite = true) :
     let X := toReal (ofFloat x : Binary64)
@@ -57,7 +57,7 @@ theorem step_error (a y x : Float)
     |toReal (ofFloat (x + a * y) : Binary64) - (X + A * Y)| ≤
       |X + A * Y| * u + (|A * Y| * u + η) * (1 + u) + η := by
   intro X A Y u η
-  rw [step_toReal a y x ha hy hx hp hr]
+  rw [step_f64_toReal a y x ha hy hx hp hr]
   obtain ⟨δ1, η1, h1, hd1, he1, -⟩ := Model.roundAt_standardModel FloatFormat.binary64 (A * Y)
   rw [h1]
   obtain ⟨δ2, η2, h2, hd2, he2, -⟩ :=

@@ -7,9 +7,9 @@ public import ConjureDSPLib.Code.ConjureDspLib
 
 `ConjureDSPLib/Code/ConjureDspLib.lean` holds Aeneas's translation of `src/one_pole.rs`. This file proves:
 
-1. `step_eq`: one Rust step is exactly `x + a * y_prev` in Lean's `Float` (IEEE binary64),
+1. `step_f64_eq`: one Rust step is exactly `x + a * y_prev` in Lean's `Float` (IEEE binary64),
    and never fails.
-2. `process_spec`: the Rust block loop never fails and produces exactly the outputs and
+2. `process_f64_spec`: the Rust block loop never fails and produces exactly the outputs and
    final state of the textbook filter `filt`, sample by sample.
 -/
 
@@ -20,8 +20,8 @@ open Aeneas Aeneas.Std Result
 namespace conjure_dsp_lib.one_pole
 
 /-- **Proof 1.** One Rust step is `x + a * y_prev` in binary64 arithmetic, and cannot fail. -/
-theorem step_eq (a y_prev x : Float) :
-    step a y_prev x = ok (x + a * y_prev) := rfl
+theorem step_f64_eq (a y_prev x : Float) :
+    step_f64 a y_prev x = ok (x + a * y_prev) := rfl
 
 /-- The filter as a mathematician writes it, on binary64 numbers: run it over a list of input
 samples from state `s`, returning the final state and the list of outputs. -/
@@ -51,12 +51,12 @@ theorem filt_set_step (a s : Float) (l : List Float) (j : ℕ) (hj : j < l.lengt
 
 /-- The loop, started at position `i`, leaves the first `i` samples alone and filters the rest.
 `f ⦃ P ⦄` is Aeneas's notation for "running `f` never fails, and its result satisfies `P`". -/
-theorem process_loop_spec (a state : Float) (buf : Slice Float) (i : Std.Usize)
+theorem process_f64_loop_spec (a state : Float) (buf : Slice Float) (i : Std.Usize)
     (hi : i.val ≤ buf.length) :
-    process_loop a state buf i ⦃ fun r =>
+    process_f64_loop a state buf i ⦃ fun r =>
       r.2.val = buf.val.take i.val ++ (filt a state (buf.val.drop i.val)).2 ∧
       r.1 = (filt a state (buf.val.drop i.val)).1 ⦄ := by
-  unfold process_loop
+  unfold process_f64_loop
   -- Invariant on the loop state `(s, b, j)`: the buffer keeps its length, and finishing the job
   -- from here (keep `b`'s first `j` samples, filter the rest from state `s`) gives the same answer
   -- as filtering from the start.
@@ -67,7 +67,7 @@ theorem process_loop_spec (a state : Float) (buf : Slice Float) (i : Std.Usize)
       (filt a x.1 (x.2.1.val.drop x.2.2.val)).1 = (filt a state (buf.val.drop i.val)).1)
   · rintro ⟨st, b, j⟩ ⟨hlen, hj, hout, hst⟩
     simp only at hlen hj hout hst
-    simp only [process_loop.body, step_eq]
+    simp only [process_f64_loop.body, step_f64_eq]
     step*
     · -- Still looping: rebuild the invariant one sample further on.
       subst s_post fl_post
@@ -87,10 +87,10 @@ theorem process_loop_spec (a state : Float) (buf : Slice Float) (i : Std.Usize)
 
 /-- **Proof 3.** The Rust block-processing function never fails, and its output samples and final
 state are exactly those of the textbook filter `filt`, sample by sample. -/
-theorem process_spec (a state : Float) (buf : Slice Float) :
-    process a state buf ⦃ fun r =>
+theorem process_f64_spec (a state : Float) (buf : Slice Float) :
+    process_f64 a state buf ⦃ fun r =>
       r.2.val = (filt a state buf.val).2 ∧ r.1 = (filt a state buf.val).1 ⦄ := by
-  simpa using process_loop_spec a state buf 0#usize (by simp)
+  simpa using process_f64_loop_spec a state buf 0#usize (by simp)
 
 end conjure_dsp_lib.one_pole
 

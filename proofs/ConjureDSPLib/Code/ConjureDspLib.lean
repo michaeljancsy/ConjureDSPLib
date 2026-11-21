@@ -32,17 +32,18 @@ def gain.apply_gain_f64 (gain : Float) (x : Float) : Result Float := do
 def gain.apply_gain_f32 (gain : Float32) (x : Float32) : Result Float32 := do
   ok (Float32.mul gain x)
 
-/-- [conjure_dsp_lib::one_pole::step]:
+/-- [conjure_dsp_lib::one_pole::step_f64]:
     Source: 'src/one_pole.rs', lines 9:0-11:1
     Visibility: public -/
-def one_pole.step (a : Float) (y_prev : Float) (x : Float) : Result Float := do
+def one_pole.step_f64
+  (a : Float) (y_prev : Float) (x : Float) : Result Float := do
   ok (Float.add x (Float.mul a y_prev))
 
-/-- [conjure_dsp_lib::one_pole::process]: loop body 0:
+/-- [conjure_dsp_lib::one_pole::process_f64]: loop body 0:
     Source: 'src/one_pole.rs', lines 18:4-23:5
     Visibility: public -/
 @[rust_loop_body]
-def one_pole.process_loop.body
+def one_pole.process_f64_loop.body
   (a : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
   Result (ControlFlow (Float × (Slice Float) × Std.Usize) (Float × (Slice
     Float)))
@@ -51,33 +52,33 @@ def one_pole.process_loop.body
   if i < i1
   then
     let fl ← Slice.index_usize buf i
-    let y ← one_pole.step a state fl
+    let y ← one_pole.step_f64 a state fl
     let s ← Slice.update buf i y
     let i2 ← i + 1#usize
     ok (cont (y, s, i2))
   else ok (done (state, buf))
 
-/-- [conjure_dsp_lib::one_pole::process]: loop 0:
+/-- [conjure_dsp_lib::one_pole::process_f64]: loop 0:
     Source: 'src/one_pole.rs', lines 18:4-23:5
     Visibility: public -/
 @[rust_loop]
-def one_pole.process_loop
+def one_pole.process_f64_loop
   (a : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
   Result (Float × (Slice Float))
   := do
   loop
-    (fun (state1, buf1, i1) => one_pole.process_loop.body a state1 buf1 i1)
+    (fun (state1, buf1, i1) => one_pole.process_f64_loop.body a state1 buf1 i1)
     (state, buf, i)
 
-/-- [conjure_dsp_lib::one_pole::process]:
+/-- [conjure_dsp_lib::one_pole::process_f64]:
     Source: 'src/one_pole.rs', lines 15:0-24:1
     Visibility: public -/
 @[reducible]
-def one_pole.process
+def one_pole.process_f64
   (a : Float) (state : Float) (buf : Slice Float) :
   Result (Float × (Slice Float))
   := do
-  one_pole.process_loop a state buf 0#usize
+  one_pole.process_f64_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_f32]:
     Source: 'src/one_pole.rs', lines 28:0-30:1

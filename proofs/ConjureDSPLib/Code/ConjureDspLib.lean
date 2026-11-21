@@ -20,10 +20,10 @@ set_option maxRecDepth 2048
 
 namespace conjure_dsp_lib
 
-/-- [conjure_dsp_lib::gain::apply_gain]:
+/-- [conjure_dsp_lib::gain::apply_gain_f64]:
     Source: 'src/gain.rs', lines 5:0-7:1
     Visibility: public -/
-def gain.apply_gain (gain : Float) (x : Float) : Result Float := do
+def gain.apply_gain_f64 (gain : Float) (x : Float) : Result Float := do
   ok (Float.mul gain x)
 
 /-- [conjure_dsp_lib::gain::apply_gain_f32]:

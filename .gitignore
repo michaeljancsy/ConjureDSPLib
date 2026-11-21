@@ -1,4 +1,5 @@
 /target
+.DS_Store
 *.llbc
 /proofs/.lake
 /proofs/.toolchain

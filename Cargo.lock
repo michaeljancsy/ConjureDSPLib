@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "conjure_dsp_lib"
+name = "conjure-dsp-lib"
 version = "0.1.0"

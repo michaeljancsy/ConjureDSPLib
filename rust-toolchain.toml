@@ -1,0 +1,4 @@
+# The Rust used for cargo fmt, clippy, test and doc. Charon uses its own pinned nightly.
+[toolchain]
+channel = "1.93.1"
+components = ["rustfmt", "clippy"]

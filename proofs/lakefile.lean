@@ -12,4 +12,6 @@ require aeneas from ".toolchain/aeneas/backends/lean"
 require FloatLib from git
   "https://github.com/lean-dojo/FloatLib" @ "acba2057e452f32f4ed4f06bb0adbeda5342ba92"
 
+-- `globs` builds every file under ConjureDSPLib/, not only those the root file imports.
 @[default_target] lean_lib «ConjureDSPLib» where
+  globs := #[.andSubmodules `ConjureDSPLib]

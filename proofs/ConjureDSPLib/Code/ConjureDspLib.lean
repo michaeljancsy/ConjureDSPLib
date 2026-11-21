@@ -20,16 +20,112 @@ set_option maxRecDepth 2048
 
 namespace conjure_dsp_lib
 
-/-- [conjure_dsp_lib::gain::apply_gain_f64]:
+/-- [conjure_dsp_lib::gain::apply_f64]:
     Source: 'src/gain.rs', lines 5:0-7:1
     Visibility: public -/
-def gain.apply_gain_f64 (gain : Float) (x : Float) : Result Float := do
+def gain.apply_f64 (gain : Float) (x : Float) : Result Float := do
   ok (Float.mul gain x)
 
-/-- [conjure_dsp_lib::gain::apply_gain_f32]:
+/-- [conjure_dsp_lib::gain::apply_f32]:
     Source: 'src/gain.rs', lines 11:0-13:1
     Visibility: public -/
-def gain.apply_gain_f32 (gain : Float32) (x : Float32) : Result Float32 := do
+def gain.apply_f32 (gain : Float32) (x : Float32) : Result Float32 := do
   ok (Float32.mul gain x)
+
+/-- [conjure_dsp_lib::one_pole::step_f64]:
+    Source: 'src/one_pole.rs', lines 19:0-21:1
+    Visibility: public -/
+def one_pole.step_f64
+  (a : Float) (state : Float) (x : Float) : Result Float := do
+  ok (Float.add x (Float.mul a state))
+
+/-- [conjure_dsp_lib::one_pole::process_f64]: loop body 0:
+    Source: 'src/one_pole.rs', lines 28:4-33:5
+    Visibility: public -/
+@[rust_loop_body]
+def one_pole.process_f64_loop.body
+  (a : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
+  Result (ControlFlow (Float × (Slice Float) × Std.Usize) (Float × (Slice
+    Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let y ← one_pole.step_f64 a state fl
+    let s ← Slice.update buf i y
+    let i2 ← i + 1#usize
+    ok (cont (y, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::one_pole::process_f64]: loop 0:
+    Source: 'src/one_pole.rs', lines 28:4-33:5
+    Visibility: public -/
+@[rust_loop]
+def one_pole.process_f64_loop
+  (a : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
+  Result (Float × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => one_pole.process_f64_loop.body a state1 buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::one_pole::process_f64]:
+    Source: 'src/one_pole.rs', lines 25:0-34:1
+    Visibility: public -/
+@[reducible]
+def one_pole.process_f64
+  (a : Float) (state : Float) (buf : Slice Float) :
+  Result (Float × (Slice Float))
+  := do
+  one_pole.process_f64_loop a state buf 0#usize
+
+/-- [conjure_dsp_lib::one_pole::step_f32]:
+    Source: 'src/one_pole.rs', lines 39:0-41:1
+    Visibility: public -/
+def one_pole.step_f32
+  (a : Float32) (state : Float32) (x : Float32) : Result Float32 := do
+  ok (Float32.add x (Float32.mul a state))
+
+/-- [conjure_dsp_lib::one_pole::process_f32]: loop body 0:
+    Source: 'src/one_pole.rs', lines 48:4-53:5
+    Visibility: public -/
+@[rust_loop_body]
+def one_pole.process_f32_loop.body
+  (a : Float32) (state : Float32) (buf : Slice Float32) (i : Std.Usize) :
+  Result (ControlFlow (Float32 × (Slice Float32) × Std.Usize) (Float32 ×
+    (Slice Float32)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let y ← one_pole.step_f32 a state fl
+    let s ← Slice.update buf i y
+    let i2 ← i + 1#usize
+    ok (cont (y, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::one_pole::process_f32]: loop 0:
+    Source: 'src/one_pole.rs', lines 48:4-53:5
+    Visibility: public -/
+@[rust_loop]
+def one_pole.process_f32_loop
+  (a : Float32) (state : Float32) (buf : Slice Float32) (i : Std.Usize) :
+  Result (Float32 × (Slice Float32))
+  := do
+  loop
+    (fun (state1, buf1, i1) => one_pole.process_f32_loop.body a state1 buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::one_pole::process_f32]:
+    Source: 'src/one_pole.rs', lines 45:0-54:1
+    Visibility: public -/
+@[reducible]
+def one_pole.process_f32
+  (a : Float32) (state : Float32) (buf : Slice Float32) :
+  Result (Float32 × (Slice Float32))
+  := do
+  one_pole.process_f32_loop a state buf 0#usize
 
 end conjure_dsp_lib

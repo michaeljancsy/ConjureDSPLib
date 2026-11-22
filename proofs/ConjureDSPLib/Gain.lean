@@ -10,8 +10,9 @@ About `src/gain.rs`, as Aeneas translated it (into `ConjureDSPLib/Code/ConjureDs
 1. `apply_f64` and `apply_f32` are exactly Lean's `Float.mul` / `Float32.mul`, and never fail.
 2. `ramp_f64_spec` / `ramp_f32_spec`: `ramp_f64` and `ramp_f32` never fail, and multiply each
    sample `i` of a block of `n` samples by exactly `start + ((end - start) / n) * i`, computed in
-   binary64 / binary32 in that order, with `n` and `i` rounded to the nearest float as Rust's
-   `as` does (`rampGain_f64`, `rampGain_f32`). These are statements about float operations, not
+   binary64 / binary32 in that order, with `n` and `i` converted by `castNat_f64` /
+   `castNat_f32` (Lean's own `Float.Model.ofNat`; `usize_toFloat_eq_castNat_*` shows this is the
+   translated `as`) (`rampGain_f64`, `rampGain_f32`). These are statements about float operations, not
    about real numbers.
 -/
 
@@ -30,7 +31,7 @@ theorem apply_f32_eq (gain x : Float32) : apply_f32 gain x = ok (gain * x) := rf
 /-! ## The ramp in f64 -/
 
 /-- A natural number converted to a binary64 value by Lean's own conversion `Float.Model.ofNat`
-(which Lean core documents as rounding to nearest, ties to even; not proved here).
+(whose definition in Lean core's float model rounds to nearest, ties to even; not proved here).
 `usize_toFloat_eq_castNat_f64` shows it is the translated Rust `i as f64`. -/
 def castNat_f64 (n : ℕ) : Float := Float.ofModel (Float.Model.ofNat n)
 
@@ -50,8 +51,8 @@ def rampGain_f64 (start «end» : Float) (n i : ℕ) : Float :=
 def rampList_f64 (start «end» : Float) (xs : List Float) : List Float :=
   xs.mapIdx (fun i x => x * rampGain_f64 start «end» xs.length i)
 
-/-- The loop, started at position `i`, leaves the first `i` samples as they are and multiplies
-every later sample `k` by `start + step * k`. -/
+/-- When `i ≤ buf.length`, the loop started at position `i` never fails, leaves the first `i`
+samples as they are, and multiplies every later sample `k` by `start + step * castNat_f64 k`. -/
 theorem ramp_f64_loop_spec (start step : Float) (buf : Slice Float) (i : Std.Usize)
     (hi : i.val ≤ buf.length) :
     ramp_f64_loop start buf step i ⦃ fun r =>
@@ -130,7 +131,7 @@ theorem ramp_f64_spec (start «end» : Float) (buf : Slice Float) :
 /-! ## The ramp in f32 -/
 
 /-- A natural number converted to a binary32 value by Lean's own conversion `Float32.Model.ofNat`
-(which Lean core documents as rounding to nearest, ties to even; not proved here).
+(whose definition in Lean core's float model rounds to nearest, ties to even; not proved here).
 `usize_toFloat32_eq_castNat_f32` shows it is the translated Rust `i as f32`. -/
 def castNat_f32 (n : ℕ) : Float32 := Float32.ofModel (Float32.Model.ofNat n)
 
@@ -151,8 +152,8 @@ def rampGain_f32 (start «end» : Float32) (n i : ℕ) : Float32 :=
 def rampList_f32 (start «end» : Float32) (xs : List Float32) : List Float32 :=
   xs.mapIdx (fun i x => x * rampGain_f32 start «end» xs.length i)
 
-/-- The loop, started at position `i`, leaves the first `i` samples as they are and multiplies
-every later sample `k` by `start + step * k`. -/
+/-- When `i ≤ buf.length`, the loop started at position `i` never fails, leaves the first `i`
+samples as they are, and multiplies every later sample `k` by `start + step * castNat_f32 k`. -/
 theorem ramp_f32_loop_spec (start step : Float32) (buf : Slice Float32) (i : Std.Usize)
     (hi : i.val ≤ buf.length) :
     ramp_f32_loop start buf step i ⦃ fun r =>

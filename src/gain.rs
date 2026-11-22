@@ -13,20 +13,24 @@ pub fn apply_f32(gain: f32, x: f32) -> f32 {
     gain * x
 }
 
-/// Multiplies `buf` in place by a gain that moves in a straight line from `start` towards `end`,
+/// Multiplies `buf` in place by a gain that moves in a straight line from `start` toward `end`,
 /// in `f64`.
 ///
 /// With `n = buf.len()`: an empty block is left unchanged. Otherwise `step = (end - start) / n`
 /// is computed once, and sample `i` (for `i` from 0 to `n - 1`) becomes
-/// `buf[i] * (start + step * (i as f64))`, each operation rounded in `f64` in that order. So the
-/// gain is `start` at the first sample and `start + step * (n - 1)` (about `end - step`) at the
-/// last: `end` itself is not reached in this block. A following block that starts at `end`
-/// continues the ramp without a jump.
+/// `buf[i] * (start + step * (i as f64))`, each operation rounded in `f64` in that order. When
+/// `start` and `end` are finite and neither `end - start` nor `step` overflows, the gain is
+/// exactly `start` at the first sample and `start + step * (n - 1)` (about `end - step`) at the
+/// last: `end` itself is not reached in this block. A following block that starts at `end` takes
+/// one ordinary step from about `end - step` to exactly `end`, whatever its own length or target.
+/// If either end is not finite, or `end - start` overflows, the gains are infinite or NaN (the
+/// first sample's included).
 ///
 /// The gain is recomputed from the index for every sample, not built up by adding `step`
-/// repeatedly, so rounding errors do not accumulate along the block. `i as f64` and `n as f64`
-/// are exact for values below `2^53`; beyond that they are rounded to the nearest `f64` and the
-/// gain is computed from the rounded values.
+/// repeatedly, so each gain carries the same few roundings (subtract, divide, cast, multiply, add)
+/// wherever it is in the block. `i as f64` and `n as f64` are exact for every value up to `2^53`
+/// (9,007,199,254,740,992); above that some values may be rounded to the nearest `f64`, and the gain is computed
+/// from the rounded values.
 pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
     let n = buf.len();
     if n == 0 {
@@ -41,20 +45,24 @@ pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
     }
 }
 
-/// Multiplies `buf` in place by a gain that moves in a straight line from `start` towards `end`,
+/// Multiplies `buf` in place by a gain that moves in a straight line from `start` toward `end`,
 /// in `f32`.
 ///
 /// With `n = buf.len()`: an empty block is left unchanged. Otherwise `step = (end - start) / n`
 /// is computed once, and sample `i` (for `i` from 0 to `n - 1`) becomes
-/// `buf[i] * (start + step * (i as f32))`, each operation rounded in `f32` in that order. So the
-/// gain is `start` at the first sample and `start + step * (n - 1)` (about `end - step`) at the
-/// last: `end` itself is not reached in this block. A following block that starts at `end`
-/// continues the ramp without a jump.
+/// `buf[i] * (start + step * (i as f32))`, each operation rounded in `f32` in that order. When
+/// `start` and `end` are finite and neither `end - start` nor `step` overflows, the gain is
+/// exactly `start` at the first sample and `start + step * (n - 1)` (about `end - step`) at the
+/// last: `end` itself is not reached in this block. A following block that starts at `end` takes
+/// one ordinary step from about `end - step` to exactly `end`, whatever its own length or target.
+/// If either end is not finite, or `end - start` overflows, the gains are infinite or NaN (the
+/// first sample's included).
 ///
 /// The gain is recomputed from the index for every sample, not built up by adding `step`
-/// repeatedly, so rounding errors do not accumulate along the block. `i as f32` and `n as f32`
-/// are exact for values below `2^24` (16,777,216); beyond that they are rounded to the nearest
-/// `f32` and the gain is computed from the rounded values.
+/// repeatedly, so each gain carries the same few roundings (subtract, divide, cast, multiply, add)
+/// wherever it is in the block. `i as f32` and `n as f32` are exact for every value up to `2^24`
+/// (16,777,216); above that some values may be rounded to the nearest `f32`, and the gain is computed
+/// from the rounded values.
 pub fn ramp_f32(start: f32, end: f32, buf: &mut [f32]) {
     let n = buf.len();
     if n == 0 {
@@ -99,7 +107,7 @@ mod tests {
                 }
 
                 #[test]
-                fn constant_input_gets_the_ramp() {
+                fn exact_ramps_up_and_down() {
                     // Exact in binary: step = 1 / 4.
                     let mut buf: [$t; 4] = [1.0; 4];
                     $ramp(0.0, 1.0, &mut buf);

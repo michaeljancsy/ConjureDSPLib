@@ -20,8 +20,8 @@ conjure-dsp-lib = { git = "https://github.com/michaeljancsy/ConjureDSPLib", tag 
   `smoother.process_f64_block_error`).
 - Biquad and SVF: a whole-block error bound given a contraction for the stored coefficients, under
   finiteness, input-size and no-overflow conditions (`biquad.process_f64_block_error`,
-  `svf.process_f64_block_error`). For the stored `f32` coefficients of a 20 Hz SVF low-pass at
-  48 kHz (that `CoeffsF32::low_pass` stores them is worked out outside Lean, not proved), with
+  `svf.process_f64_block_error`). For the stored `f32` coefficients of a 20 Hz SVF low-pass with
+  Q = 0.7071 at 48 kHz (that `CoeffsF32::low_pass` stores them is worked out outside Lean, not proved), with
   inputs at most 1 and a start from zero, the SVF's bound is proved to be at most 0.0126
   (`svf.lowPass20Hz_bounds_f32`). For the stored `f32` coefficients of an RBJ-cookbook
   Butterworth biquad low-pass at 48 kHz (that they are the cookbook's is worked out outside Lean,
@@ -45,7 +45,9 @@ compiled machine code.
 **Observed, not proved:** the error bounds are worst cases, and typical errors are expected to be
 much smaller; RBJ-cookbook low-pass and high-pass biquads with `f32` coefficients can put a pole on
 or outside the unit circle at some cutoffs below about 6 Hz and within 6 Hz of half the sample rate
-(worked out outside Lean); one such case is proved (`biquad.lowPass1Hz_pole_one_f32`).
+(worked out outside Lean at 44.1, 48 and 96 kHz and Q = 0.5, 0.7071, 2 and 10); one such case is
+proved for specific stored values (`biquad.lowPass1Hz_pole_one_f32`; that they are a 1 Hz
+Butterworth low-pass's at 48 kHz is worked out outside Lean, not proved).
 
 **Checking the proofs:** pinned versions are in
 [proofs/PINS](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/PINS). Build the

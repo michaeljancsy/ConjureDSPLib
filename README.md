@@ -96,7 +96,9 @@ functions never panic.
 
 (*) Given a contraction for the stored coefficients: a way of measuring the filter's two state
 values under which each step, without input, multiplies the measure by at most a fixed factor
-below 1 (the Lean structures `biquad.Contraction` and `svf.Contraction`), and further conditions.
+below 1, with constants linking the measure to the two values (`biquad.Contraction` and
+`svf.Contraction`, both the structure `two_state.Contraction` in
+`proofs/ConjureDSPLib/TwoState.lean`), and further conditions.
 One is supplied for biquads whose poles are inside the unit circle (complex, distinct real or
 repeated real), and for the SVF with complex poles.
 
@@ -109,9 +111,10 @@ Things to know before relying on the error bounds:
   is exactly `1 - a` when `a` is between 1/2 and 2 (`smoother.coeff_f64_exact`); outside that
   range, the effect of its rounding is not proved.
 - They are worst cases, and can be too large to be useful, or prove nothing. Take the stored `f32`
-  coefficients of an RBJ-cookbook Butterworth low-pass at 48 kHz, inputs at most 1 in size, a
-  start from zero, and `biquad.complexPolesContraction`. At 1 kHz each output is within 0.0542
-  (−25.3 dB) of exact arithmetic (`biquad.lowPass1kHz_bounds_f32`). At 100 Hz the bound is at
+  coefficients of an RBJ-cookbook Butterworth low-pass at 48 kHz, finite inputs at most 1 in size,
+  a start from zero, and `biquad.complexPolesContraction`. At 1 kHz each output is within 0.0542
+  (−25.3 dB) of exact arithmetic (`biquad.lowPass1kHz_bounds_f32` with
+  `biquad.process_f32_block_error_of_inputs`). At 100 Hz the bound is at
   least 17, larger than the inputs themselves, so of no practical use
   (`biquad.lowPass100Hz_bounds_f32`). At 82 Hz the bound's condition is false, so it says nothing
   (`biquad.lowPass82Hz_smallness_fails_f32`). That these stored values are the cookbook's
@@ -192,7 +195,8 @@ statement outside the generated code names Lean's NaN constants or Aeneas's NaN-
 directly) and a `leanchecker` kernel replay. It needs `bash`, `git` (run it from a git checkout)
 and `python3`.
 
-`scripts/prove.sh` refuses to run with tool versions other than those in `proofs/PINS`:
+`scripts/check.sh` and `scripts/prove.sh` refuse to run with tool versions other than those in
+`proofs/PINS` (Rust is checked by `check.sh`, the rest by `prove.sh`):
 
 | Tool | Version |
 |---|---|

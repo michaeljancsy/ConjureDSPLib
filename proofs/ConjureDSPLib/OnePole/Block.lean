@@ -50,8 +50,7 @@ def WithinStepErr (A u η : ℝ) : ℝ → List ℝ → ℝ → List ℝ → Pro
 
 /-- One step keeps both bounds: if the computed state `y` is within `E` of the exact state `r`,
 `|r| ≤ B`, the input is at most `M` in size, and the step's rounding is within `stepErr`, then the
-new
-computed state `y'` is within `E` of the new exact state, which is at most `B` in size. -/
+new computed state `y'` is within `E` of the new exact state, which is at most `B` in size. -/
 theorem block_step (A u η M B E x y r y' : ℝ) (hu : 0 ≤ u) (hB : M + |A| * B ≤ B)
     (hE : u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E)
     (hx : |x| ≤ M) (hyr : |y - r| ≤ E) (hr : |r| ≤ B)

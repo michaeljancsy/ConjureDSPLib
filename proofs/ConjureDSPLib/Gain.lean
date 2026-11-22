@@ -11,8 +11,9 @@ About `src/gain.rs`, as Aeneas translated it (into `ConjureDSPLib/Code/ConjureDs
 2. `ramp_f64_spec` / `ramp_f32_spec`: `ramp_f64` and `ramp_f32` never fail, and multiply each
    sample `i` of a block of `n` samples by exactly `start + ((end - start) / n) * i`, computed in
    binary64 / binary32 in that order, with `n` and `i` converted by `castNat_f64` /
-   `castNat_f32` (Lean's own `Float.Model.ofNat`; `usize_toFloat_eq_castNat_*` shows this is the
-   translated `as`) (`rampGain_f64`, `rampGain_f32`). These are statements about float
+   `castNat_f32` (Lean's own `Float.Model.ofNat` / `Float32.Model.ofNat`;
+   `usize_toFloat_eq_castNat_f64` and `usize_toFloat32_eq_castNat_f32` show these are the
+   translated `as`). See `rampGain_f64`, `rampGain_f32`. These are statements about float
    operations, not about real numbers.
 -/
 
@@ -42,7 +43,7 @@ theorem usize_toFloat_eq_castNat_f64 (i : Std.Usize) : UScalar.toFloat i = castN
   rfl
 
 /-- The gain of sample `i` in a block of `n` samples: `start + ((end - start) / n) * i` in
-binary64, in the Rust code's order, with `n` and `i` rounded as `castNat_f64`. -/
+binary64, in the Rust code's order, with `n` and `i` converted by `castNat_f64`. -/
 def rampGain_f64 (start «end» : Float) (n i : ℕ) : Float :=
   start + ((«end» - start) / castNat_f64 n) * castNat_f64 i
 
@@ -143,7 +144,7 @@ theorem usize_toFloat32_eq_castNat_f32 (i : Std.Usize) :
   rfl
 
 /-- The gain of sample `i` in a block of `n` samples: `start + ((end - start) / n) * i` in
-binary32, in the Rust code's order, with `n` and `i` rounded as `castNat_f32`. -/
+binary32, in the Rust code's order, with `n` and `i` converted by `castNat_f32`. -/
 def rampGain_f32 (start «end» : Float32) (n i : ℕ) : Float32 :=
   start + ((«end» - start) / castNat_f32 n) * castNat_f32 i
 

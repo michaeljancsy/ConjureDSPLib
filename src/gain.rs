@@ -19,10 +19,11 @@ pub fn apply_f32(gain: f32, x: f32) -> f32 {
 /// With `n = buf.len()`: an empty block is left unchanged. Otherwise `step = (end - start) / n`
 /// is computed once, and sample `i` (for `i` from 0 to `n - 1`) becomes
 /// `buf[i] * (start + step * (i as f64))`, each operation rounded in `f64` in that order. When
-/// `start` and `end` are finite and neither `end - start` nor `step` overflows, the gain is
+/// `start` and `end` are finite and `end - start` does not overflow, the gain is
 /// exactly `start` at the first sample and `start + step * (n - 1)` (about `end - step`) at the
 /// last: `end` itself is not reached in this block. A following block that starts at `end` takes
-/// one ordinary step from about `end - step` to exactly `end`, whatever its own length or target.
+/// one ordinary step from about `end - step` to exactly `end`, whatever its own length or target
+/// (when that block also meets these conditions).
 /// If either end is not finite, or `end - start` overflows, the gains are infinite or NaN (the
 /// first sample's included).
 ///
@@ -51,10 +52,11 @@ pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
 /// With `n = buf.len()`: an empty block is left unchanged. Otherwise `step = (end - start) / n`
 /// is computed once, and sample `i` (for `i` from 0 to `n - 1`) becomes
 /// `buf[i] * (start + step * (i as f32))`, each operation rounded in `f32` in that order. When
-/// `start` and `end` are finite and neither `end - start` nor `step` overflows, the gain is
+/// `start` and `end` are finite and `end - start` does not overflow, the gain is
 /// exactly `start` at the first sample and `start + step * (n - 1)` (about `end - step`) at the
 /// last: `end` itself is not reached in this block. A following block that starts at `end` takes
-/// one ordinary step from about `end - step` to exactly `end`, whatever its own length or target.
+/// one ordinary step from about `end - step` to exactly `end`, whatever its own length or target
+/// (when that block also meets these conditions).
 /// If either end is not finite, or `end - start` overflows, the gains are infinite or NaN (the
 /// first sample's included).
 ///

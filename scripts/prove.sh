@@ -5,7 +5,8 @@
 #      the last commit
 #   3. lake build
 #   4. axiom check (proofs/AxiomCheck.lean): every module file built; only propext,
-#      Classical.choice and Quot.sound; no sorry; no axioms of our own
+#      Classical.choice and Quot.sound; no sorry; no axioms of our own; no public theorem
+#      statement mentions a NaN constant or a helper that gives a NaN's bits or sign
 #   5. kernel replay: leanchecker re-checks every declaration of every module
 #
 # Tool locations (defaults in brackets):

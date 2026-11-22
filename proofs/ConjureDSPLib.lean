@@ -27,3 +27,7 @@ public import ConjureDSPLib.Delay.SpecF64
 public import ConjureDSPLib.Delay.SpecF32
 public import ConjureDSPLib.Svf.SpecF64
 public import ConjureDSPLib.Svf.SpecF32
+public import ConjureDSPLib.Svf.Block
+public import ConjureDSPLib.Svf.Contraction
+public import ConjureDSPLib.Svf.BlockF64
+public import ConjureDSPLib.Svf.BlockF32

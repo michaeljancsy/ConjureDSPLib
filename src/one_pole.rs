@@ -4,8 +4,9 @@
 //! to block. The filter is stable when `|a| < 1`.
 //!
 //! **Gain.** This is the unnormalized form: a constant input `x` settles at `x / (1 - a)`, not at
-//! `x`. With `a = 0.99` a constant 1.0 settles at 100. To use it as a smoother that settles on a
-//! target value, feed it `(1 - a) * target`.
+//! `x`. With `a = 0.99` a constant 1.0 settles at 100. To smooth toward a target value, use
+//! `smoother::process_f32` / `smoother::process_f64`, which in exact arithmetic settle on the
+//! target itself.
 //!
 //! **Subnormals.** A decaying output drifts into subnormal numbers, which are slow on some
 //! processors. This module does nothing about that: flushing subnormals to zero is the caller's

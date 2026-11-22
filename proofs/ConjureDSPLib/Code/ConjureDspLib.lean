@@ -445,16 +445,109 @@ def biquad.process_f32
   biquad.process_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::gain::apply_f64]:
-    Source: 'src/gain.rs', lines 5:0-7:1
+    Source: 'src/gain.rs', lines 6:0-8:1
     Visibility: public -/
 def gain.apply_f64 (gain : Float) (x : Float) : Result Float := do
   ok (Float.mul gain x)
 
 /-- [conjure_dsp_lib::gain::apply_f32]:
-    Source: 'src/gain.rs', lines 11:0-13:1
+    Source: 'src/gain.rs', lines 12:0-14:1
     Visibility: public -/
 def gain.apply_f32 (gain : Float32) (x : Float32) : Result Float32 := do
   ok (Float32.mul gain x)
+
+/-- [conjure_dsp_lib::gain::ramp_f64]: loop body 0:
+    Source: 'src/gain.rs', lines 38:4-41:5
+    Visibility: public -/
+@[rust_loop_body]
+def gain.ramp_f64_loop.body
+  (start : Float) (step : Float) (buf : Slice Float) (i : Std.Usize) :
+  Result (ControlFlow ((Slice Float) × Std.Usize) (Slice Float))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← lift (UScalar.toFloat i)
+    let fl1 ← Slice.index_usize buf i
+    let s ←
+      Slice.update buf i (Float.mul fl1 (Float.add start (Float.mul step fl)))
+    let i2 ← i + 1#usize
+    ok (cont (s, i2))
+  else ok (done buf)
+
+/-- [conjure_dsp_lib::gain::ramp_f64]: loop 0:
+    Source: 'src/gain.rs', lines 38:4-41:5
+    Visibility: public -/
+@[rust_loop]
+def gain.ramp_f64_loop
+  (start : Float) (buf : Slice Float) (step : Float) (i : Std.Usize) :
+  Result (Slice Float)
+  := do
+  loop
+    (fun (buf1, i1) => gain.ramp_f64_loop.body start step buf1 i1)
+    (buf, i)
+
+/-- [conjure_dsp_lib::gain::ramp_f64]:
+    Source: 'src/gain.rs', lines 30:0-42:1
+    Visibility: public -/
+def gain.ramp_f64
+  (start : Float) («end» : Float) (buf : Slice Float) :
+  Result (Slice Float)
+  := do
+  let n := Slice.len buf
+  if n = 0#usize
+  then ok buf
+  else
+    let fl ← lift (UScalar.toFloat n)
+    gain.ramp_f64_loop start buf (Float.div (Float.sub «end» start) fl)
+      0#usize
+
+/-- [conjure_dsp_lib::gain::ramp_f32]: loop body 0:
+    Source: 'src/gain.rs', lines 66:4-69:5
+    Visibility: public -/
+@[rust_loop_body]
+def gain.ramp_f32_loop.body
+  (start : Float32) (step : Float32) (buf : Slice Float32) (i : Std.Usize) :
+  Result (ControlFlow ((Slice Float32) × Std.Usize) (Slice Float32))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← lift (UScalar.toFloat32 i)
+    let fl1 ← Slice.index_usize buf i
+    let s ←
+      Slice.update buf i (Float32.mul fl1 (Float32.add start (Float32.mul step
+        fl)))
+    let i2 ← i + 1#usize
+    ok (cont (s, i2))
+  else ok (done buf)
+
+/-- [conjure_dsp_lib::gain::ramp_f32]: loop 0:
+    Source: 'src/gain.rs', lines 66:4-69:5
+    Visibility: public -/
+@[rust_loop]
+def gain.ramp_f32_loop
+  (start : Float32) (buf : Slice Float32) (step : Float32) (i : Std.Usize) :
+  Result (Slice Float32)
+  := do
+  loop
+    (fun (buf1, i1) => gain.ramp_f32_loop.body start step buf1 i1)
+    (buf, i)
+
+/-- [conjure_dsp_lib::gain::ramp_f32]:
+    Source: 'src/gain.rs', lines 58:0-70:1
+    Visibility: public -/
+def gain.ramp_f32
+  (start : Float32) («end» : Float32) (buf : Slice Float32) :
+  Result (Slice Float32)
+  := do
+  let n := Slice.len buf
+  if n = 0#usize
+  then ok buf
+  else
+    let fl ← lift (UScalar.toFloat32 n)
+    gain.ramp_f32_loop start buf (Float32.div (Float32.sub «end» start) fl)
+      0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_f64]:
     Source: 'src/one_pole.rs', lines 19:0-21:1

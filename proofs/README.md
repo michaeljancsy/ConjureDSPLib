@@ -51,6 +51,10 @@ index, no arithmetic overflow on indices, and it terminates.
 | `delay::process_f64` | `delay.process_f64_append` | `Delay/SpecF64.lean` | For any buffer (empty or not), position and `delay_samples` (the same in every call), and input `audio` equal to `audio₁` followed by `audio₂`: a call on `audio₁`, a call on `audio₂` with the buffer and position the first call returned, and one call on `audio` from the starting buffer and position all never fail; the two calls end with the same buffer and position as the one call, and their output samples, joined, are its output samples. |
 | `delay::process_f64` | `delay.process_f64_state_indep` | `Delay/SpecF64.lean` | For any buffer (empty or not), position and audio, and any two delays `d₁` and `d₂`: a call with `d₁` and a call with `d₂`, from the same buffer, position and audio, both never fail and return the same new buffer and the same new position; only their output samples may differ. |
 | `delay::process_f32` | `delay.process_f32_ok`, `delay.process_f32_empty_buffer`, `delay.process_f32_spec`, `delay.process_f32_spec_of_lt`, `delay.process_f32_getElem`, `delay.process_f32_zero_prefix`, `delay.process_f32_append`, `delay.process_f32_state_indep` | `Delay/SpecF32.lean` | The same eight facts for `f32` samples. |
+| `svf::CoeffsF64::new` | `svf.CoeffsF64.new_eq` | `Svf/SpecF64.lean` | Never fails; keeps `g`, `k`, `m_hp`, `m_bp` and `m_lp`, and computes `d` as exactly `1 / (1 + g * (g + k))` in binary64, in that order (`1` is the binary64 number 1). |
+| `svf::step_f64` | `svf.step_f64_eq` | `Svf/SpecF64.lean` | Exactly the step `svfStep_f64` in binary64, in the Rust code's order; never fails. With `hp = ((x - (k + g) * s1) - s2) * d`, `bp = g * hp + s1` and `lp = g * bp + s2`, the output is `(m_hp * hp + m_bp * bp) + m_lp * lp` and the new state is `s1 = g * hp + bp`, `s2 = g * bp + lp`. |
+| `svf::process_f64` | `svf.process_f64_spec` | `Svf/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `svfStep_f64` to each sample in turn (Lean's `filt_f64`). |
+| `svf::CoeffsF32::new`, `step_f32`, `process_f32` | `svf.CoeffsF32.new_eq`, `svf.step_f32_eq`, `svf.process_f32_spec` | `Svf/SpecF32.lean` | The same three facts in binary32 (`svfStep_f32`, `filt_f32`). |
 
 For the biquad whole-block theorems (`Biquad/Block.lean`, `Biquad/BlockF64.lean`), every
 quantity below is computed from the real values of the stored coefficients, with `u` and `η` of
@@ -174,8 +178,9 @@ hand, not proved).
   round-to-nearest operations. FloatLib relates Lean's floats to real numbers; nothing here
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
   separate multiply and add: Rust does not fuse `x + a * y` (or the smoother's
-  `state + c * (x - state)`, or the biquad's `b0 * x + s1` and `b1 * x - a1 * y + s2`) into one
-  multiply-add instruction unless the code asks for `mul_add`, and this code does not.
+  `state + c * (x - state)`, or the biquad's `b0 * x + s1` and `b1 * x - a1 * y + s2`, or the
+  SVF's `g * hp + s1` and the like) into one multiply-add instruction unless the code asks for
+  `mul_add`, and this code does not.
 - No floating-point error bound is proved for the smoother (`smoother::*`), and in floating
   point it need not land exactly on its input. The theorems in `Smoother/Exact.lean` are in
   exact arithmetic only.

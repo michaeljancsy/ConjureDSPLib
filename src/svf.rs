@@ -16,7 +16,8 @@
 //! This module computes exactly these steps, in this order and grouping (the brackets above),
 //! with no fused multiply-add, so code that uses the same order gets bit-identical output. In
 //! exact arithmetic these are the equations of the trapezoidal ("topology-preserving") SVF in
-//! V. Zavalishin, *The Art of VA Filter Design*.
+//! V. Zavalishin, *The Art of VA Filter Design* (with `k = 2R`); that correspondence is not proved
+//! in `proofs/`.
 //!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.
@@ -45,8 +46,8 @@ pub struct CoeffsF64 {
 
 impl CoeffsF64 {
     /// Coefficients with integrator gain `g`, damping `k` and output mix `m_hp`, `m_bp`, `m_lp`:
-    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. By name, the mix `(0, 0, 1)` is the low-pass
-    /// output, `(1, 0, 0)` the high-pass output and `(0, 1, 0)` the band-pass output. Computes
+    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. As the names say, the mix `(0, 0, 1)` gives the
+    /// low-pass output, `(1, 0, 0)` the high-pass output and `(0, 1, 0)` the band-pass output. Computes
     /// `d = 1.0 / (1.0 + g * (g + k))`, in that order.
     pub fn new(g: f64, k: f64, m_hp: f64, m_bp: f64, m_lp: f64) -> Self {
         Self {
@@ -112,8 +113,8 @@ pub struct CoeffsF32 {
 
 impl CoeffsF32 {
     /// Coefficients with integrator gain `g`, damping `k` and output mix `m_hp`, `m_bp`, `m_lp`:
-    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. By name, the mix `(0, 0, 1)` is the low-pass
-    /// output, `(1, 0, 0)` the high-pass output and `(0, 1, 0)` the band-pass output. Computes
+    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. As the names say, the mix `(0, 0, 1)` gives the
+    /// low-pass output, `(1, 0, 0)` the high-pass output and `(0, 1, 0)` the band-pass output. Computes
     /// `d = 1.0 / (1.0 + g * (g + k))`, in that order.
     pub fn new(g: f32, k: f32, m_hp: f32, m_bp: f32, m_lp: f32) -> Self {
         Self {

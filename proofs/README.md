@@ -179,11 +179,14 @@ hand, not proved).
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
   separate multiply and add: Rust does not fuse `x + a * y` (or the smoother's
   `state + c * (x - state)`, or the biquad's `b0 * x + s1` and `b1 * x - a1 * y + s2`, or the
-  SVF's `g * hp + s1` and the like) into one multiply-add instruction unless the code asks for
-  `mul_add`, and this code does not.
+  SVF's `g * hp + s1`, `g * bp + s2`, `g * hp + bp`, `g * bp + lp` and its output mix) into one
+  multiply-add instruction unless the code asks for `mul_add`, and this code does not.
 - No floating-point error bound is proved for the smoother (`smoother::*`), and in floating
   point it need not land exactly on its input. The theorems in `Smoother/Exact.lean` are in
   exact arithmetic only.
+- No floating-point error bound is proved for the state-variable filter (`svf::*`), and nothing
+  about its stability or frequency response, or that it matches Zavalishin's filter: the theorems
+  in `Svf/` say only what the translated code computes.
 - The biquad's whole-block error bound is proved for any given `Contraction` of its state-update
   map. One is supplied only for complex poles inside the unit circle (`complexPolesContraction`),
   so for real-pole biquads (for example an RBJ low-pass with `Q ≤ 1/2`) no bound is proved yet. It

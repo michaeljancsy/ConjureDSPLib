@@ -89,6 +89,48 @@ noncomputable abbrev maxFinite_f64 : ℝ :=
 noncomputable abbrev maxFinite_f32 : ℝ :=
   Model.toReal (Model.posMaxFinite FloatFormat.binary32)
 
+/-- Binary64's unit roundoff is exactly `2⁻⁵³`. -/
+theorem unitRoundoff_f64_eq : unitRoundoff_f64 = 2 ^ (-53 : ℤ) := by
+  unfold unitRoundoff_f64
+  rw [Model.unitRoundoffAt_eq]
+  norm_num [FloatFormat.binary64]
+
+/-- Binary32's unit roundoff is exactly `2⁻²⁴`. -/
+theorem unitRoundoff_f32_eq : unitRoundoff_f32 = 2 ^ (-24 : ℤ) := by
+  unfold unitRoundoff_f32
+  rw [Model.unitRoundoffAt_eq]
+  norm_num [FloatFormat.binary32]
+
+/-- Binary64's underflow error is exactly `2⁻¹⁰⁷⁵`, half the smallest subnormal `2⁻¹⁰⁷⁴`. -/
+theorem underflowErr_f64_eq : underflowErr_f64 = 2 ^ (-1075 : ℤ) := by
+  unfold underflowErr_f64
+  rw [Model.underflowErrorAt_eq]
+  have h : FloatFormat.minSubnormalExponent FloatFormat.binary64 = -1074 := by decide
+  rw [h]
+  norm_num
+
+/-- Binary32's underflow error is exactly `2⁻¹⁵⁰`, half the smallest subnormal `2⁻¹⁴⁹`. -/
+theorem underflowErr_f32_eq : underflowErr_f32 = 2 ^ (-150 : ℤ) := by
+  unfold underflowErr_f32
+  rw [Model.underflowErrorAt_eq]
+  have h : FloatFormat.minSubnormalExponent FloatFormat.binary32 = -149 := by decide
+  rw [h]
+  norm_num
+
+/-- The largest finite binary64 value is exactly `(2⁵³ - 1)·2⁹⁷¹`. -/
+theorem maxFinite_f64_eq : maxFinite_f64 = (2 ^ 53 - 1) * 2 ^ 971 := by
+  unfold maxFinite_f64
+  rw [Model.toReal_posMaxFinite_of_eq FloatFormat.binary64 (significand := 2 ^ 53 - 1)
+    (exponent := 971) (by decide) (by decide)]
+  norm_num
+
+/-- The largest finite binary32 value is exactly `(2²⁴ - 1)·2¹⁰⁴`. -/
+theorem maxFinite_f32_eq : maxFinite_f32 = (2 ^ 24 - 1) * 2 ^ 104 := by
+  unfold maxFinite_f32
+  rw [Model.toReal_posMaxFinite_of_eq FloatFormat.binary32 (significand := 2 ^ 24 - 1)
+    (exponent := 104) (by decide) (by decide)]
+  norm_num
+
 /-- The sum of two finite `Float`s is finite when the exact sum is at most the largest finite
 value in size. -/
 theorem isFinite_add_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)

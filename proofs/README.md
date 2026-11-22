@@ -90,8 +90,10 @@ and inputs. The one-pole's conditions:
   value;
 - every input is at most `M` in size;
 - `|A| + |A|·u·(2 + u) < 1`, which is `|A|·(1 + u)² < 1`: stable, with a little room for
-  rounding. Any `|A| ≤ 1 - 2⁻⁵¹` (f64) or `|A| ≤ 1 - 2⁻²²` (f32) satisfies it (simple
-  algebra, not a Lean theorem).
+  rounding. Every real `A` with `|A| ≤ 1 - 2⁻⁵¹` satisfies it in f64
+  (`stability_of_abs_le_f64`), and every real `A` with `|A| ≤ 1 - 2⁻²²` satisfies it in f32
+  (`stability_of_abs_le_f32`), where `u` is `2⁻⁵³` in f64 and `2⁻²⁴` in f32
+  (`unitRoundoff_f64_eq`, `unitRoundoff_f32_eq`).
 
 Then, with `B = |S| + M / (1 - |A|)` (a bound on the exact filter's outputs):
 
@@ -112,9 +114,16 @@ for inputs at most 1.0 in size and a starting state of 0, so the exact output st
 | f64 | 0.999 | 1000 | 2.2 × 10⁻¹⁰ | −253.1 dB |
 
 The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 lose the most.
-It is a worst case: typical rounding errors partly cancel and are much smaller. The size limit of
-the `_of_inputs` theorems is far from binding: with `a = 0.999`, inputs at most 1 and a start of
-0, `B + E` is about 1000, against a largest finite value of about 3.4 × 10³⁸ in f32.
+It is a worst case: typical rounding errors partly cancel and are much smaller.
+
+The size limit of the one-pole `process_f32_block_error_of_inputs` is proved to hold for slow
+smoothers in f32: for every
+real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a starting state of value
+`S = 0`, the stability condition holds, `B ≤ 1001.01`, `E ≤ 0.12`, and `M + (1 + u)·(B + E) + η`
+is at most the largest finite binary32 value (`block_constants_le_of_abs_le_f32`). That value is
+exactly `(2²⁴ - 1)·2¹⁰⁴` (`maxFinite_f32_eq`), and in f32 `u = 2⁻²⁴` and `η = 2⁻¹⁵⁰`
+(`unitRoundoff_f32_eq`, `underflowErr_f32_eq`). The bound 0.999001 leaves room for 0.999
+itself, which f32 stores as 0.9990000129 (worked out by hand, not proved).
 
 For the biquad, using `complexPolesContraction`, for an RBJ-cookbook Butterworth low-pass
 (`Q = 0.7071`) at 48 kHz, with its coefficients rounded to each precision, inputs at most 1.0 and
@@ -135,7 +144,7 @@ sit near the real axis, and the filter's own worst-case error gain is large (abo
 100 Hz). Part is slack in the proof: the state bound `Sb` used for the per-step rounding is about
 7–23× the true largest state (at 100 Hz, 1 kHz and 10 kHz), the per-step bound is crude, and the
 contraction step adds a factor of about 4. Typical rounding errors are much smaller. In f64 the
-bound is below −120 dB from about 10 Hz to about 23.8 kHz, and −80 dB at 1 Hz. In f32 it is below
+bound is below −120 dB from about 10 Hz to about 23.9 kHz, and −80 dB at 1 Hz. In f32 it is below
 −25 dB only from about 1 kHz to about 21 kHz, above 1.0 below about 250 Hz and above about 23 kHz,
 and absent below about 82.4 Hz. The bound is not monotonic in the cutoff (for example f32: −74.9 dB
 at 10 kHz, −37.9 dB at 20 kHz). Everything in this paragraph is worked out by hand, not proved.
@@ -156,8 +165,9 @@ f64) by a factor of more than 10³⁵ (worked out by hand, not proved). With
 prove nothing, because their condition `cInf·K·κ·β < 1 - ρ` fails there, as for the other
 whole-block theorems. The hypotheses of `noOverflow_f32_of_inputs` cannot all hold there either:
 its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and `N(S − r) ≤ Ê` together
-imply that condition when `α > 0` and `cInf·K·κ > 0`, as for `complexPolesContraction` (shown by
-hand, not proved).
+imply that condition when `α > 0` and `cInf·K·κ > 0` (`biquad.smallness_of_invariant`). That
+these two hold for `complexPolesContraction`, and that the condition fails below about 82.4 Hz,
+is worked out by hand, not proved.
 
 ## What is assumed, not proved
 

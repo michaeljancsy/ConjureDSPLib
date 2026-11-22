@@ -25,9 +25,9 @@
 //! `min(delay_samples, L - 1)` outputs of the first call are 0 (all of them, if `audio` is
 //! shorter).
 //!
-//! `delay_samples` may change between calls. The new `buffer` and `position` do not depend on it,
-//! so the stored history is kept, and the new delay takes effect from the first sample of the
-//! next call, with no smoothing.
+//! `delay_samples` may change between calls. The new `buffer` and `position` do not depend on it
+//! (`process_f64_state_indep`), so the stored history is kept, and the new delay takes effect
+//! from the first sample of the next call, with no smoothing.
 //!
 //! `process` never panics, whatever its arguments:
 //!

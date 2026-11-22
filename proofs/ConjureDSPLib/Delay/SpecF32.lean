@@ -31,6 +31,8 @@ This file proves:
    `audio₁ ++ audio₂`.
 6. `process_f32_empty_buffer`: for `L = 0`, it returns the buffer, position and audio unchanged.
 7. `process_f32_ok`: `process_f32` never fails, for every buffer, position, delay and audio.
+8. `process_f32_state_indep`: two calls that differ only in the delay both never fail and return
+   the same buffer and position.
 -/
 
 @[expose] public section
@@ -319,6 +321,26 @@ theorem process_f32_ok (buffer : Slice Float32) (position delay_samples : Std.Us
   · exact ⟨_, process_f32_empty_buffer buffer position delay_samples audio h⟩
   · obtain ⟨r, hr, -⟩ := exists_ok_of_spec (process_f32_spec buffer position delay_samples audio h)
     exact ⟨r, hr⟩
+
+/-- **The delay does not change the stored history.** For any buffer (empty or not), position and
+audio, and any two delays `d₁` and `d₂`: `process_f32` with `d₁` and `process_f32` with `d₂`, from
+the same buffer, position and audio, both never fail and return the same new buffer and the same
+new position. Only their output samples may differ. -/
+theorem process_f32_state_indep (buffer : Slice Float32) (position d₁ d₂ : Std.Usize)
+    (audio : Slice Float32) :
+    process_f32 buffer position d₁ audio ⦃ buffer₁ position₁ _ =>
+      process_f32 buffer position d₂ audio ⦃ buffer₂ position₂ _ =>
+        buffer₁ = buffer₂ ∧ position₁ = position₂ ⦄ ⦄ := by
+  rcases Nat.eq_zero_or_pos buffer.length with hL | hL
+  · simp [process_f32_empty_buffer _ _ _ _ hL]
+  obtain ⟨⟨b₁, p₁, o₁⟩, e₁, -, -, -, hp₁, hrot₁⟩ :=
+    exists_ok_of_spec (process_f32_spec buffer position d₁ audio hL)
+  obtain ⟨⟨b₂, p₂, o₂⟩, e₂, -, -, -, hp₂, hrot₂⟩ :=
+    exists_ok_of_spec (process_f32_spec buffer position d₂ audio hL)
+  have hpos : p₁ = p₂ := UScalar.eq_of_val_eq (by rw [hp₁, hp₂])
+  simp only [e₁, e₂, WP.spec_ok, WP.uncurry'_pair]
+  refine ⟨(Slice.eq_iff _ _).mpr ?_, hpos⟩
+  rw [← List.rotate_eq_rotate (n := p₁.val), hrot₁, hpos, hrot₂]
 
 end conjure_dsp_lib.delay
 

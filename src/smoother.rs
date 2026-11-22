@@ -5,16 +5,17 @@
 //! a common choice is `a = exp(-1 / (time_constant_seconds * sample_rate))` (computed by the
 //! caller).
 //!
-//! **Settling.** In exact arithmetic, with `|a| < 1`, a steady input settles on itself
-//! (`smoother.tendsto_filt_real_replicate`; unlike
-//! `one_pole::process_*`, which settles at `x / (1 - a)`). In floating point the state comes to
-//! rest close to the input but not always exactly on it, because with `a` near 1 the last steps
-//! round away, so do not test `state == target`.
+//! **Settling.** In exact arithmetic, with `|a| < 1`, a steady input settles on itself, unlike
+//! `one_pole::process_*`, which settles at `x / (1 - a)` (`smoother.tendsto_filt_real_replicate`).
+//! In floating point the state comes to rest close to the input but not always exactly on it,
+//! because with `a` near 1 the last steps round away (worked out outside Lean, not proved; only an
+//! upper bound on how far off it can be is proved), so do not test `state == target`.
 //!
 //! How far off it can be is proved in Lean (`smoother.process_f64_settle_of_inputs`,
 //! `smoother.process_f32_settle_of_inputs`), under the assumptions in `proofs/README.md`. Let
-//! `c = 1.0 - a` as computed (exactly `1 - a` when `0.5 <= a <= 2`) and `A = 1 - c`. If `a`, the
-//! starting state `start` and `x` are finite, `|a| <= 1`, `A` passes the stability condition
+//! `c = 1.0 - a` as computed (exactly `1 - a` when `0.5 <= a <= 2`, `smoother.coeff_f64_exact`,
+//! `smoother.coeff_f32_exact`) and `A = 1 - c`. If `a`, the starting state `start` and `x` are
+//! finite, `|a| <= 1`, `A` passes the stability condition
 //! `|A| + errGrowth A u < 1` (in `proofs/README.md`), which implies `|A| < 1`, and, for a bound
 //! `M >= |x|`, an explicit size condition on `M`, the start and `E` (given in `proofs/README.md`)
 //! holds, then after `n` samples of `x` the state is within `|A|^n * |start - x| + E` of `x`,
@@ -25,19 +26,24 @@
 //! Lean, not proved).
 //!
 //! **Stability.** In exact arithmetic it is stable for `|a| < 1`: with every input at most `M` in
-//! size, every output is at most `|state| + |1 - a| * M / (1 - |a|)` in size
-//! (`smoother.filt_real_abs_le`). For a steady target, `0 <= a < 1` gives a glide with no
-//! overshoot, and `a < 0` makes it alternate around the target (follows from
-//! `smoother.filt_real_replicate`: from state `r`, with target `X`, output `k` is
-//! `X + a^(k+1)·(r - X)`).
+//! size, every output is at most `|state| + |1 - a| * M / (1 - |a|)` in size, where `state` is the
+//! starting state (`smoother.filt_real_abs_le_outBound`). For a steady target `X` from state `r`,
+//! output `k` is `X + a^(k+1) * (r - X)` (`smoother.filt_real_replicate`). So `0 <= a < 1` gives
+//! a glide with no overshoot: each output lies between `X` and `r` and is no farther from `X`
+//! than the one before (`smoother.replicate_output_between`, `smoother.replicate_output_closer`).
+//! And `a < 0` makes it alternate around the target, unless the state is already on it:
+//! consecutive outputs are on opposite sides of `X` (`smoother.replicate_output_alternates`).
 //!
 //! **Subnormals.** A state decaying toward 0 drifts into subnormal numbers, which are slow on
-//! some processors (a hardware fact, not proved here). This module does nothing about that:
-//! flushing subnormals to zero is the caller's job.
+//! some processors (the drift worked out outside Lean, not proved; the slowness a hardware fact).
+//! This module does nothing about that: flushing subnormals to zero is the caller's job (if the
+//! caller turns on the processor's flush-to-zero mode, the error bounds no longer apply near zero;
+//! see `proofs/README.md`).
 //!
 //! **Relation to the one-pole filter.** In exact arithmetic it is the same filter as
 //! `one_pole::step_*` fed `(1 - a) * target` (`smoother.filt_real_eq_one_pole_filt_real`); in
-//! floating point the results can differ (different operation order).
+//! floating point the results can differ (different operation order; worked out outside Lean,
+//! not proved).
 //!
 //! Call these through the module, as `smoother::process_f32`.
 
@@ -52,7 +58,7 @@ pub fn step_f64(a: f64, state: f64, target: f64) -> f64 {
 /// Smooths `buf` in place, in `f64`, starting from `state` (the previous output) and leaving the
 /// last output in `state`. Each sample is the target for that sample: with `c = 1.0 - a`
 /// computed once per block, `y = state + c * (x - state)`. An empty block leaves `state`
-/// unchanged.
+/// unchanged (`smoother.process_f64_spec`).
 pub fn process_f64(a: f64, state: &mut f64, buf: &mut [f64]) {
     let c = 1.0 - a;
     // An index loop rather than an iterator, so that Aeneas can translate it.
@@ -76,7 +82,7 @@ pub fn step_f32(a: f32, state: f32, target: f32) -> f32 {
 /// Smooths `buf` in place, in `f32`, starting from `state` (the previous output) and leaving the
 /// last output in `state`. Each sample is the target for that sample: with `c = 1.0 - a`
 /// computed once per block, `y = state + c * (x - state)`. An empty block leaves `state`
-/// unchanged.
+/// unchanged (`smoother.process_f32_spec`).
 pub fn process_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
     let c = 1.0 - a;
     // An index loop rather than an iterator, so that Aeneas can translate it.

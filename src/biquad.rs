@@ -13,30 +13,37 @@
 //! ```
 //!
 //! In exact arithmetic the two forms give the same output when the starting state matches the
-//! textbook form's history (`biquad.filt_real_eq_df1_real`), in particular from the zero state
-//! with zero history (`biquad.filt_real_eq_df1_real_zero`); in floating point they can round
-//! differently (worked out outside Lean, not proved). This module computes exactly the steps
-//! above, in that order and grouping (`s1 = (b1·x - a1·y) + s2`), with no fused multiply-add
-//! (proved of the translated code as `biquad.step_f64_eq` / `biquad.step_f32_eq`, under the
-//! assumptions in `proofs/README.md`), so other code that does the same operations in the same
-//! order, also without fused multiply-add, gets the same output, NaN bit patterns aside (follows
-//! from IEEE 754 rounding; not proved).
+//! textbook form's history, in particular from zero state and zero history
+//! (`biquad.filt_real_eq_df1_real`, `biquad.filt_real_eq_df1_real_zero`). In floating point they
+//! can round differently (worked out outside Lean, not proved). This module computes exactly the
+//! steps above, in that order and grouping (`s1 = (b1·x - a1·y) + s2`), with no fused
+//! multiply-add (`biquad.step_f64_eq`, `biquad.step_f32_eq`, under the assumptions in
+//! `proofs/README.md`). Other code doing the same operations in the same order, also without
+//! fused multiply-add, given the same rounding mode and subnormal handling, gets the same output,
+//! NaN bit patterns aside (follows from IEEE 754 rounding, not proved).
 //!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.
 //!
 //! Designing coefficients (low-pass, shelf, ...) is not part of this module. The filter is stable
-//! when both poles are inside the unit circle: `|a2| < 1` and `|a1| < 1 + a2` (standard results,
-//! not proved in Lean; for distinct real poles the triangle condition is proved equivalent to both
-//! poles being inside the unit circle, `biquad.realPoles_lt_one_iff`, and the error-bound
-//! theorems supply a `Contraction` for poles inside the unit circle: `complexPolesContraction`,
-//! `realPolesContraction`, `repeatedPoleContraction`).
+//! when both poles are inside the unit circle, that is when `|a2| < 1` and `|a1| < 1 + a2` (a
+//! standard result, not proved in Lean). Proved in Lean: for distinct real poles, these two
+//! inequalities hold exactly when both poles are inside the unit circle
+//! (`biquad.realPoles_lt_one_iff`); and for poles inside the unit circle, the proofs supply the
+//! `Contraction` the error-bound theorems need (`biquad.complexPolesContraction`,
+//! `biquad.realPolesContraction`, `biquad.repeatedPoleContraction`, in
+//! `Biquad/Contraction.lean`).
 //!
 //! For RBJ-cookbook low-pass and high-pass coefficients at very low cutoffs (a few hertz), `f32`
-//! coefficients can put a pole on or outside the unit circle (computed outside Lean, not proved;
-//! one case is proved, a 1 Hz Butterworth low-pass at 48 kHz, `biquad.lowPass1Hz_pole_one_f32`;
-//! see "Observations" in `proofs/README.md`). Consider the `f64` filter there; that its
-//! coefficients avoid this is not proved. Flushing subnormal numbers to zero is the caller's job.
+//! coefficients can put a pole on or outside the unit circle (worked out outside Lean, not proved;
+//! see "Observations" in `proofs/README.md`). One case is proved for specific stored values: the
+//! binary32 coefficients in `lowPass1Hz_f32`, which are those of a 1 Hz Butterworth low-pass at
+//! 48 kHz (worked out outside Lean, not proved), have a pole at exactly 1
+//! (`biquad.lowPass1Hz_pole_one_f32`). Consider the `f64` filter there; that its coefficients
+//! avoid the problem is not proved.
+//!
+//! Flushing subnormal numbers to zero is the caller's job (if the caller turns on the processor's
+//! flush-to-zero mode, the error bounds no longer apply near zero; see `proofs/README.md`).
 //!
 //! Call these through the module, as `biquad::process_f32`.
 
@@ -56,9 +63,10 @@ pub struct CoeffsF64 {
 }
 
 impl CoeffsF64 {
-    /// Coefficients `b0 = 1`, all others 0. From the zero state, finite inputs pass through
-    /// unchanged, except that `-0.0` comes out as `+0.0`; an infinite or NaN input makes the
-    /// state NaN from then on (worked out outside Lean, not proved).
+    /// Coefficients `b0 = 1`, all others 0. From the zero state, every finite nonzero input and
+    /// `+0.0` pass through unchanged, bit for bit. `-0.0` comes out as `+0.0` or `-0.0`,
+    /// depending on the inputs before it. An infinite or NaN input makes the state NaN from then
+    /// on (worked out outside Lean, not proved).
     pub const IDENTITY: Self = Self {
         b0: 1.0,
         b1: 0.0,
@@ -114,9 +122,10 @@ pub struct CoeffsF32 {
 }
 
 impl CoeffsF32 {
-    /// Coefficients `b0 = 1`, all others 0. From the zero state, finite inputs pass through
-    /// unchanged, except that `-0.0` comes out as `+0.0`; an infinite or NaN input makes the
-    /// state NaN from then on (worked out outside Lean, not proved).
+    /// Coefficients `b0 = 1`, all others 0. From the zero state, every finite nonzero input and
+    /// `+0.0` pass through unchanged, bit for bit. `-0.0` comes out as `+0.0` or `-0.0`,
+    /// depending on the inputs before it. An infinite or NaN input makes the state NaN from then
+    /// on (worked out outside Lean, not proved).
     pub const IDENTITY: Self = Self {
         b0: 1.0,
         b1: 0.0,

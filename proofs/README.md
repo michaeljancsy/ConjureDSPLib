@@ -30,7 +30,7 @@ index, no arithmetic overflow on indices, and it terminates.
 | `one_pole::process_f32` | `one_pole.process_f32_block_error` (and `filt_f32_block_error`) | `OnePole/BlockF32.lean` | The same in binary32. |
 | `one_pole::process_f64` | `one_pole.process_f64_block_error_of_inputs` (and `noOverflow_f64_of_inputs`) | `OnePole/BlockF64.lean` | **The same, with conditions on the inputs only:** no step overflows, proved from the inputs rather than assumed, when `M + (1 + u)·(B + E) + η` is at most the largest finite binary64 value (about 1.8 × 10³⁰⁸). |
 | `one_pole::process_f32` | `one_pole.process_f32_block_error_of_inputs` (and `noOverflow_f32_of_inputs`) | `OnePole/BlockF32.lean` | The same in binary32 (largest finite value about 3.4 × 10³⁸). |
-| (the one-pole, exact arithmetic) | `one_pole.filt_real_abs_le_outBound` | `OnePole/Exact.lean` | **Stability.** In exact arithmetic, when `\|A\| < 1`: from state `S`, with every input at most `M ≥ 0` in size, every output of `one_pole.filt_real` and its final state are at most `outBound A M S = \|S\| + M/(1 - \|A\|)` in size, for a block of any length. |
+| (the one-pole, exact arithmetic) | `one_pole.filt_real_abs_le_outBound` | `OnePole/Exact.lean` | **Stability.** In exact arithmetic, when `\|A\| < 1`: from state `S`, with every input at most `M ≥ 0` in size, every output of `one_pole.filt_real` and its final state are at most `one_pole.outBound A M S = \|S\| + M/(1 - \|A\|)` in size, for a block of any length. |
 | (the one-pole, exact arithmetic) | `one_pole.filt_real_replicate` | `OnePole/Exact.lean` | In exact arithmetic, when `A ≠ 1`, for any starting state `r`, input `X` and number of samples `n`: the input `X` held for `n` samples gives the outputs `X/(1 - A) + A^(k+1)·(r - X/(1 - A))` for `k = 0, …, n - 1` and the final state `X/(1 - A) + A^n·(r - X/(1 - A))`. |
 | (the one-pole, exact arithmetic) | `one_pole.tendsto_filt_real_replicate` | `OnePole/Exact.lean` | In exact arithmetic, when `\|A\| < 1`: for any starting state `r` and input `X`, the final state after `X` is held for `n` samples tends to `X/(1 - A)` as `n` grows. |
 | `smoother::step_f64` | `smoother.step_f64_eq` | `Smoother/SpecF64.lean` | Exactly `state + (1 - a) * (target - state)` in binary64, in that order (`1` is the binary64 number 1); never fails. |
@@ -39,7 +39,8 @@ index, no arithmetic overflow on indices, and it terminates.
 | (the smoother, exact arithmetic) | `smoother.filt_real_eq_one_pole_filt_real` | `Smoother/Exact.lean` | In exact arithmetic, for any `A`, starting state `r` and list of inputs: the smoother `y = y_prev + (1 - A)·(x - y_prev)` (`smoother.filt_real`) gives exactly the same outputs and final state as the one-pole `y = x' + A·y_prev` (`one_pole.filt_real`) run from the same state on the inputs `x' = (1 - A)·x`. |
 | (the smoother, exact arithmetic) | `smoother.filt_real_replicate` | `Smoother/Exact.lean` | In exact arithmetic, for any `A`, starting state `r`, input `X` and number of samples `n`: the input `X` held for `n` samples gives the outputs `X + A^(k+1)·(r - X)` for `k = 0, …, n - 1` and the final state `X + A^n·(r - X)`. |
 | (the smoother, exact arithmetic) | `smoother.tendsto_filt_real_replicate` | `Smoother/Exact.lean` | In exact arithmetic, when `\|A\| < 1`: for any starting state `r` and input `X`, the final state after `X` is held for `n` samples tends to `X` as `n` grows. |
-| (the smoother, exact arithmetic) | `smoother.filt_real_abs_le` | `Smoother/Exact.lean` | **Stability.** In exact arithmetic, when `\|A\| < 1`: from state `S`, with every input at most `M ≥ 0` in size, every output of `smoother.filt_real` and its final state are at most `\|S\| + \|1 - A\|·M/(1 - \|A\|)` in size (`smoother.outBound A M S`), for a block of any length. |
+| (the smoother, exact arithmetic) | `smoother.replicate_output_between`, `smoother.replicate_output_closer`, `smoother.replicate_output_alternates` | `Smoother/Exact.lean` | In exact arithmetic, for the outputs `X + A^(k+1)·(r - X)` of a steady input `X` from state `r` (`smoother.filt_real_replicate`): when `0 ≤ A ≤ 1`, each output lies between `X` and `r`, and output `k + 1` is no farther from `X` than output `k`; when `A < 0` and `r ≠ X`, outputs `k` and `k + 1` are on opposite sides of `X` (the product of their differences from `X` is negative). |
+| (the smoother, exact arithmetic) | `smoother.filt_real_abs_le` (and `smoother.filt_real_abs_le_outBound` in `Smoother/Block.lean`, the same stated with `smoother.outBound`) | `Smoother/Exact.lean` | **Stability.** In exact arithmetic, when `\|A\| < 1`: from state `S`, with every input at most `M ≥ 0` in size, every output of `smoother.filt_real` and its final state are at most `\|S\| + \|1 - A\|·M/(1 - \|A\|)` in size (`smoother.outBound A M S`), for a block of any length. |
 | `smoother::process_f64` | `smoother.coeff_f64_error`, `smoother.coeff_f64_exact` | `Smoother/BridgeF64.lean` | The coefficient `c = 1 - a`, computed once per block in binary64: when `a` and `1 - a` are finite, the value of `c` is within `u·\|1 - a\| + η` of `1 - a` (here `a` stands for its value); when the value of `a` is between 1/2 and 2, `c` is exactly `1 - a` (Sterbenz's lemma). |
 | `smoother::step_f64` | `smoother.step_f64_error` | `Smoother/BridgeF64.lean` | When `c`, `state`, `x`, the rounded difference `x - state`, the rounded product `c * (x - state)` and the result are all finite (no overflow): one step `state + c * (x - state)`, with its three roundings (the difference, the product and the sum), is within `stepErr (1 - C) u η S X` of the exact step `S + C·(X - S)`, where `C`, `S`, `X` are the values of `c`, `state`, `x`. Written out, with `d = u·\|X - S\| + η` (the difference's error) and `p = u·\|C\|·(\|X - S\| + d) + η + \|C\|·d` (the product's), the bound is `u·(\|S + C·(X - S)\| + p) + η + p`. |
 | `smoother::process_f32` | `smoother.coeff_f32_error`, `smoother.coeff_f32_exact` | `Smoother/BridgeF32.lean` | The same as the `process_f64` coefficient row, in binary32 (`u = 2⁻²⁴`). |
@@ -61,8 +62,8 @@ index, no arithmetic overflow on indices, and it terminates.
 | `biquad::process_f64` | `biquad.noOverflow_f64_of_inputs` | `Biquad/BlockF64.lean` | Given a `Contraction` for the real values of the stored coefficients, finite coefficients, any numbers `Sb`, `M`, `R`, `Ê` (not necessarily those listed below the table) with `ρ·R + K·G·M ≤ R`, `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb` and `V` (at that `Sb`) at most the largest finite binary64 value, a starting state with both values finite, a real pair `r` with `N(r) ≤ R` and `N(S − r) ≤ Ê` where `S` is the starting state's real value, and every input finite and at most `M` in size: no step overflows (`NoOverflow_f64`). |
 | `biquad::process_f64` | `biquad.process_f64_block_error_of_inputs` (and `filt_f64_block_error_of_inputs`, the same about `filt_f64`) | `Biquad/BlockF64.lean` | **Whole-block error, with conditions on the inputs only.** Given a `Contraction` for the real values of the stored coefficients, finite coefficients and starting state, every input finite and at most `M` in size with `M ≥ 0`, `cInf·K·κ·β < 1 - ρ`, and `V` with `Sb` as below (`stepValueBound_f64`) at most the largest finite binary64 value (about 1.8 × 10³⁰⁸): no step overflows (`NoOverflow_f64`), and the conclusion of `process_f64_block_error` holds: never fails; each output sample is within `cInf·Ê + L` of the corresponding output of `filt_real` run on the real values of the stored inputs from the real value of the stored starting state; each final state value is within `cInf·Ê` of the exact one; for a block of any length. |
 | `biquad::step_f32`, `process_f32` | `biquad.stepFinite_f32`, `biquad.noOverflow_f32_of_inputs`, `biquad.process_f32_block_error_of_inputs` (and `filt_f32_block_error_of_inputs`) | `Biquad/BlockF32.lean` | The same three in binary32 (largest finite value about 3.4 × 10³⁸). |
-| (biquads with complex poles) | `biquad.complexPolesContraction`, `biquad.complexPoleNorm_update` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with complex poles inside the unit circle (`a1² < 4·a2`, `a2 < 1`): for example RBJ low-pass, high-pass, band-pass, notch and all-pass filters with `Q > 1/2` (worked out outside Lean, not proved), provided `a1² < 4·a2` still holds after the coefficients are rounded (it fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz, `lowPass1Hz_real_poles_f32`). Measured by `complexPoleNorm`, the state-update map multiplies every pair's measure by exactly `√a2`, the pole radius (`ρ = √a2`). `cInf = (1 + \|a1\|/2)/ω + 1` and `K = ω + \|a1\|/2 + 1` with `ω = √(a2 - a1²/4)`; `cInf` grows like `1/ω` as the poles approach the real axis. |
-| (biquads with distinct real poles) | `biquad.realPolesContraction`, `biquad.realPoleNorm_update`, `biquad.realPoles_lt_one_iff` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with distinct real poles inside the unit circle (`a1² > 4·a2`, `a2 < 1`, `\|a1\| < 1 + a2`; given the first, the other two say both poles are less than 1 in size, `realPoles_lt_one_iff`): for example an RBJ low-pass with `Q < 1/2` (worked out outside Lean, not proved), provided `a1² > 4·a2`, `a2 < 1` and `\|a1\| < 1 + a2` still hold after the coefficients are rounded (the last fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz, `lowPass1Hz_pole_one_f32`). Measured by `realPoleNorm`, `ρ = (\|a1\| + d)/2`, the larger pole size (`max_abs_realPoles`), `cInf = 1/d` and `K = 2`, where `d = √(a1² − 4·a2)` is the distance between the poles; `cInf = 1/d` grows without bound as `d → 0`. The state-update map multiplies `p·v₁ + v₂` by `p` and `q·v₁ + v₂` by `q` (`realPoleCoord_update`). |
+| (biquads with complex poles) | `biquad.complexPolesContraction`, `biquad.complexPoleNorm_update` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with complex poles inside the unit circle (`a1² < 4·a2`, `a2 < 1`): for example RBJ low-pass, high-pass, band-pass, notch and all-pass filters with `Q > 1/2` (worked out outside Lean, not proved), provided `a1² < 4·a2` still holds after the coefficients are rounded (it fails for the binary32 coefficients `lowPass1Hz_f32`, those of a 1 Hz Butterworth low-pass at 48 kHz, worked out outside Lean, not proved: `lowPass1Hz_real_poles_f32`). Measured by `complexPoleNorm`, the state-update map multiplies every pair's measure by exactly `√a2`, the pole radius (`ρ = √a2`). `cInf = (1 + \|a1\|/2)/ω + 1` and `K = ω + \|a1\|/2 + 1` with `ω = √(a2 - a1²/4)`; `cInf` grows like `1/ω` as the poles approach the real axis. |
+| (biquads with distinct real poles) | `biquad.realPolesContraction`, `biquad.realPoleNorm_update`, `biquad.realPoles_lt_one_iff` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with distinct real poles inside the unit circle (`a1² > 4·a2`, `a2 < 1`, `\|a1\| < 1 + a2`; given the first, the other two say both poles are less than 1 in size, `realPoles_lt_one_iff`): for example an RBJ low-pass with `Q < 1/2` (worked out outside Lean, not proved), provided `a1² > 4·a2`, `a2 < 1` and `\|a1\| < 1 + a2` still hold after the coefficients are rounded (the last fails for the binary32 coefficients `lowPass1Hz_f32`, those of a 1 Hz Butterworth low-pass at 48 kHz, worked out outside Lean, not proved: `lowPass1Hz_pole_one_f32`). Measured by `realPoleNorm`, `ρ = (\|a1\| + d)/2`, the larger pole size (`max_abs_realPoles`), `cInf = 1/d` and `K = 2`, where `d = √(a1² − 4·a2)` is the distance between the poles; `cInf = 1/d` grows without bound as `d → 0`. The state-update map multiplies `p·v₁ + v₂` by `p` and `q·v₁ + v₂` by `q` (`realPoleCoord_update`). |
 | (biquads with a repeated real pole) | `biquad.repeatedPoleContraction` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with a repeated real pole `p = -a1/2` (`a1² = 4·a2`), for any chosen `ε > 0` with `\|p\| + ε < 1`: measured by `repeatedPoleNorm`, `ε·\|v₁\| + \|p·v₁ + v₂\|`, with `ρ = \|p\| + ε`, `cInf = 1 + 1/ε` and `K = 1`. |
 | (biquads with a pole at 1) | `biquad.isEmpty_contraction_of_pole_one` | `Biquad/Contraction.lean` | When 1 is a pole (`1 + a1 + a2 = 0`), no `Contraction` exists: the state-update map leaves the pair `(1, -a2)` unchanged (`update_one_neg_a2_of_pole_one`). |
 | `delay::process_f64` | `delay.process_f64_ok` | `Delay/SpecF64.lean` | Never fails, for every buffer, position, delay and audio. |
@@ -421,8 +422,9 @@ both precisions (in f32 at 1 kHz, at most 0.000459 against at most 0.0542). Thes
 on each proof's bound, so only in f32 at 100 Hz, where the biquad's bound is also proved to be at
 least 17, is the SVF's bound itself proved smaller. Nothing here compares the filters' actual
 errors, or proves that they have the same frequency response. One reason for the difference: with
-`svf.complexPolesContraction`, `cInf` and `K` are about 3.41 and 2.41 at every cutoff, while the
-biquad's `cInf` grows like `1/ω` as the cutoff falls (worked out outside Lean, not proved). There is
+`svf.complexPolesContraction`, `cInf` and `K` are about 3.41 and 2.41 at every cutoff (worked out
+outside Lean, not proved), while the biquad's `cInf` grows like `1/ω` as the cutoff falls (worked
+out outside Lean, not proved). There is
 no biquad row at 20 Hz (see "Observations").
 
 ## Observations (not proofs)
@@ -447,8 +449,9 @@ What is listed here is observed or expected behaviour, not proved.
   below about 2.1 Hz at 44.1 kHz, 2.2 Hz at 48 kHz and 4.4 Hz at 96 kHz. With them computed in
   binary32 throughout, it happens at some cutoffs up to about 2.8 Hz at 44.1 kHz, 3 Hz at 48 kHz and 6 Hz at
   96 kHz, the worst case being `Q = 0.5`. It also happens at some cutoffs within 6 Hz of half the
-  sample rate. One case is proved: the f32 1 Hz Butterworth low-pass at 48 kHz has a pole at
-  exactly 1 (`lowPass1Hz_pole_one_f32`).
+  sample rate. One case is proved for specific stored values: the binary32 coefficients in
+  `lowPass1Hz_f32`, which are those of a 1 Hz Butterworth low-pass at 48 kHz (worked out outside
+  Lean, not proved), have a pole at exactly 1 (`biquad.lowPass1Hz_pole_one_f32`).
 
 ## What is assumed, not proved
 
@@ -467,9 +470,14 @@ What is listed here is observed or expected behaviour, not proved.
   `Code/FunsExternal.lean` as unknown functions that always return a float and return the same
   float for the same arguments: `libm.tanModel_f64` and the others are Lean `opaque` constants,
   which no proof can look inside (they are not axioms). So the proofs assume that these functions
-  never panic, always return, and return the same float for the same arguments; their accuracy, and
-  even which float they return, are taken on trust. Nothing about the frequency responses of the
-  coefficients the SVF design functions compute is proved.
+  never panic, always return, and return the same float for the same arguments; nothing about their
+  accuracy, or which float they return, is assumed or proved. Nothing about the frequency
+  responses of the coefficients the SVF design functions compute is proved.
+- The processor does `f32`/`f64` arithmetic in its default mode: round to nearest, with subnormal
+  results kept (no flush-to-zero) and subnormal inputs read as they are (no denormals-are-zero),
+  and in IEEE single and double precision (not x87 extended precision, as 32-bit x86 without SSE2
+  can). Hosts and plug-ins often turn on flush-to-zero; with it on, results near zero can differ
+  from the model by more than `η`, and the error bounds do not cover that.
 - Rust's `f32`/`f64` operations and Lean's `Float32`/`Float` operations are the same IEEE 754
   round-to-nearest operations. FloatLib relates Lean's floats to real numbers; nothing here
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
@@ -511,8 +519,10 @@ What is listed here is observed or expected behaviour, not proved.
   distinct real poles inside it (`realPolesContraction`, for example an RBJ low-pass with
   `Q < 1/2`, worked out outside Lean, not proved) and for a repeated real pole inside it
   (`repeatedPoleContraction`). None is supplied when a pole is on or outside the unit circle, and
-  when 1 is a pole none exists (`isEmpty_contraction_of_pole_one`; the f32 1 Hz Butterworth
-  low-pass at 48 kHz has one, `lowPass1Hz_pole_one_f32`).
+  when 1 is a pole none exists (`isEmpty_contraction_of_pole_one`; one case is proved for specific
+  stored values: the binary32 coefficients in `lowPass1Hz_f32`, which are those of a 1 Hz
+  Butterworth low-pass at 48 kHz (worked out outside Lean, not proved), have a pole at exactly 1,
+  `lowPass1Hz_pole_one_f32`).
 - Real poles that are distinct but close together have a large `cInf = 1/(p − q)` in
   `realPolesContraction` (above 2700 for an RBJ low-pass with `Q = 1/2` in f32 at 1 kHz,
   `lowPass1kHzQ05_bound_f32`). `repeatedPoleContraction` needs exactly equal poles, and no

@@ -1,11 +1,11 @@
 //! Fixed-capacity delay line: each output sample is the input sample from `delay_samples`
-//! samples earlier, up to the buffer's limit (exact rules below; `delay.process_f64_spec`).
+//! samples earlier, up to the buffer's limit (exact rules below).
 //!
 //! The caller owns the storage: a `buffer` of any length `L`, chosen at run time (for example
 //! two seconds at the current sample rate), and a write `position`. Both carry the delay line's
 //! state from block to block, so pass the same ones every time. Each channel needs its own
-//! buffer and position. This module never allocates memory (a property of the code and its
-//! build, which the compiler enforces; not proved in Lean).
+//! buffer and position. This module never allocates memory (the build rules it out; see the crate
+//! documentation; not proved in Lean).
 //!
 //! Write `L` for the length of `buffer`, `d = min(delay_samples, L - 1)` for the delay used and
 //! `p = position mod L` for the write index. For each sample `x` of `audio`, in order, `process`
@@ -30,7 +30,7 @@
 //! (`process_f64_state_indep`), so the stored history is kept, and the new delay takes effect
 //! from the first sample of the next call, with no smoothing (`process_f64_spec`).
 //!
-//! `process` never panics, whatever its arguments (under the assumptions in `proofs/README.md`):
+//! `process` never panics, whatever its arguments:
 //!
 //! - an empty `buffer` (`L = 0`) can store nothing, so it behaves as a delay of 0: `audio` passes
 //!   through unchanged, and `position` is left unchanged;

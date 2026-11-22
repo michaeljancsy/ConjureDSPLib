@@ -4,10 +4,10 @@
 //! to block.
 //!
 //! **Stability.** In exact arithmetic the filter is stable when `|a| < 1`: with every input at
-//! most `M` in size, every output is at most `|state| + M / (1 - |a|)` in size
-//! (`one_pole.filt_real_abs_le_outBound`). The whole-block floating-point error theorems assume
-//! the stronger `|a| + |a|·u·(2 + u) < 1`, where `u` is the unit roundoff; see
-//! `proofs/README.md`.
+//! most `M` in size, every output is at most `|state| + M / (1 - |a|)` in size, where `state` is
+//! the starting state (`one_pole.filt_real_abs_le_outBound`). The whole-block floating-point
+//! error theorems assume the stronger `|a| + |a| * u * (2 + u) < 1`, where `u` is the unit
+//! roundoff; see `proofs/README.md`.
 //!
 //! **Gain.** This is the unnormalized form: in exact arithmetic, with `|a| < 1`, a constant input
 //! `x` settles at `x / (1 - a)`, not at `x` (`one_pole.filt_real_replicate`,
@@ -17,8 +17,10 @@
 //! (`smoother.tendsto_filt_real_replicate`).
 //!
 //! **Subnormals.** A decaying output drifts into subnormal numbers, which are slow on some
-//! processors (a hardware fact, not proved here). This module does nothing about that: flushing
-//! subnormals to zero is the caller's job.
+//! processors (the drift worked out outside Lean, not proved; the slowness a hardware fact). This
+//! module does nothing about that: flushing subnormals to zero is the caller's job (if the caller
+//! turns on the processor's flush-to-zero mode, the error bounds no longer apply near zero; see
+//! `proofs/README.md`).
 //!
 //! Call these through the module, as `one_pole::process_f32`.
 

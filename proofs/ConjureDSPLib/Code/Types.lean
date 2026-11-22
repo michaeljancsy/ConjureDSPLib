@@ -21,7 +21,7 @@ set_option maxRecDepth 2048
 namespace conjure_dsp_lib
 
 /-- [conjure_dsp_lib::biquad::CoeffsF64]
-    Source: 'src/biquad.rs', lines 45:0-56:1
+    Source: 'src/biquad.rs', lines 52:0-63:1
     Visibility: public -/
 structure biquad.CoeffsF64 where
   b0 : Float
@@ -31,14 +31,14 @@ structure biquad.CoeffsF64 where
   a2 : Float
 
 /-- [conjure_dsp_lib::biquad::StateF64]
-    Source: 'src/biquad.rs', lines 74:0-79:1
+    Source: 'src/biquad.rs', lines 82:0-87:1
     Visibility: public -/
 structure biquad.StateF64 where
   s1 : Float
   s2 : Float
 
 /-- [conjure_dsp_lib::biquad::CoeffsF32]
-    Source: 'src/biquad.rs', lines 103:0-114:1
+    Source: 'src/biquad.rs', lines 111:0-122:1
     Visibility: public -/
 structure biquad.CoeffsF32 where
   b0 : Float32
@@ -48,14 +48,14 @@ structure biquad.CoeffsF32 where
   a2 : Float32
 
 /-- [conjure_dsp_lib::biquad::StateF32]
-    Source: 'src/biquad.rs', lines 132:0-137:1
+    Source: 'src/biquad.rs', lines 141:0-146:1
     Visibility: public -/
 structure biquad.StateF32 where
   s1 : Float32
   s2 : Float32
 
 /-- [conjure_dsp_lib::svf::CoeffsF64]
-    Source: 'src/svf.rs', lines 69:0-83:1
+    Source: 'src/svf.rs', lines 70:0-84:1
     Visibility: public -/
 structure svf.CoeffsF64 where
   g : Float
@@ -66,14 +66,14 @@ structure svf.CoeffsF64 where
   m_lp : Float
 
 /-- [conjure_dsp_lib::svf::StateF64]
-    Source: 'src/svf.rs', lines 180:0-185:1
+    Source: 'src/svf.rs', lines 181:0-186:1
     Visibility: public -/
 structure svf.StateF64 where
   s1 : Float
   s2 : Float
 
 /-- [conjure_dsp_lib::svf::CoeffsF32]
-    Source: 'src/svf.rs', lines 212:0-226:1
+    Source: 'src/svf.rs', lines 213:0-227:1
     Visibility: public -/
 structure svf.CoeffsF32 where
   g : Float32
@@ -84,7 +84,7 @@ structure svf.CoeffsF32 where
   m_lp : Float32
 
 /-- [conjure_dsp_lib::svf::StateF32]
-    Source: 'src/svf.rs', lines 323:0-328:1
+    Source: 'src/svf.rs', lines 324:0-329:1
     Visibility: public -/
 structure svf.StateF32 where
   s1 : Float32

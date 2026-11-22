@@ -19,7 +19,12 @@ The smoother `y = y_prev + (1 - A) * (x - y_prev)` (`process_f64` / `process_f32
    `X` as `n` grows: a steady input settles on itself.
 4. `filt_real_abs_le`: in exact arithmetic, when `|A| < 1`, from state `S` with every input at
    most `M` in size, every output and the final state are at most `|S| + |1 - A| * M / (1 - |A|)`
-   in size (`outBound` in `Block.lean`): the exact smoother is stable.
+   in size (this is `smoother.outBound A M S`, defined in `Smoother/Block.lean`, which imports
+   this file): the exact smoother is stable.
+5. `replicate_output_between`, `replicate_output_closer`, `replicate_output_alternates`: about
+   the outputs `X + A^(k+1) * (r - X)` of `filt_real_replicate`. When `0 ≤ A ≤ 1` each lies
+   between `X` and `r` and is no farther from `X` than the one before (a glide with no
+   overshoot); when `A < 0` and `r ≠ X`, consecutive outputs are on opposite sides of `X`.
 
 These are about exact arithmetic only. In floating point the smoother and the one-pole round
 differently, and the smoother need not land exactly on its input. The smoother's floating-point
@@ -91,6 +96,43 @@ theorem filt_real_abs_le (A M S : ℝ) (hA : |A| < 1) (hM0 : 0 ≤ M) (xs : List
     exact mul_le_mul_of_nonneg_left (hM z hz) (abs_nonneg _)
   exact one_pole.filt_real_abs_le_outBound A (|1 - A| * M) S hA
     (mul_nonneg (abs_nonneg _) hM0) _ hM'
+
+/-- **No overshoot.** When `0 ≤ A ≤ 1`, the output `X + A^(k+1) * (r - X)` of a steady input `X`
+from state `r` (`filt_real_replicate`) lies between `X` and `r`. -/
+theorem replicate_output_between (A r X : ℝ) (hA0 : 0 ≤ A) (hA1 : A ≤ 1) (k : ℕ) :
+    min X r ≤ X + A ^ (k + 1) * (r - X) ∧ X + A ^ (k + 1) * (r - X) ≤ max X r := by
+  have hp0 : 0 ≤ A ^ (k + 1) := pow_nonneg hA0 _
+  have hp1 : A ^ (k + 1) ≤ 1 := pow_le_one₀ hA0 hA1
+  rcases le_total X r with h | h
+  · rw [min_eq_left h, max_eq_right h]
+    constructor <;> nlinarith
+  · rw [min_eq_right h, max_eq_left h]
+    constructor <;> nlinarith
+
+/-- **A glide.** When `0 ≤ A ≤ 1`, each output of a steady input `X` from state `r`
+(`filt_real_replicate`) is no farther from `X` than the one before. -/
+theorem replicate_output_closer (A r X : ℝ) (hA0 : 0 ≤ A) (hA1 : A ≤ 1) (k : ℕ) :
+    |X + A ^ (k + 2) * (r - X) - X| ≤ |X + A ^ (k + 1) * (r - X) - X| := by
+  have hp0 : 0 ≤ A ^ (k + 1) := pow_nonneg hA0 _
+  have e1 : X + A ^ (k + 2) * (r - X) - X = A * (A ^ (k + 1) * (r - X)) := by ring
+  have e2 : X + A ^ (k + 1) * (r - X) - X = A ^ (k + 1) * (r - X) := by ring
+  rw [e1, e2, abs_mul, abs_of_nonneg hA0]
+  have := abs_nonneg (A ^ (k + 1) * (r - X))
+  nlinarith
+
+/-- **Alternation.** When `A < 0` and `r ≠ X`, consecutive outputs of a steady input `X` from
+state `r` (`filt_real_replicate`) are on opposite sides of `X`: the product of their distances
+from `X`, with sign, is negative. -/
+theorem replicate_output_alternates (A r X : ℝ) (hA : A < 0) (hr : r ≠ X) (k : ℕ) :
+    (X + A ^ (k + 1) * (r - X) - X) * (X + A ^ (k + 2) * (r - X) - X) < 0 := by
+  have hne : A ^ (k + 1) * (r - X) ≠ 0 :=
+    mul_ne_zero (pow_ne_zero _ hA.ne) (sub_ne_zero.mpr hr)
+  have hsq : 0 < (A ^ (k + 1) * (r - X)) ^ 2 :=
+    lt_of_le_of_ne (sq_nonneg _) (Ne.symm (pow_ne_zero 2 hne))
+  have e : (X + A ^ (k + 1) * (r - X) - X) * (X + A ^ (k + 2) * (r - X) - X) =
+      (A ^ (k + 1) * (r - X)) ^ 2 * A := by ring
+  rw [e]
+  exact mul_neg_of_pos_of_neg hsq hA
 
 end conjure_dsp_lib.smoother
 

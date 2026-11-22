@@ -3,10 +3,14 @@
 The shared DSP maths used by every ConjureDSP plug-in, in Rust, with Lean proofs about the code.
 
 It takes numbers and buffers and returns numbers or fills buffers. Per-sample code does no
-memory allocation, takes no locks and makes no system calls (a property of the code and its build,
-which the compiler enforces; not proved in Lean, and it relies on `libm` doing the same). It knows
-nothing about plug-in formats, hosts, threads, parameters, saved state or the user interface:
-those live in the plug-in framework. ConjureDSPLib never depends on the plug-in framework.
+memory allocation, takes no locks and makes no system calls. The build rules out allocation and
+system calls (the crate is `no_std`, does not use `alloc` and forbids `unsafe` code; `libm` is
+relied on to do the same). That it takes no locks is a property of the code (it uses no atomics or
+other synchronization), not enforced by the compiler. A panic would run the plug-in's panic
+handler, which can allocate, lock and make system calls; that the functions never panic is proved
+of the translated code. None of this is otherwise proved in Lean. It knows nothing about plug-in
+formats, hosts, threads, parameters, saved state or the user interface: those live in
+the plug-in framework. ConjureDSPLib never depends on the plug-in framework.
 
 ## Proofs
 

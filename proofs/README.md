@@ -269,7 +269,7 @@ What is listed here is observed or expected behaviour, not proved.
   1 Hz steps up to half the sample rate, testing `a2 < 1` and `|a1| < 1 + a2`). With the
   coefficients computed in binary64 and then rounded to binary32, this happens at some cutoffs
   below about 2.1 Hz at 44.1 kHz, 2.2 Hz at 48 kHz and 4.4 Hz at 96 kHz. With them computed in
-  binary32 throughout, it happens up to about 2.8 Hz at 44.1 kHz, 3 Hz at 48 kHz and 6 Hz at
+  binary32 throughout, it happens at some cutoffs up to about 2.8 Hz at 44.1 kHz, 3 Hz at 48 kHz and 6 Hz at
   96 kHz, the worst case being `Q = 0.5`. It also happens at some cutoffs within 6 Hz of half the
   sample rate. One case is proved: the f32 1 Hz Butterworth low-pass at 48 kHz has a pole at
   exactly 1 (`lowPass1Hz_pole_one_f32`).

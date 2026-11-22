@@ -15,9 +15,14 @@
 //! where `d = 1 / (1 + g·(g + k))` is computed once, by `CoeffsF64::new` / `CoeffsF32::new`.
 //! This module computes exactly these steps, in this order and grouping (the brackets above),
 //! with no fused multiply-add (proved of the translated code as `svf.step_f64_eq` /
-//! `svf.step_f32_eq`, under the assumptions in `proofs/README.md`). In exact arithmetic these are the equations of the trapezoidal ("topology-preserving") SVF in
-//! V. Zavalishin, *The Art of VA Filter Design* (with `k = 2R`); that correspondence is not proved
-//! in `proofs/`.
+//! `svf.step_f32_eq`, under the assumptions in `proofs/README.md`). In exact arithmetic these are
+//! the equations of the trapezoidal ("topology-preserving") SVF in V. Zavalishin, *The Art of VA
+//! Filter Design* (with `k = 2R`); that correspondence is not proved in `proofs/`.
+//!
+//! For given coefficients that meet its conditions (for example complex poles, as for the
+//! low-pass examples in `proofs/README.md`), the Lean proofs bound the floating-point error of a
+//! whole block against the same filter in exact arithmetic (`svf.process_f64_block_error`,
+//! `svf.process_f32_block_error`).
 //!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.
@@ -33,11 +38,11 @@
 //!
 //! The formulas follow A. Simper (Cytomic), *Solving the continuous SVF equations using
 //! trapezoidal integration and equivalent currents*, rewritten in this module's `hp`/`bp`/`lp`
-//! mix basis using `x = hp + k·bp + lp` (true in exact arithmetic; worked out by hand, not
+//! mix basis using `x = hp + k·bp + lp` (true in exact arithmetic; worked out outside Lean, not
 //! proved). For example Simper's bell output `x + k·(A² - 1)·bp` is `hp + k·A²·bp + lp` (worked
-//! out by hand, not proved). The names describe the responses Simper intends; that the
-//! coefficients give those responses (or any frequency response, stability or accuracy) is **not
-//! proved**.
+//! out outside Lean, not proved). The names describe the responses Simper intends; that
+//! the coefficients give those responses (or any frequency response), and that they meet the
+//! conditions of the error bound at every cutoff, is **not proved**.
 //!
 //! Intended arguments: `0 < cutoff_hz < sample_rate_hz / 2`, `q > 0` and a finite `gain_db`.
 //! Nothing is checked, and nothing is claimed outside these ranges (the results may be infinite

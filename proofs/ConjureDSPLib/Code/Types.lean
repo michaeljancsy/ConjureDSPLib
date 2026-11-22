@@ -55,7 +55,7 @@ structure biquad.StateF32 where
   s2 : Float32
 
 /-- [conjure_dsp_lib::svf::CoeffsF64]
-    Source: 'src/svf.rs', lines 57:0-71:1
+    Source: 'src/svf.rs', lines 62:0-76:1
     Visibility: public -/
 structure svf.CoeffsF64 where
   g : Float
@@ -66,14 +66,14 @@ structure svf.CoeffsF64 where
   m_lp : Float
 
 /-- [conjure_dsp_lib::svf::StateF64]
-    Source: 'src/svf.rs', lines 168:0-173:1
+    Source: 'src/svf.rs', lines 173:0-178:1
     Visibility: public -/
 structure svf.StateF64 where
   s1 : Float
   s2 : Float
 
 /-- [conjure_dsp_lib::svf::CoeffsF32]
-    Source: 'src/svf.rs', lines 200:0-214:1
+    Source: 'src/svf.rs', lines 205:0-219:1
     Visibility: public -/
 structure svf.CoeffsF32 where
   g : Float32
@@ -84,7 +84,7 @@ structure svf.CoeffsF32 where
   m_lp : Float32
 
 /-- [conjure_dsp_lib::svf::StateF32]
-    Source: 'src/svf.rs', lines 311:0-316:1
+    Source: 'src/svf.rs', lines 316:0-321:1
     Visibility: public -/
 structure svf.StateF32 where
   s1 : Float32

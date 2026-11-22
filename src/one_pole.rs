@@ -4,7 +4,7 @@
 //! to block. The filter is stable when `|a| < 1`.
 //!
 //! **Gain.** This is the unnormalized form: a constant input `x` settles at `x / (1 - a)`, not at
-//! `x`. With `a = 0.99` a constant 1.0 settles at 100. To smooth towards a target value, use
+//! `x`. With `a = 0.99` a constant 1.0 settles at 100. To smooth toward a target value, use
 //! `smooth_f64` / `smooth_f32` (one sample: `smooth_step_f64` / `smooth_step_f32`), which settle
 //! on the target itself.
 //!
@@ -35,7 +35,7 @@ pub fn process_f64(a: f64, state: &mut f64, buf: &mut [f64]) {
 }
 
 /// One sample of the smoother, in `f64`: moves `state` (the previous output) the fraction
-/// `1 - a` of the way towards `target`, returning `state + (1 - a) * (target - state)`.
+/// `1 - a` of the way toward `target`, returning `state + (1 - a) * (target - state)`.
 ///
 /// A steady target settles on itself, unlike `process_f64`, which settles at `x / (1 - a)`. `a`
 /// near 1 is a slow glide; `a = 0` jumps straight to the target. It is stable for `0 <= a < 1`.
@@ -88,7 +88,7 @@ pub fn process_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
 }
 
 /// One sample of the smoother, in `f32`: moves `state` (the previous output) the fraction
-/// `1 - a` of the way towards `target`, returning `state + (1 - a) * (target - state)`.
+/// `1 - a` of the way toward `target`, returning `state + (1 - a) * (target - state)`.
 ///
 /// A steady target settles on itself, unlike `process_f32`, which settles at `x / (1 - a)`. `a`
 /// near 1 is a slow glide; `a = 0` jumps straight to the target. It is stable for `0 <= a < 1`.

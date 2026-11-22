@@ -90,10 +90,10 @@ about `process_f64` / `process_f32` directly. Their real-number argument is in `
 
 For the one-pole, the whole-block theorems compare the Rust outputs with the exact filter run on
 the exact real values of the stored floats: `A` is the value of `a`, `S` of the starting `state`,
-and the inputs are the values of the stored samples. (So turning a decimal coefficient into a
-float is not covered: 0.99 is stored in f32 as 0.9900000095.) The biquad theorems likewise use
-the real values of the stored coefficients (`realCoeffs_f64`), starting state (`realState_f64`)
-and inputs. The one-pole's conditions:
+and the inputs are the values of the stored samples. (So turning a decimal coefficient into a float
+is not covered: 0.99 is stored in f32 as 0.9900000095, worked out outside Lean, not proved.) The
+biquad theorems likewise use the real values of the stored coefficients (`realCoeffs_f64`),
+starting state (`realState_f64`) and inputs. The one-pole's conditions:
 
 - `a`, the starting state and every input are finite, and no step overflows (`NoOverflow_f64` /
   `NoOverflow_f32`: every rounded product `a * state` and every output is finite). The
@@ -113,29 +113,45 @@ Then, with `B = |S| + M / (1 - |A|)` (a bound on the exact filter's outputs):
 
 ### What the whole-block bound means in practice
 
-These numbers are worked out by hand from the formula for `E`; Lean does not prove them. They are
-for inputs at most 1.0 in size and a starting state of 0, so the exact output stays within
-`B = 1 / (1 - a)`. `η` is negligible at this scale. The last column is `20·log₁₀(E / B)`.
+For inputs at most `M = 1` in size and a starting state of value `S = 0`, the theorems below
+prove, for every real `A` whose size is at most the bound in the third column: the stability
+condition holds, and `B`, `E`, `E / B` and `20·log₁₀(E / B)` (`E` relative to `B`, in decibels)
+are at most the values shown. Here `B` and `E` are `outBound A 1 0` and `errBound A u η 1 0`,
+with `u` and `η` the precision's rounding constants. The values shown were chosen a little above
+the values of the formulas at that bound (worked out outside Lean, not proved), so each proved
+bound can be slightly weaker than the formula's value.
 
-| Precision | `a` | `B` | `E` | `E` relative to `B` |
-|---|---|---|---|---|
-| f32 | 0.5 | 2 | 3.6 × 10⁻⁷ | −135.0 dB |
-| f32 | 0.99 | 100 | 1.2 × 10⁻³ | −98.5 dB |
-| f32 | 0.999 | 1000 | 0.12 | −78.5 dB |
-| f64 | 0.99 | 100 | 2.2 × 10⁻¹² | −273.1 dB |
-| f64 | 0.999 | 1000 | 2.2 × 10⁻¹⁰ | −253.1 dB |
+| Precision | `a` | Size of `A` at most | `B` | `E` | `E / B` | `E` relative to `B` | Theorem |
+|---|---|---|---|---|---|---|---|
+| f32 | 0.5 | 0.5 | ≤ 2 | ≤ 3.6 × 10⁻⁷ | ≤ 1.79 × 10⁻⁷ | ≤ −134.9 dB | `table_row_le_of_abs_le_05_f32` |
+| f32 | 0.99 | 0.990001 | ≤ 100.02 | ≤ 1.19 × 10⁻³ | ≤ 1.187 × 10⁻⁵ | ≤ −98.5 dB | `table_row_le_of_abs_le_099_f32` |
+| f32 | 0.999 | 0.999001 | ≤ 1001.01 | ≤ 0.12 | ≤ 1.193 × 10⁻⁴ | ≤ −78.4 dB | `table_row_le_of_abs_le_0999_f32` |
+| f64 | 0.99 | 0.99 | ≤ 100 | ≤ 2.21 × 10⁻¹² | ≤ 2.21 × 10⁻¹⁴ | ≤ −273.1 dB | `table_row_le_of_abs_le_099_f64` |
+| f64 | 0.999 | 0.999 | ≤ 1000 | ≤ 2.22 × 10⁻¹⁰ | ≤ 2.22 × 10⁻¹³ | ≤ −253.0 dB | `table_row_le_of_abs_le_0999_f64` |
 
-The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 lose the most.
-It is a worst case: typical rounding errors partly cancel and are much smaller.
+Each bound in the third column covers the value the precision stores for `a`: f32 stores 0.5
+exactly, 0.99 as 0.9900000095 and 0.999 as 0.9990000129, and f64 stores 0.99 as
+0.98999999999999999112 and 0.999 as 0.99899999999999999911, just below the decimal values. These
+stored values are worked out outside Lean, not proved. The theorems are about every real `A` within
+the bound, so they hold whatever value is stored, as long as it is within the bound. The table
+rests on `table_row_le_of_abs_le` in `OnePole/Block.lean`, which uses
+`outBound_errBound_le_of_abs_le`: when `0 ≤ u`, `0 ≤ η`, `|A| ≤ a` and `a + a·u·(2 + u) < 1`, each
+of `B`, `E` and `E / B` (with `M = 1`, `S = 0`) is at most its value at `|A| = a`.
+
+How `E` grows as the size of `A` approaches 1: for inputs at most 1 and a start from 0, if
+`1/2 ≤ |A| ≤ 1 - 2⁻²⁰` in f32 (`errBound_between_of_abs_le_f32`) or `1/2 ≤ |A| ≤ 1 - 2⁻⁴⁹` in f64
+(`errBound_between_of_abs_le_f64`), then `u / (1 - |A|)² ≤ E ≤ 3·u / (1 - |A|)²`, where `u` is
+`2⁻²⁴` in f32 and `2⁻⁵³` in f64 (`unitRoundoff_f32_eq`, `unitRoundoff_f64_eq`). So, within a factor
+of 3, `E` grows like `1 / (1 - |A|)²`. Both rest on `errBound_between_of_abs_le` in
+`OnePole/Block.lean`.
 
 The size limit of the one-pole `process_f32_block_error_of_inputs` is proved to hold for slow
-smoothers in f32: for every
+smoothers in f32 (the third row of the table above): for every
 real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a starting state of value
 `S = 0`, the stability condition holds, `B ≤ 1001.01`, `E ≤ 0.12`, and `M + (1 + u)·(B + E) + η`
 is at most the largest finite binary32 value (`block_constants_le_of_abs_le_f32`). That value is
 exactly `(2²⁴ - 1)·2¹⁰⁴` (`maxFinite_f32_eq`), and in f32 `u = 2⁻²⁴` and `η = 2⁻¹⁵⁰`
-(`unitRoundoff_f32_eq`, `underflowErr_f32_eq`). The bound 0.999001 leaves room for 0.999
-itself, which f32 stores as 0.9990000129 (worked out by hand, not proved).
+(`unitRoundoff_f32_eq`, `underflowErr_f32_eq`).
 
 For the biquad, using `complexPolesContraction`, for an RBJ-cookbook Butterworth low-pass
 (`Q = 0.7071`) at 48 kHz, with its coefficients rounded to each precision, inputs at most 1.0 and
@@ -155,7 +171,7 @@ These bounds are much larger than the one-pole's. Part of that is real: at low c
 sit near the real axis, and the filter's own worst-case error gain is large (about 1.3 × 10⁴ at
 100 Hz). Part is slack in the proof: the state bound `Sb` used for the per-step rounding is about
 7–23× the true largest state (at 100 Hz, 1 kHz and 10 kHz), the per-step bound is crude, and the
-contraction step adds a factor of about 4. Typical rounding errors are much smaller. In f64 the
+contraction step adds a factor of about 4. In f64 the
 bound is below −120 dB from about 10 Hz to about 23.9 kHz, and −80 dB at 1 Hz. In f32 it is below
 −25 dB only from about 1 kHz to about 21 kHz, above 1.0 below about 250 Hz and above about 23 kHz,
 and absent below about 82.4 Hz. The bound is not monotonic in the cutoff (for example f32: −74.9 dB
@@ -180,6 +196,13 @@ its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R
 imply that condition when `α > 0` and `cInf·K·κ > 0` (`biquad.smallness_of_invariant`). That
 these two hold for `complexPolesContraction`, and that the condition fails below about 82.4 Hz,
 is worked out by hand, not proved.
+
+## Observations (not proofs)
+
+What is listed here is observed or expected behaviour, not proved.
+
+- The whole-block bounds are worst cases. Typical rounding errors partly cancel, and are much
+  smaller than the one-pole's `E` and the biquad's `cInf·Ê + L`.
 
 ## What is assumed, not proved
 

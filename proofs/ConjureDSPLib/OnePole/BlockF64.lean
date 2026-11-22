@@ -14,6 +14,10 @@ binary64's rounding constants.
 
 `process_f64_block_error_of_inputs` gives the same bound with the no-overflow condition proved
 from the inputs instead of assumed.
+
+The last theorems are about inputs at most 1 in size and a start from 0: the f64 rows of the
+one-pole table in `proofs/README.md` (`table_row_le_of_abs_le_*_f64`), and how `E` grows
+as `|A|` approaches 1 (`errBound_between_of_abs_le_f64`).
 -/
 
 @[expose] public section
@@ -221,6 +225,78 @@ theorem stability_of_abs_le_f64 (A : ℝ) (hA : |A| ≤ 1 - 2 ^ (-51 : ℤ)) :
   rw [unitRoundoff_f64_eq]
   norm_num at hA ⊢
   nlinarith [abs_nonneg A]
+
+/-- binary64's underflow error is at most `2⁻²⁰⁰`. -/
+-- A crude bound, used instead of the exact `2⁻¹⁰⁷⁵`: it keeps the numbers `norm_num` works with
+-- small.
+theorem underflowErr_f64_le : underflowErr_f64 ≤ 2 ^ (-200 : ℤ) := by
+  rw [underflowErr_f64_eq]; exact zpow_le_zpow_right₀ (by norm_num) (by norm_num)
+
+-- The dB step checks a power of 10 with up to 1800 digits; norm_num needs a higher limit for that.
+set_option exponentiation.threshold 4000 in
+/-- **Row `a = 0.99` of the one-pole table in `proofs/README.md`, f64.** For every real `A` with
+`|A| ≤ 0.99`, inputs at most `M = 1` in size and a starting state of value `S = 0`, in binary64: the
+stability condition holds, `B ≤ 100`, `E ≤ 2.21 × 10⁻¹²`, `E / B ≤ 2.21 × 10⁻¹⁴` and
+`20·log₁₀(E / B) ≤ −273.1`. `B` and `E` are `outBound` and `errBound`, `u` and `η` binary64's
+rounding constants. The bound 0.99 covers 0.99 itself, which f64 stores as 0.98999999999999999112,
+just below 0.99 (worked out outside Lean, not proved). -/
+theorem table_row_le_of_abs_le_099_f64 (A : ℝ) (hA : |A| ≤ 0.99) :
+    |A| + |A| * unitRoundoff_f64 * (2 + unitRoundoff_f64) < 1 ∧
+      outBound A 1 0 ≤ 100 ∧
+      errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤ 2.21 * 10 ^ (-12 : ℤ) ∧
+      errBound A unitRoundoff_f64 underflowErr_f64 1 0 / outBound A 1 0 ≤
+        2.21 * 10 ^ (-14 : ℤ) ∧
+      20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0 / outBound A 1 0) ≤
+        -273.1 := by
+  have hu : 0 < unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
+  have hη : 0 ≤ underflowErr_f64 := by rw [underflowErr_f64_eq]; positivity
+  obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.99 _ _ (2 ^ (-200 : ℤ)) 100
+    (2.21 * 10 ^ (-12 : ℤ)) 221 16 200 2731 hu hη underflowErr_f64_le hA
+    (by rw [unitRoundoff_f64_eq]; norm_num) (by norm_num) (by norm_num)
+    (by rw [unitRoundoff_f64_eq]; norm_num) (by rw [unitRoundoff_f64_eq]; norm_num) (by norm_num)
+  exact ⟨stability_of_abs_le_f64 A (by norm_num; linarith), hB, hE, hr.trans (by norm_num),
+    hdB.trans (by norm_num)⟩
+
+set_option exponentiation.threshold 4000 in
+/-- **Row `a = 0.999` of the one-pole table in `proofs/README.md`, f64.** For every real `A` with
+`|A| ≤ 0.999`, inputs at most `M = 1` in size and a starting state of value `S = 0`, in binary64:
+the stability condition holds, `B ≤ 1000`, `E ≤ 2.22 × 10⁻¹⁰`, `E / B ≤ 2.22 × 10⁻¹³` and
+`20·log₁₀(E / B) ≤ −253`. `B` and `E` are `outBound` and `errBound`, `u` and `η` binary64's rounding
+constants. The bound 0.999 covers 0.999 itself, which f64 stores as 0.99899999999999999911, just
+below 0.999 (worked out outside Lean, not proved). -/
+theorem table_row_le_of_abs_le_0999_f64 (A : ℝ) (hA : |A| ≤ 0.999) :
+    |A| + |A| * unitRoundoff_f64 * (2 + unitRoundoff_f64) < 1 ∧
+      outBound A 1 0 ≤ 1000 ∧
+      errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤ 2.22 * 10 ^ (-10 : ℤ) ∧
+      errBound A unitRoundoff_f64 underflowErr_f64 1 0 / outBound A 1 0 ≤
+        2.22 * 10 ^ (-13 : ℤ) ∧
+      20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0 / outBound A 1 0) ≤
+        -253 := by
+  have hu : 0 < unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
+  have hη : 0 ≤ underflowErr_f64 := by rw [underflowErr_f64_eq]; positivity
+  obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.999 _ _ (2 ^ (-200 : ℤ)) 1000
+    (2.22 * 10 ^ (-10 : ℤ)) 222 15 20 253 hu hη underflowErr_f64_le hA
+    (by rw [unitRoundoff_f64_eq]; norm_num) (by norm_num) (by norm_num)
+    (by rw [unitRoundoff_f64_eq]; norm_num) (by rw [unitRoundoff_f64_eq]; norm_num) (by norm_num)
+  exact ⟨stability_of_abs_le_f64 A (by norm_num; linarith), hB, hE, hr.trans (by norm_num),
+    hdB.trans (by norm_num)⟩
+
+/-- **How the f64 whole-block bound grows as `|A|` approaches 1.** For every real `A` with
+`1/2 ≤ |A| ≤ 1 - 2⁻⁴⁹`, inputs at most `M = 1` in size and a starting state of value `S = 0`, in
+binary64: `u / (1 - |A|)² ≤ E ≤ 3·u / (1 - |A|)²`, where `E` is `errBound` and `u = 2⁻⁵³`
+binary64's unit roundoff. -/
+theorem errBound_between_of_abs_le_f64 (A : ℝ) (hA1 : 1 / 2 ≤ |A|)
+    (hA2 : |A| ≤ 1 - 2 ^ (-49 : ℤ)) :
+    unitRoundoff_f64 / (1 - |A|) ^ 2 ≤ errBound A unitRoundoff_f64 underflowErr_f64 1 0 ∧
+      errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤
+        3 * unitRoundoff_f64 / (1 - |A|) ^ 2 := by
+  refine errBound_between_of_abs_le A _ _ _ (by rw [unitRoundoff_f64_eq]; positivity)
+    (by rw [unitRoundoff_f64_eq]; norm_num) (by rw [underflowErr_f64_eq]; positivity) ?_
+    (by rw [unitRoundoff_f64_eq]; norm_num) hA1 hA2
+  have hu : 0 ≤ unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
+  calc underflowErr_f64 * (2 + unitRoundoff_f64) ≤ 2 ^ (-200 : ℤ) * (2 + unitRoundoff_f64) :=
+        mul_le_mul_of_nonneg_right underflowErr_f64_le (by linarith)
+    _ ≤ unitRoundoff_f64 / 100 := by rw [unitRoundoff_f64_eq]; norm_num
 
 end conjure_dsp_lib.one_pole
 

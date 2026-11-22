@@ -14,6 +14,10 @@ binary32's rounding constants.
 
 `process_f32_block_error_of_inputs` gives the same bound with the no-overflow condition proved
 from the inputs instead of assumed.
+
+The last theorems are about inputs at most 1 in size and a start from 0: the f32 rows of the
+one-pole table in `proofs/README.md` (`table_row_le_of_abs_le_*_f32`), and how `E` grows
+as `|A|` approaches 1 (`errBound_between_of_abs_le_f32`).
 -/
 
 @[expose] public section
@@ -222,12 +226,85 @@ theorem stability_of_abs_le_f32 (A : ℝ) (hA : |A| ≤ 1 - 2 ^ (-22 : ℤ)) :
   norm_num at hA ⊢
   nlinarith [abs_nonneg A]
 
+-- The dB step checks a power of 10 with up to 1800 digits; norm_num needs a higher limit for that.
+set_option exponentiation.threshold 4000 in
+/-- **Row `a = 0.5` of the one-pole table in `proofs/README.md`, f32.** For every real `A` with
+`|A| ≤ 0.5`, inputs at most `M = 1` in size and a starting state of value `S = 0`, in binary32: the
+stability condition holds, `B ≤ 2`, `E ≤ 3.6 × 10⁻⁷`, `E / B ≤ 1.79 × 10⁻⁷` and
+`20·log₁₀(E / B) ≤ −134.9`. `B` and `E` are `outBound` and `errBound`, `u` and `η` binary32's
+rounding constants. f32 stores 0.5 exactly (0.5 is a power of 2). -/
+theorem table_row_le_of_abs_le_05_f32 (A : ℝ) (hA : |A| ≤ 0.5) :
+    |A| + |A| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1 ∧
+      outBound A 1 0 ≤ 2 ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 3.6 * 10 ^ (-7 : ℤ) ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0 ≤
+        1.79 * 10 ^ (-7 : ℤ) ∧
+      20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0) ≤
+        -134.9 := by
+  have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.5 _ _ (2 ^ (-150 : ℤ)) 2
+    (3.6 * 10 ^ (-7 : ℤ)) 179 9 200 1349 hu hη underflowErr_f32_eq.le hA
+    (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num) (by norm_num)
+    (by rw [unitRoundoff_f32_eq]; norm_num) (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num)
+  exact ⟨stability_of_abs_le_f32 A (by norm_num; linarith), hB, hE, hr.trans (by norm_num),
+    hdB.trans (by norm_num)⟩
+
+set_option exponentiation.threshold 4000 in
+/-- **Row `a = 0.99` of the one-pole table in `proofs/README.md`, f32.** For every real `A` with
+`|A| ≤ 0.990001`, inputs at most `M = 1` in size and a starting state of value `S = 0`, in binary32:
+the stability condition holds, `B ≤ 100.02`, `E ≤ 1.19 × 10⁻³`, `E / B ≤ 1.187 × 10⁻⁵` and
+`20·log₁₀(E / B) ≤ −98.5`. `B` and `E` are `outBound` and `errBound`, `u` and `η` binary32's
+rounding constants. The bound 0.990001 leaves room for 0.99 itself, which f32 stores as 0.9900000095
+(worked out outside Lean, not proved). -/
+theorem table_row_le_of_abs_le_099_f32 (A : ℝ) (hA : |A| ≤ 0.990001) :
+    |A| + |A| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1 ∧
+      outBound A 1 0 ≤ 100.02 ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 1.19 * 10 ^ (-3 : ℤ) ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0 ≤
+        1.187 * 10 ^ (-5 : ℤ) ∧
+      20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0) ≤
+        -98.5 := by
+  have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.990001 _ _ (2 ^ (-150 : ℤ)) 100.02
+    (1.19 * 10 ^ (-3 : ℤ)) 1187 8 40 197 hu hη underflowErr_f32_eq.le hA
+    (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num) (by norm_num)
+    (by rw [unitRoundoff_f32_eq]; norm_num) (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num)
+  exact ⟨stability_of_abs_le_f32 A (by norm_num; linarith), hB, hE, hr.trans (by norm_num),
+    hdB.trans (by norm_num)⟩
+
+set_option exponentiation.threshold 4000 in
+/-- **Row `a = 0.999` of the one-pole table in `proofs/README.md`, f32.** For every real `A` with
+`|A| ≤ 0.999001`, inputs at most `M = 1` in size and a starting state of value `S = 0`, in binary32:
+the stability condition holds, `B ≤ 1001.01`, `E ≤ 0.12`, `E / B ≤ 1.193 × 10⁻⁴` and
+`20·log₁₀(E / B) ≤ −78.4`. `B` and `E` are `outBound` and `errBound`, `u` and `η` binary32's
+rounding constants. The bound 0.999001 leaves room for 0.999 itself, which f32 stores as
+0.9990000129 (worked out outside Lean, not proved). -/
+theorem table_row_le_of_abs_le_0999_f32 (A : ℝ) (hA : |A| ≤ 0.999001) :
+    |A| + |A| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1 ∧
+      outBound A 1 0 ≤ 1001.01 ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 0.12 ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0 ≤
+        1.193 * 10 ^ (-4 : ℤ) ∧
+      20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0) ≤
+        -78.4 := by
+  have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.999001 _ _ (2 ^ (-150 : ℤ)) 1001.01
+    0.12 1193 7 25 98 hu hη underflowErr_f32_eq.le hA
+    (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num) (by norm_num)
+    (by rw [unitRoundoff_f32_eq]; norm_num) (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num)
+  exact ⟨stability_of_abs_le_f32 A (by norm_num; linarith), hB, hE, hr.trans (by norm_num),
+    hdB.trans (by norm_num)⟩
+
 /-- **The size limit of `process_f32_block_error_of_inputs` holds for a slow smoother, f32.**
 For every real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a
 starting state of value `S = 0`, in binary32: the stability condition holds, `B ≤ 1001.01`,
 `E ≤ 0.12`, and `M + (1 + u)·(B + E) + η` is at most the largest finite binary32 value. `B` and
 `E` are `outBound` and `errBound`, `u` and `η` binary32's rounding constants. f32 only: it is
-the tighter of the two precisions. -/
+the tighter of the two precisions. The stability, `B` and `E` bounds come from
+`table_row_le_of_abs_le_0999_f32`. -/
 theorem block_constants_le_of_abs_le_f32 (A : ℝ) (hA : |A| ≤ 0.999001) :
     |A| + |A| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1 ∧
       outBound A 1 0 ≤ 1001.01 ∧
@@ -235,36 +312,30 @@ theorem block_constants_le_of_abs_le_f32 (A : ℝ) (hA : |A| ≤ 0.999001) :
       1 + (1 + unitRoundoff_f32) *
           (outBound A 1 0 + errBound A unitRoundoff_f32 underflowErr_f32 1 0) +
         underflowErr_f32 ≤ maxFinite_f32 := by
-  have ha := abs_nonneg A
-  have hstab := stability_of_abs_le_f32 A (by norm_num; linarith)
-  have hd : (0.000999 : ℝ) ≤ 1 - |A| := by linarith
-  have hB : outBound A 1 0 ≤ 1001.01 := by
-    unfold outBound
-    rw [abs_zero, zero_add, div_le_iff₀ (by linarith)]
-    nlinarith
-  have hB0 : 0 ≤ outBound A 1 0 := by
-    unfold outBound
-    rw [abs_zero, zero_add]
-    exact div_nonneg zero_le_one (by linarith)
-  have hE : errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 0.12 := by
-    unfold errBound
-    rw [unitRoundoff_f32_eq, underflowErr_f32_eq]
-    norm_num
-    have hk : |A| * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) ≤
-        0.999001 * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) := by
-      gcongr
-    have hkB : |A| * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) * outBound A 1 0 ≤
-        0.999001 * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) * 1001.01 :=
-      mul_le_mul hk hB hB0 (by positivity)
-    rw [div_le_iff₀ (by norm_num at hk ⊢; linarith)]
-    norm_num at hk hkB ⊢
-    linarith
+  obtain ⟨hstab, hB, hE, -, -⟩ := table_row_le_of_abs_le_0999_f32 A hA
   refine ⟨hstab, hB, hE, ?_⟩
+  have hu0 : 0 ≤ unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; norm_num
+  have hη0 : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; norm_num
+  obtain ⟨hE0, hSB, -, -⟩ := block_constants A _ _ 1 0 hu0 hη0 zero_le_one hstab
+  have hB0 : 0 ≤ outBound A 1 0 := (abs_nonneg _).trans hSB
   rw [maxFinite_f32_eq]
   have hu : unitRoundoff_f32 ≤ 1 := by rw [unitRoundoff_f32_eq]; norm_num
   have hη : underflowErr_f32 ≤ 1 := by rw [underflowErr_f32_eq]; norm_num
-  have hu0 : 0 ≤ unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; norm_num
   nlinarith
+
+/-- **How the f32 whole-block bound grows as `|A|` approaches 1.** For every real `A` with
+`1/2 ≤ |A| ≤ 1 - 2⁻²⁰`, inputs at most `M = 1` in size and a starting state of value `S = 0`, in
+binary32: `u / (1 - |A|)² ≤ E ≤ 3·u / (1 - |A|)²`, where `E` is `errBound` and `u = 2⁻²⁴`
+binary32's unit roundoff. -/
+theorem errBound_between_of_abs_le_f32 (A : ℝ) (hA1 : 1 / 2 ≤ |A|)
+    (hA2 : |A| ≤ 1 - 2 ^ (-20 : ℤ)) :
+    unitRoundoff_f32 / (1 - |A|) ^ 2 ≤ errBound A unitRoundoff_f32 underflowErr_f32 1 0 ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤
+        3 * unitRoundoff_f32 / (1 - |A|) ^ 2 :=
+  errBound_between_of_abs_le A _ _ _ (by rw [unitRoundoff_f32_eq]; positivity)
+    (by rw [unitRoundoff_f32_eq]; norm_num) (by rw [underflowErr_f32_eq]; positivity)
+    (by rw [unitRoundoff_f32_eq, underflowErr_f32_eq]; norm_num)
+    (by rw [unitRoundoff_f32_eq]; norm_num) hA1 hA2
 
 end conjure_dsp_lib.one_pole
 

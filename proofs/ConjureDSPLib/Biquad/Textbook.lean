@@ -35,7 +35,8 @@ structure CoeffsReal where
 
 /-- The transposed-direct-form-II filter in exact arithmetic, from state `(s1, s2)`: returns the
 final state and the outputs. It is the real-number counterpart of `filt_f64` / `filt_f32` (the
-same steps); the biquad error-bound proof will relate the two. -/
+same steps). `Biquad/BlockF64.lean` and `Biquad/BlockF32.lean` bound the distance between the
+two, under the conditions stated there. -/
 def filt_real (c : CoeffsReal) : ℝ × ℝ → List ℝ → (ℝ × ℝ) × List ℝ
   | s, [] => (s, [])
   | (s1, s2), x :: xs =>

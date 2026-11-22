@@ -25,16 +25,35 @@ index, no arithmetic overflow on indices, and it terminates.
 | `biquad::process_f64` | `biquad.process_f64_spec` | `Biquad/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `tdf2_f64` to each sample in turn (Lean's `filt_f64`). |
 | `biquad::step_f32`, `process_f32` | `biquad.step_f32_eq`, `biquad.process_f32_spec` | `Biquad/SpecF32.lean` | The same two facts in binary32. |
 | (the biquad's form) | `biquad.filt_real_eq_df1_real_zero`, `biquad.filt_real_eq_df1_real` | `Biquad/Textbook.lean` | In exact arithmetic, the transposed form from a zero state gives exactly the textbook recurrence `y[n] = b0·x[n] + b1·x[n-1] + b2·x[n-2] - a1·y[n-1] - a2·y[n-2]` with zero history (and, in general, from the state that matches a given history). |
+| `biquad::step_f64` | `biquad.tdf2_f64_localErr` | `Biquad/BlockF64.lean` | When the coefficients, state and input are finite and no intermediate result overflows (`StepFinite_f64`), with both state values at most `Sb` and the input at most `M` in size: the output `y` is within `α + β·Sb` of `b0·x + s1`, and each new state value within `α + β·Sb` of the exact step from the same state and the computed output `y` (`b1·x - a1·y + s2`, `b2·x - a2·y`), where `α = 7u((\|b0\| + \|b1\| + \|b2\|)M + 4(\|a1\| + \|a2\|)\|b0\|M + (3(\|a1\| + \|a2\|) + 1)η) + 4η` and `β = 7u(2(\|a1\| + \|a2\|) + 1)` (`localErrBase_f64`, `localErrSlope_f64`), all on the exact values of the stored floats. |
+| `biquad::process_f64` | `biquad.process_f64_block_error` (and `filt_f64_block_error`, the same about `filt_f64`) | `Biquad/BlockF64.lean` | **Whole-block error.** Given a `Contraction` for the real values of the stored coefficients (`realCoeffs_f64`), finite coefficients and starting state, no overflow (`NoOverflow_f64`), every input at most `M` in size with `M ≥ 0`, and `cInf·K·κ·β < 1 - ρ` with `κ = 2 + \|a1\| + \|a2\|`: never fails; each output sample is within `cInf·Ê + L` of the corresponding output of `filt_real` run on the real values of the stored inputs from the real value of the stored starting state (`realState_f64`); each final state value is within `cInf·Ê` of the exact one; for a block of any length. `β`, `L` and `Ê` are listed below the table. |
+| `biquad::step_f32`, `process_f32` | `biquad.tdf2_f32_localErr`, `biquad.process_f32_block_error` (and `filt_f32_block_error`) | `Biquad/BlockF32.lean` | The same in binary32. |
+| (biquads with complex poles) | `biquad.complexPolesContraction`, `biquad.complexPoleNorm_update` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with complex poles inside the unit circle (`a1² < 4·a2`, `a2 < 1`): for example RBJ low-pass, high-pass, band-pass, notch and all-pass filters with `Q > 1/2`, provided `a1² < 4·a2` still holds after the coefficients are rounded (it fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz). Measured by `complexPoleNorm`, the state-update map multiplies every pair's measure by exactly `√a2`, the pole radius (`ρ = √a2`). `cInf = (1 + \|a1\|/2)/ω + 1` and `K = ω + \|a1\|/2 + 1` with `ω = √(a2 - a1²/4)`; `cInf` grows like `1/ω` as the poles approach the real axis. |
+
+For the biquad whole-block theorems (`Biquad/Block.lean`, `Biquad/BlockF64.lean`), every
+quantity below is computed from the real values of the stored coefficients, with `u` and `η` of
+the precision, `N`, `ρ`, `cInf` and `K` from the given `Contraction`, and `S` the real value of
+the stored starting state:
+
+- `G = |b1 - a1·b0| + |b2 - a2·b0|` (`inputGain`) and `κ = 2 + |a1| + |a2|` (`roundGain`);
+- `α = localErrBase_f64` / `localErrBase_f32` and `β = localErrSlope_f64` / `localErrSlope_f32`
+  (formulas in the `tdf2_f64_localErr` row);
+- `R = N(S) + K·G·M/(1 - ρ)` (`exactStateBound`);
+- `Sb = cInf·(R·(1 - ρ) + K·κ·α)/(1 - ρ - cInf·K·κ·β)` (`computedStateBound`);
+- `L = α + β·Sb` (`localErrBound`, `localErrBound_f64` / `localErrBound_f32`);
+- `Ê = K·κ·L/(1 - ρ)` (`stateErrBound`, `stateErrBound_f64` / `stateErrBound_f32`).
 
 The `toReal` and error theorems are stated about the expression `x + a * y`; the `step_*_eq`
 theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
 about `process_f64` / `process_f32` directly. Their real-number argument is in `OnePole/Block.lean`
-(`block_error_real`), shared by both precisions.
+(`block_error_real`), shared by both precisions; the biquad's is in `Biquad/Block.lean`.
 
-The whole-block theorems compare the Rust outputs with the exact filter run on the exact real
-values of the stored floats: `A` is the value of `a`, `S` of the starting `state`, and the inputs
-are the values of the stored samples. (So turning a decimal coefficient into a float is not
-covered: 0.99 is stored in f32 as 0.9900000095.) Their conditions:
+For the one-pole, the whole-block theorems compare the Rust outputs with the exact filter run on
+the exact real values of the stored floats: `A` is the value of `a`, `S` of the starting `state`,
+and the inputs are the values of the stored samples. (So turning a decimal coefficient into a
+float is not covered: 0.99 is stored in f32 as 0.9900000095.) The biquad theorems likewise use
+the real values of the stored coefficients (`realCoeffs_f64`), starting state (`realState_f64`)
+and inputs. The one-pole's conditions:
 
 - `a`, the starting state and every input are finite, and no step overflows (`NoOverflow_f64` /
   `NoOverflow_f32`: every rounded product `a * state` and every output is finite). The
@@ -69,6 +88,30 @@ It is a worst case: typical rounding errors partly cancel and are much smaller. 
 the `_of_inputs` theorems is far from binding: with `a = 0.999`, inputs at most 1 and a start of
 0, `B + E` is about 1000, against a largest finite value of about 3.4 × 10³⁸ in f32.
 
+For the biquad, using `complexPolesContraction`, for an RBJ-cookbook Butterworth low-pass
+(`Q = 0.7071`) at 48 kHz, with its coefficients rounded to each precision, inputs at most 1.0 and
+a start from zero, the proved bound `cInf·Ê + L` on each output's error is as follows (worked out
+by hand, not proved; dB relative to 1.0):
+
+| Cutoff | f32 | f64 |
+|---|---|---|
+| 100 Hz | 17 (above 1.0) | 1.0 × 10⁻⁸ (−159.9 dB) |
+| 1 kHz | 5.4 × 10⁻² (−25.3 dB) | 1.0 × 10⁻¹⁰ (−200.0 dB) |
+| 10 kHz | 1.8 × 10⁻⁴ (−74.9 dB) | 3.4 × 10⁻¹³ (−249.5 dB) |
+
+In f32 the condition `cInf·K·κ·β < 1 - ρ` fails below about 85 Hz, so nothing is proved there,
+and the bound is above 1.0 below about 250 Hz.
+
+These bounds are much larger than the one-pole's. Part of that is real: at low cutoffs the poles
+sit near the real axis, and the filter's own worst-case error gain is large (about 1.3 × 10⁴ at
+100 Hz). Part is slack in the proof: the state bound `Sb` used for the per-step rounding is about
+7–23× the true largest state (at 100 Hz, 1 kHz and 10 kHz), the per-step bound is crude, and the
+contraction step adds a factor of about 4. Typical rounding errors are much smaller. In f64 the
+bound is below −120 dB from about 10 Hz to about 23.8 kHz, and −80 dB at 1 Hz. In f32 it is below
+−25 dB only from about 1 kHz to about 21 kHz, above 1.0 below about 250 Hz and above about 23 kHz,
+and absent below about 85 Hz. The bound is not monotonic in the cutoff (for example f32: −74.9 dB
+at 10 kHz, −37.9 dB at 20 kHz). Everything in this paragraph is worked out by hand, not proved.
+
 ## What is assumed, not proved
 
 - Charon and Aeneas translate the Rust code into Lean faithfully.
@@ -86,9 +129,14 @@ the `_of_inputs` theorems is far from binding: with `a = 0.999`, inputs at most 
   separate multiply and add: Rust does not fuse `x + a * y` (or the biquad's `b0 * x + s1` and
   `b1 * x - a1 * y + s2`) into one multiply-add instruction unless the code asks for `mul_add`,
   and this code does not.
-- The biquad's floating-point error bound is not proved yet (issue #5, second part). The
-  textbook equivalence is in exact arithmetic: in floating point the transposed form and the
-  textbook form round differently.
+- The biquad's whole-block error bound is proved for any given `Contraction` of its state-update
+  map. One is supplied only for complex poles inside the unit circle (`complexPolesContraction`),
+  so for real-pole biquads (for example an RBJ low-pass with `Q ≤ 1/2`) no bound is proved yet. It
+  also assumes `cInf·K·κ·β < 1 - ρ` (false in f32 for a 48 kHz Butterworth low-pass below about
+  85 Hz) and that no step overflows (`NoOverflow_f64` / `NoOverflow_f32`), a condition on the
+  computed values which the user must check; unlike the one-pole, it is not yet derived from the
+  inputs. The textbook equivalence is in exact arithmetic: in floating point the transposed form
+  and the textbook form round differently.
 
 ## Layout
 
@@ -98,7 +146,8 @@ the `_of_inputs` theorems is far from binding: with `a = 0.999`, inputs at most 
   computes; `BridgeF64.lean`/`BridgeF32.lean` relate one step to real numbers; `Block.lean` holds
   the whole-block argument on real numbers only, shared by both precisions, and
   `BlockF64.lean`/`BlockF32.lean` apply it to the Rust functions; `Textbook.lean` (real numbers
-  only) shows the code's form of a filter equals the textbook formula.
+  only) shows the code's form of a filter equals the textbook formula; `Contraction.lean` (real
+  numbers only) builds a `Contraction` for biquads with complex poles inside the unit circle.
 - Names: Lean names about one precision end in `_f64` or `_f32`, like the Rust names
   (`filt_f64`, `real_f32`, `NoOverflow_f64`), and the filter functions keep the `filt_` prefix
   (`filt_real`). Otherwise Lean names follow Mathlib: definitions that are statements start with

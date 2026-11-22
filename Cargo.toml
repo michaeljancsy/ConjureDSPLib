@@ -3,10 +3,14 @@ name = "conjure-dsp-lib"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.93"
-license = "MIT OR Apache-2.0"
-description = "Shared DSP maths for ConjureDSP plug-ins, with Lean proofs about the code."
+license = "Apache-2.0"
+description = "Audio DSP building blocks with Lean proofs about the code."
 repository = "https://github.com/michaeljancsy/ConjureDSPLib"
-publish = false
+readme = "README.md"
+keywords = ["dsp", "audio", "filter", "lean", "verification"]
+categories = ["multimedia::audio", "no-std::no-alloc", "mathematics"]
+# The proofs, scripts and generated Lean are not needed to use the crate.
+include = ["/src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-APACHE", "/NOTICE"]
 
 [dependencies]
 # Pure-Rust maths (tan, pow, sqrt) for designing filter coefficients. Pinned exactly; default

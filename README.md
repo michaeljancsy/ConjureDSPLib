@@ -31,12 +31,11 @@ Every module has `f32` and `f64` versions (functions end in `_f32` / `_f64`, typ
 
 ## How to use it
 
-The crate is not published on crates.io (`publish = false` in `Cargo.toml`). Add it as a git
-dependency:
+Add it from crates.io:
 
 ```toml
 [dependencies]
-conjure-dsp-lib = { git = "https://github.com/michaeljancsy/ConjureDSPLib", tag = "v0.1.0" }
+conjure-dsp-lib = "0.1"
 ```
 
 For example, a low-pass filter on one channel:
@@ -240,7 +239,10 @@ the Rust that moves source lines or columns, even in a comment, means regenerati
 
 ## Licence
 
-Dual-licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+Licensed under the [Apache License, Version 2.0](LICENSE-APACHE). If you distribute this crate, or
+a product that includes it, the licence (section 4(d)) requires you to pass on the attribution in
+the [NOTICE](NOTICE) file: in a NOTICE file you distribute, in your documentation, or wherever your
+product shows third-party notices.
 
 ## Status
 

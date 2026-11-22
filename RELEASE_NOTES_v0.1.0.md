@@ -5,7 +5,7 @@ as translated by Charon and Aeneas. The API may change in 0.x releases.
 
 ```toml
 [dependencies]
-conjure-dsp-lib = { git = "https://github.com/michaeljancsy/ConjureDSPLib", tag = "v0.1.0" }
+conjure-dsp-lib = "0.1"
 ```
 
 **Proved** (exact statements and conditions in
@@ -54,3 +54,7 @@ Butterworth low-pass's at 48 kHz is worked out outside Lean, not proved).
 [proofs/PINS](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/PINS). Build the
 Aeneas fork at the pinned commit, then run `AENEAS_DIR=/path/to/aeneas scripts/check.sh`; see
 [the README](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/README.md#checking-the-proofs-yourself).
+
+**Licence:** Apache-2.0. If you redistribute the crate or a product that includes it, pass on the
+attribution in
+[NOTICE](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/NOTICE).

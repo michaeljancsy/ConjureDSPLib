@@ -326,8 +326,8 @@ Under the conditions of `filt_f64_block_error_of_inputs` (with `state` as the st
 the buffer as the inputs: the coefficients, `state` and every sample finite, every sample's real
 value at most `M` in size, `0 ≤ M`, `cInf·K·κ·β < 1 − ρ`, and `stepValueBound_f64 c C M state`
 at most the largest finite binary64 value), no step overflows (`NoOverflow_f64`), `process_f64`
-never fails, the buffer it returns has one sample per exact output, each sample's real value is within
-`cInf·Ê + L` of the corresponding output of `filt_real` (run on the real values of the inputs
+never fails, the buffer it returns has one sample per exact output, each sample's real value is
+within `cInf·Ê + L` of the corresponding output of `filt_real` (run on the real values of the inputs
 from `realState_f64 state`), and each value of the state it leaves is within `cInf·Ê` of the
 exact final state's, where `Ê = stateErrBound_f64 c C M state` and
 `L = localErrBound_f64 c C M state`. -/

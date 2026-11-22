@@ -265,6 +265,69 @@ theorem abs_real_mul_sub_le_f32 (x y : Float32) (hx : x.isFinite = true)
   rw [toReal_mul_eq_roundAt h]
   exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
 
+/-- The quotient of two finite `Float`s, the divisor nonzero, is finite when the exact quotient
+is at most the largest finite value in size. -/
+theorem isFinite_div_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hy0 : real_f64 y ≠ 0) (h : |real_f64 x / real_f64 y| ≤ maxFinite_f64) :
+    (x / y).isFinite = true := by
+  rw [← isFinite_ofFloat_iff, ofFloat_div_of_isFinite x y hx hy]
+  have hz : isZero (ofFloat y : Binary64) = false := by
+    cases hz : isZero (ofFloat y : Binary64)
+    · rfl
+    · exact absurd ((isZero_eq_true_iff_toReal_eq_zero (isFinite_ofFloat y hy)).mp hz) hy0
+  refine isFinite_div_of_mixedError (x₀ := real_f64 x / real_f64 y) (r := 0) (a := 0)
+    (isFinite_ofFloat x hx) (isFinite_ofFloat y hy) hz ⟨le_refl 0, le_refl 0, by simp⟩ ?_
+  exact le_of_eq_of_le (by ring) h
+
+/-- One binary64 division of finite numbers with a finite result is within `u·|x / y| + η` of the
+exact quotient. -/
+theorem abs_real_div_sub_le_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hr : (x / y).isFinite = true) :
+    |real_f64 (x / y) - real_f64 x / real_f64 y| ≤
+      unitRoundoff_f64 * |real_f64 x / real_f64 y| + underflowErr_f64 := by
+  have h := isFinite_ofFloat _ hr
+  unfold real_f64
+  rw [ofFloat_div_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_div_eq_roundAt (isFinite_ofFloat y hy) h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- A finite `Float` is at most the largest finite value in size. -/
+theorem abs_real_le_maxFinite_f64 (x : Float) (hx : x.isFinite = true) :
+    |real_f64 x| ≤ maxFinite_f64 :=
+  abs_toReal_le_posMaxFinite_of_isFinite (isFinite_ofFloat x hx)
+
+
+/-- The quotient of two finite `Float32`s, the divisor nonzero, is finite when the exact quotient
+is at most the largest finite value in size. -/
+theorem isFinite_div_f32 (x y : Float32) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hy0 : real_f32 y ≠ 0) (h : |real_f32 x / real_f32 y| ≤ maxFinite_f32) :
+    (x / y).isFinite = true := by
+  rw [← isFinite_ofFloat32_iff, ofFloat32_div_of_isFinite x y hx hy]
+  have hz : isZero (ofFloat32 y : Binary32) = false := by
+    cases hz : isZero (ofFloat32 y : Binary32)
+    · rfl
+    · exact absurd ((isZero_eq_true_iff_toReal_eq_zero (isFinite_ofFloat32 y hy)).mp hz) hy0
+  refine isFinite_div_of_mixedError (x₀ := real_f32 x / real_f32 y) (r := 0) (a := 0)
+    (isFinite_ofFloat32 x hx) (isFinite_ofFloat32 y hy) hz ⟨le_refl 0, le_refl 0, by simp⟩ ?_
+  exact le_of_eq_of_le (by ring) h
+
+/-- One binary32 division of finite numbers with a finite result is within `u·|x / y| + η` of the
+exact quotient. -/
+theorem abs_real_div_sub_le_f32 (x y : Float32) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hr : (x / y).isFinite = true) :
+    |real_f32 (x / y) - real_f32 x / real_f32 y| ≤
+      unitRoundoff_f32 * |real_f32 x / real_f32 y| + underflowErr_f32 := by
+  have h := isFinite_ofFloat32 _ hr
+  unfold real_f32
+  rw [ofFloat32_div_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_div_eq_roundAt (isFinite_ofFloat32 y hy) h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- A finite `Float32` is at most the largest finite value in size. -/
+theorem abs_real_le_maxFinite_f32 (x : Float32) (hx : x.isFinite = true) :
+    |real_f32 x| ≤ maxFinite_f32 :=
+  abs_toReal_le_posMaxFinite_of_isFinite (isFinite_ofFloat32 x hx)
+
 /-- **A decibel bound from a power bound.** If `0 < x ≤ r` and `r ^ m · 10 ^ n ≤ 1` (`m > 0`),
 then `20·log₁₀ x ≤ -(20·n / m)`: `x` in decibels relative to 1 (for example the one-pole's `E / B`,
 or the biquad's bound `cInf·Ê + L` relative to 1.0). The power bound is a statement about rational

@@ -206,7 +206,7 @@ theorem outBound_errBound_le_of_abs_le (A a u η : ℝ) (hu : 0 ≤ u) (hη : 0 
   have ht : 0 < 1 - |A| := by linarith
   have hDa : 0 < 1 - a - a * u * (2 + u) := by linarith
   have hD : 1 - a - a * u * (2 + u) ≤ 1 - |A| - |A| * u * (2 + u) := by linarith
-  have hB : outBound A 1 0 = 1 / (1 - |A|) := by unfold outBound; simp
+  have hB : outBound A 1 0 = 1 / (1 - |A|) := by unfold outBound; rw [abs_zero, zero_add]
   have hBle : outBound A 1 0 ≤ 1 / (1 - a) := by
     rw [hB]; exact one_div_le_one_div_of_le hta (by linarith)
   refine ⟨hBle, ?_, ?_⟩
@@ -307,7 +307,7 @@ in size and a starting state `S = 0`, with `0 < u`, `0 ≤ η ≤ ηb`, `|A| ≤
 `E = errBound A u η 1 0` at `|A| = a` and `η = ηb` (written out), `k / 10 ^ j` is at least the
 value there of `E / B`, and `k ^ m · 10 ^ n ≤ 10 ^ (j·m)` in natural numbers with `m > 0`, then
 `B ≤ Bb`, `E ≤ Eb`, `E / B ≤ k / 10 ^ j` and `20·log₁₀(E / B) ≤ -(20·n / m)`. -/
-theorem block_constants_le_of_abs_le (A a u η ηb Bb Eb : ℝ) (k j m n : ℕ) (hu : 0 < u)
+theorem table_row_le_of_abs_le (A a u η ηb Bb Eb : ℝ) (k j m n : ℕ) (hu : 0 < u)
     (hη : 0 ≤ η) (hηb : η ≤ ηb) (hAa : |A| ≤ a) (hstab : a + a * u * (2 + u) < 1)
     (hm : 0 < m) (hB : 1 / (1 - a) ≤ Bb)
     (hE : (u + ηb * (2 + u) + a * u * (2 + u) / (1 - a)) / (1 - a - a * u * (2 + u)) ≤ Eb)

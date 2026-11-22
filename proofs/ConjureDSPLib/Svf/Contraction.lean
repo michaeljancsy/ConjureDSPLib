@@ -8,22 +8,23 @@ public import ConjureDSPLib.Biquad.Contraction
 
 ## The SVF's state-update map is similar to a biquad's
 
-`stepReal_linear` (in `Svf/Block.lean`) writes one SVF step as `s ↦ A·s + b·x`. `poleBiquad c` is
-the biquad whose feedback coefficients are `a1 = −(a11 + a22)` and `a2 = a11·a22 − a12·a21`, the
-coefficients of `A`'s characteristic polynomial `z² + a1·z + a2`; its feed-forward coefficients
-are `0` and play no part here. In terms of `g`, `k` and `d`: `a1 = 4·g²·d + 2·g·d·k − 2` and
-`a2 = 1 − 2·g·d·k` (`poleBiquad_a1`, `poleBiquad_a2`), and when `d·(1 + g·(g + k)) = 1` (as it is
-in exact arithmetic) `a1 = 2·d·(g² − 1)` and `a2 = d·(1 − g·k + g²)` (`poleBiquad_a1_of_d`,
-`poleBiquad_a2_of_d`).
+`svfStep_real_linear` (in `Svf/Block.lean`) writes one SVF step as `s ↦ A·s + b·x`.
+`poleBiquad c` is the biquad whose feedback coefficients are `a1 = −(a11 + a22)` and
+`a2 = a11·a22 − a12·a21`, the coefficients of `A`'s characteristic polynomial `z² + a1·z + a2`;
+its feed-forward coefficients are `0` and play no part here. In terms of `g`, `k` and `d`:
+`a1 = 4·g²·d + 2·g·d·k − 2` and `a2 = 1 − 2·g·d·k` (`poleBiquad_a1`, `poleBiquad_a2`), and when
+`d·(1 + g·(g + k)) = 1` (as it is in exact arithmetic) `a1 = 2·d·(g² − 1)` and
+`a2 = d·(1 − g·k + g²)` (`poleBiquad_a1_of_d`, `poleBiquad_a2_of_d`).
 
 The change of coordinates `P(v₁, v₂) = (v₁, −a22·v₁ + a12·v₂)` (`toBiquadCoords`) turns the SVF's
 state-update map into the biquad's, `(w₁, w₂) ↦ (−a1·w₁ + w₂, −a2·w₁)`:
-`P(A·v) = T(P·v)` for every pair `v` (`toBiquadCoords_stateMap`, from the Cayley–Hamilton
+`P(A·v) = T(P·v)` for every pair `v` (`toBiquadCoords_update`, from the Cayley–Hamilton
 theorem for 2 × 2 matrices). `P` is invertible when `a12 = −2·g·d ≠ 0`. So any biquad
 `Contraction` of `poleBiquad c`, for example `biquad.complexPolesContraction`,
 `biquad.realPolesContraction` or `biquad.repeatedPoleContraction`, gives an SVF `Contraction`
-with the measure `N(P·v)` (`ofBiquad`). Its constants are crude:
-`cInf' = cInf·(1 + (1 + |a22|)/|a12|)` grows like `1/(g·d)` as `g` shrinks.
+with the measure `N(P·v)` (`ofBiquad`). Its constants are crude: in
+`cInf' = cInf·(1 + (1 + |a22|)/|a12|)`, the factor `1 + (1 + |a22|)/|a12|` grows like `1/(g·d)`
+as `g` shrinks, on top of the biquad's own `cInf` (worked out outside Lean, not proved).
 
 That the SVF and `poleBiquad c` (with suitable feed-forward coefficients) have the same transfer
 function is not proved.
@@ -34,11 +35,12 @@ function is not proved.
 `(p·v₁, v₂ + (k/2)·v₁)`, with `p = √(1/d − g·(g + k) − k²/4)`: the biquad's `complexPoleNorm` for
 the coefficients `a1 = −k`, `a2 = 1/d − g·(g + k)` (`normCoeffs`). In these coordinates the SVF's
 state-update map is a rotation scaled by `√(1 − 2·g·d·k)`, so it multiplies every pair's measure
-by exactly that (`complexPoleNorm_stateMap`). When `d > 0`, `g·k > 0` and `p² > 0` this gives a
+by exactly that (`complexPoleNorm_update`). When `d > 0`, `g·k > 0` and `p² > 0` this gives a
 `Contraction` with `ρ = √(1 − 2·g·d·k)`, `cInf = (1 + |k|/2)/p + 1` and `K = p + |k|/2 + 1`.
 When `d·(1 + g·(g + k)) = 1` exactly, `1/d − g·(g + k) = 1` (`normCoeffs_a2_of_d`), so
-`p² = 1 − k²/4`, which does not depend on `g`: for `k = 1/0.7071`, `p` is about `0.707`, `cInf`
-about 3.41 and `K` about 2.41 at every cutoff (worked out outside Lean, not proved). For the biquad, `cInf` grows like `1/ω` as the cutoff falls.
+`p² = 1 − k²/4`, which does not depend on `g`. For `k = 1/0.7071`, `p` is about `0.707`, `cInf`
+about 3.41 and `K` about 2.41 at every cutoff, while for the biquad `cInf` grows like `1/ω` as the
+cutoff falls (worked out outside Lean, not proved).
 -/
 
 @[expose] public section
@@ -83,7 +85,7 @@ def toBiquadCoords (c : CoeffsReal) (v : ℝ × ℝ) : ℝ × ℝ := (v.1, -a22 
 `P(A·v) = T(P·v)`, where `A` is the SVF's state-update matrix (`a11` … `a22`),
 `T(w₁, w₂) = (−a1·w₁ + w₂, −a2·w₁)` is the state-update map of `poleBiquad c`, and
 `P = toBiquadCoords c`. -/
-theorem toBiquadCoords_stateMap (c : CoeffsReal) (v : ℝ × ℝ) :
+theorem toBiquadCoords_update (c : CoeffsReal) (v : ℝ × ℝ) :
     toBiquadCoords c (a11 c * v.1 + a12 c * v.2, a21 c * v.1 + a22 c * v.2) =
       (-(poleBiquad c).a1 * (toBiquadCoords c v).1 + (toBiquadCoords c v).2,
         -(poleBiquad c).a2 * (toBiquadCoords c v).1) := by
@@ -106,7 +108,7 @@ noncomputable def ofBiquad (c : CoeffsReal) (C : biquad.Contraction (poleBiquad 
     rw [e]
     exact C.add_le _ _ _ _
   contract v₁ v₂ := by
-    have h := toBiquadCoords_stateMap c (v₁, v₂)
+    have h := toBiquadCoords_update c (v₁, v₂)
     simp only [toBiquadCoords, Prod.mk.injEq] at h
     rw [h.2, h.1]
     exact C.contract _ _
@@ -200,7 +202,7 @@ theorem stateMap_det_nonneg (c : CoeffsReal) (hd : c.d ≠ 0)
 
 /-- **The state-update map multiplies the measure by exactly `√(1 − 2·g·d·k)`**, when `d ≠ 0`
 and `k² < 4·(1/d − g·(g + k))`. -/
-theorem complexPoleNorm_stateMap (c : CoeffsReal) (hd : c.d ≠ 0)
+theorem complexPoleNorm_update (c : CoeffsReal) (hd : c.d ≠ 0)
     (h : (normCoeffs c).a1 ^ 2 < 4 * (normCoeffs c).a2) (v₁ v₂ : ℝ) :
     biquad.complexPoleNorm (normCoeffs c) (a11 c * v₁ + a12 c * v₂) (a21 c * v₁ + a22 c * v₂) =
       Real.sqrt (1 - 2 * c.g * c.d * c.k) * biquad.complexPoleNorm (normCoeffs c) v₁ v₂ := by
@@ -238,7 +240,7 @@ noncomputable def complexPolesContraction (c : CoeffsReal) (hd : 0 < c.d)
       apply Complex.ext <;> simp <;> ring
     rw [e]
     exact norm_add_le _ _
-  contract v₁ v₂ := le_of_eq (complexPoleNorm_stateMap c hd.ne' h v₁ v₂)
+  contract v₁ v₂ := le_of_eq (complexPoleNorm_update c hd.ne' h v₁ v₂)
   ρ_nonneg := Real.sqrt_nonneg _
   ρ_lt_one := by
     rw [Real.sqrt_lt' one_pos]
@@ -347,7 +349,9 @@ theorem complexPolesContraction_N_zero (c : CoeffsReal) (hd : 0 < c.d) (hgk : 0 
   biquad.complexPoleNorm_zero _
 
 /-- `norm_num` with the coefficients `c` and the bound formulas unfolded: closes the statements
-about rational numbers in the worked examples of `Svf/BlockF64.lean` and `Svf/BlockF32.lean`. -/
+about rational numbers in the worked examples of `Svf/BlockF64.lean` and `Svf/BlockF32.lean`. It
+lives here rather than in `Svf/Block.lean` because it also unfolds `normCoeffs`, defined in this
+file. -/
 scoped macro "svf_bound_norm_num" "[" c:ident "]" : tactic =>
   `(tactic| norm_num [$c:ident, normCoeffs, stateBoundAt, outErrBoundAt, inputGain, outGain,
     bx1, bx2, cs1, cs2, stepErrOut, stepErrState, stepValueBound, errY, errY3, errY4, errY1,

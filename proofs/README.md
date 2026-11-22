@@ -62,16 +62,16 @@ index, no arithmetic overflow on indices, and it terminates.
 | `svf::CoeffsF64::bell` | `svf.CoeffsF64.bell_eq` | `Svf/SpecF64.lean` | Never fails, and returns exactly the coefficients with `A = libm.powModel_f64 10 (gain_db / 40)`, `g` as above, `k = 1 / (q * A)`, `d = 1 / (1 + g * (g + k))` and the mix `(1, k * A * A, 1)`, each operation in binary64 in that order. That this is a bell (peak) response is not proved. |
 | `svf::CoeffsF64::low_shelf`, `high_shelf` | `svf.CoeffsF64.low_shelf_eq`, `high_shelf_eq` | `Svf/SpecF64.lean` | Never fails, and returns exactly the coefficients with `A = libm.powModel_f64 10 (gain_db / 40)`, `g = libm.tanModel_f64 (PI * cutoff_hz / sample_rate_hz) / libm.sqrtModel_f64 A` (low shelf) or `… * libm.sqrtModel_f64 A` (high shelf), `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix `(1, k * A, A * A)` (low shelf) or `(A * A, k * A, 1)` (high shelf), each operation in binary64 in that order. That these are shelving responses is not proved. |
 | `svf::CoeffsF32::low_pass` … `high_shelf` | `svf.CoeffsF32.low_pass_eq` … `high_shelf_eq` | `Svf/SpecF32.lean` | The same eight facts in binary32, with `core.f32.consts.PI` and the unknown functions `libm.tanModel_f32`, `libm.powModel_f32` and `libm.sqrtModel_f32` standing for libm's `tanf`, `powf` and `sqrtf`. |
-| (the SVF, exact arithmetic) | `svf.stepReal_linear` | `Svf/Block.lean` | For any real `g`, `k`, `d` and mix, one step of `svf.stepReal` (the Rust step's operations, in the same order, in exact arithmetic) is linear: the new state is `A·s + b·x` and the output `cOut·s + dx·x`, with `A`, `b`, `cOut` and `dx` listed below the table. It does not use `d = 1/(1 + g·(g + k))`. |
-| (the SVF and the biquad, exact arithmetic) | `svf.toBiquadCoords_stateMap`, `svf.poleBiquad_a1`, `svf.poleBiquad_a2`, `svf.poleBiquad_a1_of_d`, `svf.poleBiquad_a2_of_d` | `Svf/Contraction.lean` | Let `a1 = −(A₁₁ + A₂₂)` and `a2 = A₁₁·A₂₂ − A₁₂·A₂₁` (`svf.poleBiquad`): `a1 = 4g²d + 2gdk − 2` and `a2 = 1 − 2gdk`, and when `d·(1 + g·(g + k)) = 1`, `a1 = 2d(g² − 1)` and `a2 = d(1 − gk + g²)`. The change of coordinates `P(v₁, v₂) = (v₁, −A₂₂·v₁ + A₁₂·v₂)` takes the SVF's state-update map to the biquad's with these `a1`, `a2`: `P(A·v) = T(P·v)` for every pair `v`, with `T(w₁, w₂) = (−a1·w₁ + w₂, −a2·w₁)`. That the SVF has the transfer function of any biquad is not proved. |
-| (SVF `Contraction`s from biquad ones) | `svf.ofBiquad` | `Svf/Contraction.lean` | When `A₁₂ = −2gd ≠ 0`: any biquad `Contraction` for `svf.poleBiquad` (for example `biquad.complexPolesContraction`, `realPolesContraction` or `repeatedPoleContraction`, under their conditions on `a1`, `a2`) gives an `svf.Contraction` with the measure `N(P·v)`, the same `ρ`, `cInf' = cInf·(1 + (1 + \|A₂₂\|)/\|A₁₂\|)` and `K' = K·(1 + \|A₂₂\| + \|A₁₂\|)`. `cInf'` grows like `1/(g·d)` as `g` shrinks. |
-| (the SVF with complex poles) | `svf.complexPolesContraction`, `svf.complexPoleNorm_stateMap`, `svf.complexPolesContraction_bounds`, `svf.normCoeffs_a2_of_d` | `Svf/Contraction.lean` | An `svf.Contraction` when `d > 0`, `g·k > 0` and `k² < 4·(1/d − g·(g + k))`: it measures `(v₁, v₂)` by the length of `(p·v₁, v₂ + (k/2)·v₁)` with `p = √(1/d − g·(g + k) − k²/4)` (the biquad's `complexPoleNorm` for `a1 = −k`, `a2 = 1/d − g·(g + k)`); the state-update map multiplies every pair's measure by exactly `√(1 − 2gdk)`, and `ρ = √(1 − 2gdk)`, `cInf = (1 + \|k\|/2)/p + 1`, `K = p + \|k\|/2 + 1`. When `d·(1 + g·(g + k)) = 1`, `1/d − g·(g + k) = 1`, so `p² = 1 − k²/4`, whatever `g`. |
-| `svf::step_f64` | `svf.svfStep_f64_localErr` | `Svf/BlockF64.lean` | When the coefficients, state and input are finite and none of the step's sixteen intermediate results overflows (`StepFinite_f64`), with both state values at most `Sb` and the input at most `M` in size: the output is within `Ly` of the exact step's from the same state (`svf.stepReal`), and the distances of the two new state values from the exact step's add up to at most `Ls` (`Ly`, `Ls` listed below the table), all on the exact values of the stored floats. |
+| (the SVF, exact arithmetic) | `svf.svfStep_real_linear` | `Svf/Block.lean` | For any real `g`, `k`, `d` and mix, one step of `svf.svfStep_real` (the Rust step's operations, in the same order, in exact arithmetic) is linear: the new state is `A·s + b·x` and the output `cOut·s + dx·x`, with `A`, `b`, `cOut` and `dx` listed below the table. It does not use `d = 1/(1 + g·(g + k))`. |
+| `svf::step_f64` | `svf.svfStep_f64_localErr` | `Svf/BlockF64.lean` | When the coefficients, state and input are finite and none of the step's sixteen intermediate results overflows (`StepFinite_f64`), with both state values at most `Sb` and the input at most `M` in size: the output is within `Ly` of the exact step's from the same state (`svf.svfStep_real`), and the distances of the two new state values from the exact step's add up to at most `Ls` (`Ly`, `Ls` listed below the table), all on the exact values of the stored floats. |
 | `svf::process_f64` | `svf.process_f64_block_error` (and `filt_f64_block_error`, the same about `filt_f64`) | `Svf/BlockF64.lean` | **Whole-block error.** Given an `svf.Contraction` for the real values of the stored coefficients (`svf.realCoeffs_f64`), finite coefficients and starting state, no overflow (`NoOverflow_f64`), every input at most `M` in size with `M ≥ 0`, and a number `Sb ≥ 0` with `cInf·(R + Ê) ≤ Sb`: never fails; each output sample is within `outGain·cInf·Ê + Ly` of the corresponding output of `svf.filt_real` run on the real values of the stored inputs from the real value of the stored starting state (`svf.realState_f64`); each final state value is within `cInf·Ê` of the exact one; for a block of any length. `outGain`, `R`, `Ê` and `Ly` are listed below the table. |
 | `svf::step_f64` | `svf.stepFinite_f64` | `Svf/BlockF64.lean` | When the coefficients, both state values and the input are finite, both state values are at most `Sb` and the input at most `M` in size, and `V` (listed below the table) is at most the largest finite binary64 value: none of the step's sixteen operations overflows (`StepFinite_f64`). |
 | `svf::process_f64` | `svf.noOverflow_f64_of_inputs` | `Svf/BlockF64.lean` | Given an `svf.Contraction` for the real values of the stored coefficients, finite coefficients, any numbers `Sb`, `M`, `R`, `Ê` with `ρ·R + K·G·M ≤ R`, `ρ·Ê + K·Ls ≤ Ê`, `cInf·(R + Ê) ≤ Sb` and `V` at most the largest finite binary64 value, a starting state with both values finite, a real pair `r` with `N(r) ≤ R` and `N(S − r) ≤ Ê` where `S` is the starting state's real value, and every input finite and at most `M` in size: no step overflows (`NoOverflow_f64`). |
 | `svf::process_f64` | `svf.process_f64_block_error_of_inputs` (and `filt_f64_block_error_of_inputs`) | `Svf/BlockF64.lean` | **Whole-block error, with conditions on the inputs only.** As `svf.process_f64_block_error`, but with every input finite and `V` at most the largest finite binary64 value (about 1.8 × 10³⁰⁸) in place of the no-overflow condition: no step overflows (`NoOverflow_f64`), and the conclusion of `svf.process_f64_block_error` holds. |
 | `svf::step_f32`, `process_f32` | `svf.svfStep_f32_localErr`, `svf.process_f32_block_error` (and `filt_f32_block_error`), `svf.stepFinite_f32`, `svf.noOverflow_f32_of_inputs`, `svf.process_f32_block_error_of_inputs` (and `filt_f32_block_error_of_inputs`) | `Svf/BlockF32.lean` | The same five in binary32 (largest finite value about 3.4 × 10³⁸). |
+| (the SVF and the biquad, exact arithmetic) | `svf.toBiquadCoords_update`, `svf.poleBiquad_a1`, `svf.poleBiquad_a2`, `svf.poleBiquad_a1_of_d`, `svf.poleBiquad_a2_of_d` | `Svf/Contraction.lean` | Let `a1 = −(A₁₁ + A₂₂)` and `a2 = A₁₁·A₂₂ − A₁₂·A₂₁` (`svf.poleBiquad`): `a1 = 4g²d + 2gdk − 2` and `a2 = 1 − 2gdk`. The change of coordinates `P(v₁, v₂) = (v₁, −A₂₂·v₁ + A₁₂·v₂)` takes the SVF's state-update map to the biquad's with these `a1`, `a2`: `P(A·v) = T(P·v)` for every pair `v`, with `T(w₁, w₂) = (−a1·w₁ + w₂, −a2·w₁)`. That the SVF has the transfer function of any biquad is not proved. |
+| (SVF `Contraction`s from biquad ones) | `svf.ofBiquad` | `Svf/Contraction.lean` | When `A₁₂ = −2gd ≠ 0`: any biquad `Contraction` for `svf.poleBiquad` (for example `biquad.complexPolesContraction`, `realPolesContraction` or `repeatedPoleContraction`, under their conditions on `a1`, `a2`) gives an `svf.Contraction` with the measure `N(P·v)`, the same `ρ`, `cInf' = cInf·(1 + (1 + \|A₂₂\|)/\|A₁₂\|)` and `K' = K·(1 + \|A₂₂\| + \|A₁₂\|)`. The factor `1 + (1 + \|A₂₂\|)/\|A₁₂\|` grows like `1/(g·d)` as `g` shrinks, and the biquad's `cInf` grows too; with `biquad.complexPolesContraction`, `cInf'` grows like about `1/g²` (worked out outside Lean, not proved). |
+| (the SVF with complex poles) | `svf.complexPolesContraction`, `svf.complexPoleNorm_update`, `svf.complexPolesContraction_bounds`, `svf.normCoeffs_a2_of_d` | `Svf/Contraction.lean` | An `svf.Contraction` when `d > 0`, `g·k > 0` and `k² < 4·(1/d − g·(g + k))`: it measures `(v₁, v₂)` by the length of `(p·v₁, v₂ + (k/2)·v₁)` with `p = √(1/d − g·(g + k) − k²/4)` (the biquad's `complexPoleNorm` for `a1 = −k`, `a2 = 1/d − g·(g + k)`); the state-update map multiplies every pair's measure by exactly `√(1 − 2gdk)`, and `ρ = √(1 − 2gdk)`, `cInf = (1 + \|k\|/2)/p + 1`, `K = p + \|k\|/2 + 1`. When `d·(1 + g·(g + k)) = 1`, `1/d − g·(g + k) = 1`, so `p² = 1 − k²/4`, whatever `g`. |
 
 For the SVF design functions (`low_pass` to `high_shelf`), "never fails" holds given the libm model
 in `Code/FunsExternal.lean`, which assumes that libm's functions never panic (see "What is
@@ -107,15 +107,12 @@ state, and `Sb ≥ 0` a number chosen by whoever uses the theorem:
   `cOut = (−m_hp·d·(k + g) + (m_bp + m_lp·g)·(1 − gd(k + g)), −(m_hp + m_bp·g)·d + m_lp·(1 − g²d))`
   (`svf.cs1`, `svf.cs2`) and `dx = (m_hp + m_bp·g + m_lp·g²)·d` (`svf.dx`);
 - `G = |2gd| + |2g²d|` (`svf.inputGain`) and `outGain = |cOut₁| + |cOut₂|` (`svf.outGain`);
-- `Ly` and `Ls` (`stepErrOut_f64` / `_f32` and `stepErrState_f64` / `_f32`): bounds on one
-  step's rounding of the output, and of the new state (both values' distances added), when both
-  state values are at most `Sb` and the input at most `M` in size (`svf.step_chain`). Each is
-  built in `Svf/Block.lean` from sixteen per-operation bounds, one for each of the step's
-  roundings: `opX` (`svf.opK1` … `svf.opT2`) bounds the exact value of operation `X` on the
-  computed operands, using the sizes `(1 + u)·op + η` of earlier computed results, `M` and `Sb`;
-  `errX` (`svf.errK1` … `svf.errT2`) bounds the computed result's distance from the exact
-  step's, as the operands' distances carried through (multiplied by `|g|`, `|d|` or a mix weight
-  where the operation multiplies by one) plus `u·opX + η`. `Ly = errY` and `Ls = errT1 + errT2`;
+- `Ly` and `Ls` (`stepErrOut_f64` / `_f32`, `stepErrState_f64` / `_f32`): bounds on one step's
+  rounding error in the output, and in the new state (both values' errors added), when both state
+  values are at most `Sb` and the input at most `M` (`svf.step_chain`). They are built in
+  `Svf/Block.lean` from sixteen per-operation terms, one per rounding (`svf.opK1` … `svf.opT2` bound
+  the operations' exact values, `svf.errK1` … `svf.errT2` the errors carried forward); `Ly = errY`
+  and `Ls = errT1 + errT2`;
 - `R = N(S) + K·G·M/(1 − ρ)` (`svf.exactStateBound`) and `Ê = K·Ls/(1 − ρ)`
   (`svf.stateErrBound`, `stateErrBound_f64` / `_f32`);
 - the condition on `Sb`: `cInf·(R + Ê) ≤ Sb`. The biquad's `Sb` is a closed form; here any `Sb`
@@ -295,12 +292,12 @@ positive (for `M ≥ 0`) because `η > 0` (`localErrBase_pos`), and `cInf·K·κ
 `complexPolesContraction` (`complexPolesContraction_cInf_K_roundGain_pos`).
 
 For the SVF, the theorems below take `CoeffsF64::low_pass` and `CoeffsF32::low_pass` with
-`Q = 0.7071` at 48 kHz (so `k = 1/0.7071` and the mix is `(0, 0, 1)`), with `M = 1` (inputs at
-most 1 in size) and a start from zero, for stored coefficients whose real values are exact
-numbers given in `Svf/BlockF64.lean` and `Svf/BlockF32.lean` (`svf.lowPass20Hz_f64`,
-`svf.lowPass20Hz_f32` and so on, each with its bits). That these are the values the Rust design
-functions store is worked out outside Lean, by running them, not proved: `g` comes from libm's
-`tan` (`tanf` in f32), which is outside the model.
+`Q = 0.7071` at 48 kHz (so `k` is `1/0.7071` rounded to the precision, and the mix is `(0, 0, 1)`),
+with `M = 1` (inputs at most 1 in size) and a start from zero, for stored coefficients whose real
+values are exact numbers given in `Svf/BlockF64.lean` and `Svf/BlockF32.lean`
+(`svf.lowPass20Hz_f64`, `svf.lowPass20Hz_f32` and so on, each with its bits). That these are the
+values the Rust design functions store is worked out outside Lean, not proved: they come from
+running them, and `g` comes from libm's `tan` (`tanf` in f32), which is outside the model.
 
 For each row the theorem proves, with `svf.complexPolesContraction` and the `Sb` shown:
 
@@ -311,16 +308,16 @@ For each row the theorem proves, with `svf.complexPolesContraction` and the `Sb`
   are at most the values shown;
 - `V·10³⁵ ≤` the largest finite value.
 
-| Precision | Cutoff | `Sb` | `outGain·cInf·Ê + Ly` | In dB | `V` | Theorem |
+| Precision | Cutoff | `outGain·cInf·Ê + Ly` | In dB | `Sb` (chosen) | `V` | Theorem |
 |---|---|---|---|---|---|---|
-| f32 | 20 Hz | 11.68 | ≤ 0.0126 | ≤ −37.9 dB | ≤ 165 | `svf.lowPass20Hz_bounds_f32` |
-| f32 | 100 Hz | 11.69 | ≤ 0.00267 | ≤ −51.4 dB | ≤ 166 | `svf.lowPass100Hz_bounds_f32` |
-| f32 | 1 kHz | 11.88 | ≤ 0.000459 | ≤ −66.7 dB | ≤ 180 | `svf.lowPass1kHz_bounds_f32` |
-| f32 | 10 kHz | 14.78 | ≤ 0.000475 | ≤ −66.4 dB | ≤ 409 | `svf.lowPass10kHz_bounds_f32` |
-| f64 | 20 Hz | 11.67 | ≤ 2.35 × 10⁻¹¹ | ≤ −212.5 dB | ≤ 165 | `svf.lowPass20Hz_bounds_f64` |
-| f64 | 100 Hz | 11.69 | ≤ 4.98 × 10⁻¹² | ≤ −226.0 dB | ≤ 166 | `svf.lowPass100Hz_bounds_f64` |
-| f64 | 1 kHz | 11.88 | ≤ 8.55 × 10⁻¹³ | ≤ −241.3 dB | ≤ 180 | `svf.lowPass1kHz_bounds_f64` |
-| f64 | 10 kHz | 14.78 | ≤ 8.84 × 10⁻¹³ | ≤ −241.0 dB | ≤ 409 | `svf.lowPass10kHz_bounds_f64` |
+| f32 | 20 Hz | ≤ 0.0126 | ≤ −37.9 dB | 11.68 | ≤ 165 | `svf.lowPass20Hz_bounds_f32` |
+| f32 | 100 Hz | ≤ 0.00267 | ≤ −51.4 dB | 11.69 | ≤ 166 | `svf.lowPass100Hz_bounds_f32` |
+| f32 | 1 kHz | ≤ 0.000459 | ≤ −66.7 dB | 11.88 | ≤ 180 | `svf.lowPass1kHz_bounds_f32` |
+| f32 | 10 kHz | ≤ 0.000475 | ≤ −66.4 dB | 14.78 | ≤ 409 | `svf.lowPass10kHz_bounds_f32` |
+| f64 | 20 Hz | ≤ 2.35 × 10⁻¹¹ | ≤ −212.5 dB | 11.67 | ≤ 165 | `svf.lowPass20Hz_bounds_f64` |
+| f64 | 100 Hz | ≤ 4.98 × 10⁻¹² | ≤ −226.0 dB | 11.69 | ≤ 166 | `svf.lowPass100Hz_bounds_f64` |
+| f64 | 1 kHz | ≤ 8.55 × 10⁻¹³ | ≤ −241.3 dB | 11.88 | ≤ 180 | `svf.lowPass1kHz_bounds_f64` |
+| f64 | 10 kHz | ≤ 8.84 × 10⁻¹³ | ≤ −241.0 dB | 14.78 | ≤ 409 | `svf.lowPass10kHz_bounds_f64` |
 
 The values shown were chosen a little above the values of the formulas (worked out outside Lean,
 not proved), so each proved bound can be slightly weaker than the formula's value. `p` and
@@ -330,32 +327,29 @@ are on either side of `p²` and `1 − 2gdk` (`svf.complexPolesContraction_bound
 numbers, which `norm_num` checks.
 
 The biquad table above has rows at 100 Hz, 1 kHz and 10 kHz for an RBJ-cookbook low-pass with the
-same `Q` and sample rate. Comparing the numbers shown in the two tables: the SVF's are smaller at
-100 Hz and 1 kHz and larger at 10 kHz, in both precisions (in f32 at 1 kHz, for example, at most
-0.000459 for the SVF and at most 0.0542 for the biquad). Each number is a proved upper bound on
-that filter's bound, so this compares the numbers, not the bounds themselves, except in f32 at
-100 Hz, where the biquad's bound is also proved to be at least 17
-(`biquad.lowPass100Hz_bounds_f32`) and the SVF's is at most 0.00267. Nothing here compares the two filters' actual errors, and that
-the two designs have the same frequency response in exact arithmetic is not proved. One
-difference between the two proofs is in the measures: with `svf.complexPolesContraction`,
-`cInf` and `K` are about 3.41 and 2.41 at every cutoff, while for the biquad `cInf` grows like
-`1/ω` as the cutoff falls (worked out outside Lean, not proved). There is no biquad row at 20 Hz
-(see "Observations").
+same `Q` and sample rate. The SVF's numbers are smaller at 100 Hz and 1 kHz and larger at 10 kHz, in
+both precisions (in f32 at 1 kHz, at most 0.000459 against at most 0.0542). These are upper bounds
+on each proof's bound, so only in f32 at 100 Hz, where the biquad's bound is also proved to be at
+least 17, is the SVF's bound itself proved smaller. Nothing here compares the filters' actual
+errors, or proves that they have the same frequency response. One reason for the difference: with
+`svf.complexPolesContraction`, `cInf` and `K` are about 3.41 and 2.41 at every cutoff, while the
+biquad's `cInf` grows like `1/ω` as the cutoff falls (worked out outside Lean, not proved). There is
+no biquad row at 20 Hz (see "Observations").
 
 ## Observations (not proofs)
 
 What is listed here is observed or expected behaviour, not proved.
 
 - The whole-block bounds are worst cases. Typical rounding errors partly cancel, and are much
-  smaller than the one-pole's `E` and the biquad's `cInf·Ê + L`.
-- At low cutoffs in f32 the SVF's whole-block theorem gives a bound where the biquad's gives
-  none. At 20 Hz the SVF's bound is at most 0.0126 (`svf.lowPass20Hz_bounds_f32`, proved), while
-  for the RBJ-cookbook biquad with `biquad.complexPolesContraction` the condition
-  `cInf·K·κ·β < 1 − ρ` fails at every cutoff below about 82.4 Hz where the stored poles are
-  complex (worked out outside Lean; proved only at 82 Hz,
-  `biquad.lowPass82Hz_smallness_fails_f32`).
-  That the SVF's actual errors are smaller than the biquad's at low cutoffs is expected, not
-  proved.
+  smaller than the one-pole's `E`, the biquad's `cInf·Ê + L` and the SVF's
+  `outGain·cInf·Ê + Ly`.
+- At low cutoffs in f32 the SVF's whole-block theorem gives a bound where the biquad's, used with
+  `biquad.complexPolesContraction`, gives none. At 20 Hz the SVF's bound is at most 0.0126
+  (`svf.lowPass20Hz_bounds_f32`, proved), while for the RBJ-cookbook biquad the condition
+  `cInf·K·κ·β < 1 − ρ` fails at every cutoff below about 82.4 Hz where the stored poles are complex
+  (worked out outside Lean, not proved; it is proved to fail at 82 Hz,
+  `biquad.lowPass82Hz_smallness_fails_f32`). That the SVF's actual errors are smaller than the
+  biquad's at low cutoffs is expected, not proved.
 - For RBJ-cookbook low-pass and high-pass biquads (which have the same poles), binary32
   coefficients can put a pole on or outside the unit circle at very low cutoffs (computed in
   Python, not proved; `Q` = 0.5, 0.7071, 2 and 10, cutoffs in 0.01 Hz steps up to 200 Hz and
@@ -398,20 +392,21 @@ What is listed here is observed or expected behaviour, not proved.
 - No floating-point error bound is proved for the smoother (`smoother::*`), and in floating
   point it need not land exactly on its input. The theorems in `Smoother/Exact.lean` are in
   exact arithmetic only.
-- For the state-variable filter (`svf::*`), the floating-point error bound is proved for any
-  stored coefficients for which an `svf.Contraction` of the state-update map is given
-  (`svf.process_f64_block_error`, `svf.process_f32_block_error` and their `_of_inputs` forms),
-  provided a number `Sb` with `cInf·(R + Ê) ≤ Sb` exists. One is supplied for complex poles
-  (`svf.complexPolesContraction`: `d > 0`, `g·k > 0` and `k² < 4·(1/d − g·(g + k))`), and any
-  biquad `Contraction` of `svf.poleBiquad` gives one (`svf.ofBiquad`, when `g·d ≠ 0`), whose
-  `cInf` grows like `1/(g·d)`. Worked examples are proved only for the low-pass values in
-  the SVF table above, whose stored coefficients are worked out outside Lean. Still not proved:
-  the SVF's frequency response, or that it equals any biquad's; stability for all coefficients,
-  including that the coefficients the design functions compute meet the conditions above at every
-  cutoff (they depend on libm's `tan`, outside the model); and that the code matches
-  Zavalishin's filter. The same holds for the design functions (`low_pass` to `high_shelf`):
-  their names and formulas follow A. Simper (Cytomic), and that the coefficients give the named
-  responses is not proved.
+- For the state-variable filter (`svf::*`), the floating-point error bound is proved, under the
+  conditions in the table above, for any stored coefficients for which an `svf.Contraction` of the
+  state-update map is given (`svf.process_f64_block_error`, `svf.process_f32_block_error` and their
+  `_of_inputs` forms), provided a number `Sb` with `cInf·(R + Ê) ≤ Sb` exists. One is supplied for
+  complex poles (`svf.complexPolesContraction`: `d > 0`, `g·k > 0` and `k² < 4·(1/d − g·(g + k))`),
+  and any biquad `Contraction` of `svf.poleBiquad` gives one (`svf.ofBiquad`, when `g·d ≠ 0`), whose
+  `cInf` is at least the biquad's `cInf` times a factor that grows like `1/(g·d)` as `g` shrinks
+  (worked out outside Lean, not proved). Worked examples are proved only for the low-pass values in
+  the SVF table above, whose stored coefficients are worked out outside Lean, not proved.
+- Not proved for the state-variable filter: its frequency response, or that it equals any biquad's;
+  stability for all coefficients, including that the coefficients the design functions compute meet
+  the conditions above at every cutoff (they depend on libm's `tan`, outside the model); and that
+  the code matches Zavalishin's filter. Nor, for the design functions (`low_pass` to `high_shelf`),
+  whose names and formulas follow A. Simper (Cytomic), that the coefficients give the named
+  responses.
 - The biquad's whole-block error bound is proved for any given `Contraction` of its state-update
   map. One is supplied for complex poles inside the unit circle (`complexPolesContraction`), for
   distinct real poles inside it (`realPolesContraction`, for example an RBJ low-pass with

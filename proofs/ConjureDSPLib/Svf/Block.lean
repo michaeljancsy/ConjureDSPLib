@@ -11,13 +11,13 @@ public import Mathlib.Algebra.Order.Field.Basic
 /-!
 # The state-variable filter over a whole block: the real-number argument
 
-`stepReal` is one step of the SVF of `src/svf.rs` in exact arithmetic, with the same operations
+`svfStep_real` is one step of the SVF of `src/svf.rs` in exact arithmetic, with the same operations
 in the same order as `svfStep_f64` / `svfStep_f32`:
 
 `hp = (x − (k + g)·s1 − s2)·d`, `bp = g·hp + s1`, `lp = g·bp + s2`,
 output `(m_hp·hp + m_bp·bp) + m_lp·lp`, new state `(g·hp + bp, g·bp + lp)`.
 
-`stepReal_linear` shows that this is linear: the new state is `A·s + b·x` and the output
+`svfStep_real_linear` shows that this is linear: the new state is `A·s + b·x` and the output
 `cOut·s + dx·x`, with the entries `a11`, `a12`, `a21`, `a22`, `bx1`, `bx2`, `cs1`, `cs2` and `dx`
 given in terms of `g`, `k`, `d` and the mix, for any real `g`, `k`, `d` (it does not use
 `d = 1/(1 + g·(g + k))`).
@@ -37,8 +37,9 @@ property rather than a closed form; the worked examples exhibit one.
 
 `step_chain` bounds one step's sixteen roundings: computed with roundings each within
 `u·|e| + η` of the exact operation `e` on the computed operands, the output is within
-`stepErrOut` and the new state within `stepErrState` (the two errors added) of `stepReal` from
-the same state, and every exact operation value is at most `stepValueBound`. Those three are
+`stepErrOut` and the new state within `stepErrState` (the two errors added) of `svfStep_real`
+from the same state, and, when `stepValueBound ≤ V`, all sixteen propositions `Fᵢ` hold (for
+floats, no operation overflows). Those three are
 built from per-operation bounds `opK1` … `opT2` (bounds on the exact operation values) and
 `errK1` … `errT2` (bounds on the computed values' distances from the exact step's).
 -/
@@ -65,19 +66,19 @@ structure CoeffsReal where
 
 /-- One SVF step in exact arithmetic, from state `s` on input `x`, with the operations of the
 Rust step in the same order: returns the output and the new state. -/
-def stepReal (c : CoeffsReal) (s : ℝ × ℝ) (x : ℝ) : ℝ × (ℝ × ℝ) :=
+def svfStep_real (c : CoeffsReal) (s : ℝ × ℝ) (x : ℝ) : ℝ × (ℝ × ℝ) :=
   let hp := (x - (c.k + c.g) * s.1 - s.2) * c.d
   let bp := c.g * hp + s.1
   let lp := c.g * bp + s.2
   (c.m_hp * hp + c.m_bp * bp + c.m_lp * lp, (c.g * hp + bp, c.g * bp + lp))
 
-/-- The SVF in exact arithmetic: run `stepReal` over a list of inputs from state `s`, returning
+/-- The SVF in exact arithmetic: run `svfStep_real` over a list of inputs from state `s`, returning
 the final state and the outputs. It is the real-number counterpart of `filt_f64` / `filt_f32`. -/
 def filt_real (c : CoeffsReal) : ℝ × ℝ → List ℝ → (ℝ × ℝ) × List ℝ
   | s, [] => (s, [])
   | s, x :: xs =>
-    let r := filt_real c (stepReal c s x).2 xs
-    (r.1, (stepReal c s x).1 :: r.2)
+    let r := filt_real c (svfStep_real c s x).2 xs
+    (r.1, (svfStep_real c s x).1 :: r.2)
 
 /-- Entry (1, 1) of the state-update matrix `A`: `1 − 2·g·d·(k + g)`. -/
 def a11 (c : CoeffsReal) : ℝ := 1 - 2 * c.g * c.d * (c.k + c.g)
@@ -103,10 +104,10 @@ def dx (c : CoeffsReal) : ℝ := (c.m_hp + c.m_bp * c.g + c.m_lp * c.g * c.g) * 
 /-- **One exact step is linear.** From state `(s1, s2)` on input `x`, the output is
 `cs1·s1 + cs2·s2 + dx·x` and the new state is `(a11·s1 + a12·s2 + bx1·x, a21·s1 + a22·s2 + bx2·x)`,
 for any real coefficients. -/
-theorem stepReal_linear (c : CoeffsReal) (s1 s2 x : ℝ) :
-    stepReal c (s1, s2) x = (cs1 c * s1 + cs2 c * s2 + dx c * x,
+theorem svfStep_real_linear (c : CoeffsReal) (s1 s2 x : ℝ) :
+    svfStep_real c (s1, s2) x = (cs1 c * s1 + cs2 c * s2 + dx c * x,
       (a11 c * s1 + a12 c * s2 + bx1 c * x, a21 c * s1 + a22 c * s2 + bx2 c * x)) := by
-  simp only [stepReal, cs1, cs2, dx, a11, a12, a21, a22, bx1, bx2, Prod.mk.injEq]
+  simp only [svfStep_real, cs1, cs2, dx, a11, a12, a21, a22, bx1, bx2, Prod.mk.injEq]
   refine ⟨by ring, by ring, by ring⟩
 
 /-- A way `N` of measuring pairs `(v₁, v₂)`, with `N` nonnegative and `N(u + v) ≤ N(u) + N(v)`,
@@ -138,7 +139,7 @@ structure Contraction (c : CoeffsReal) where
 /-- `WithinLocalErr c Sb M Ly Ls s xs f ys`: `ys` has one entry per input, and there are
 intermediate states starting at `s` and ending at `f` such that, at every step where both state
 values are at most `Sb` and the input at most `M`, the output is within `Ly` of the exact step's
-from that state (`stepReal`), and the two next state values' distances from the exact step's add
+from that state (`svfStep_real`), and the two next state values' distances from the exact step's add
 up to at most `Ls`. -/
 def WithinLocalErr (c : CoeffsReal) (Sb M Ly Ls : ℝ) :
     ℝ × ℝ → List ℝ → ℝ × ℝ → List ℝ → Prop
@@ -146,8 +147,8 @@ def WithinLocalErr (c : CoeffsReal) (Sb M Ly Ls : ℝ) :
   | s, x :: xs, f, y :: ys =>
     ∃ t : ℝ × ℝ,
       (|s.1| ≤ Sb → |s.2| ≤ Sb → |x| ≤ M →
-        |y - (stepReal c s x).1| ≤ Ly ∧
-          |t.1 - (stepReal c s x).2.1| + |t.2 - (stepReal c s x).2.2| ≤ Ls) ∧
+        |y - (svfStep_real c s x).1| ≤ Ly ∧
+          |t.1 - (svfStep_real c s x).2.1| + |t.2 - (svfStep_real c s x).2.2| ≤ Ls) ∧
       WithinLocalErr c Sb M Ly Ls t xs f ys
   | _, _, _, _ => False
 
@@ -159,8 +160,10 @@ def inputGain (c : CoeffsReal) : ℝ := |bx1 c| + |bx2 c|
 value's error. -/
 def outGain (c : CoeffsReal) : ℝ := |cs1 c| + |cs2 c|
 
+/-- `inputGain` is nonnegative. -/
 theorem inputGain_nonneg (c : CoeffsReal) : 0 ≤ inputGain c := by unfold inputGain; positivity
 
+/-- `outGain` is nonnegative. -/
 theorem outGain_nonneg (c : CoeffsReal) : 0 ≤ outGain c := by unfold outGain; positivity
 
 /-- The computed state is within `Sb`: if the exact state `r` measures at most `R`, the error
@@ -199,16 +202,16 @@ theorem block_step (c : CoeffsReal) (C : Contraction c) {M Ly Ls R Ê x y : ℝ}
     {s r t : ℝ × ℝ}
     (hR : C.ρ * R + C.K * inputGain c * M ≤ R) (hE : C.ρ * Ê + C.K * Ls ≤ Ê)
     (hx : |x| ≤ M) (hr : C.N r.1 r.2 ≤ R) (he : C.N (s.1 - r.1) (s.2 - r.2) ≤ Ê)
-    (hdy : |y - (stepReal c s x).1| ≤ Ly)
-    (hdt : |t.1 - (stepReal c s x).2.1| + |t.2 - (stepReal c s x).2.2| ≤ Ls) :
-    |y - (stepReal c r x).1| ≤ outGain c * C.cInf * Ê + Ly ∧
-      C.N (stepReal c r x).2.1 (stepReal c r x).2.2 ≤ R ∧
-      C.N (t.1 - (stepReal c r x).2.1) (t.2 - (stepReal c r x).2.2) ≤ Ê := by
+    (hdy : |y - (svfStep_real c s x).1| ≤ Ly)
+    (hdt : |t.1 - (svfStep_real c s x).2.1| + |t.2 - (svfStep_real c s x).2.2| ≤ Ls) :
+    |y - (svfStep_real c r x).1| ≤ outGain c * C.cInf * Ê + Ly ∧
+      C.N (svfStep_real c r x).2.1 (svfStep_real c r x).2.2 ≤ R ∧
+      C.N (t.1 - (svfStep_real c r x).2.1) (t.2 - (svfStep_real c r x).2.2) ≤ Ê := by
   obtain ⟨s₁, s₂⟩ := s
   obtain ⟨r₁, r₂⟩ := r
   obtain ⟨t₁, t₂⟩ := t
   simp only at hr he hdt ⊢
-  rw [stepReal_linear] at hdy hdt ⊢
+  rw [svfStep_real_linear] at hdy hdt ⊢
   simp only at hdy hdt ⊢
   have hci := C.cInf_nonneg
   set e₁ := s₁ - r₁ with he₁
@@ -297,7 +300,7 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M Ly Ls R Ê :
       obtain ⟨hs₁, hs₂⟩ := block_state_le c C hS hr he
       obtain ⟨hdy, hdt⟩ := hloc hs₁ hs₂ hx
       obtain ⟨hy, hr', he'⟩ := block_step c C hR hE hx hr he hdy hdt
-      obtain ⟨h1, h2, h3⟩ := ih t (stepReal c r x).2 f ys
+      obtain ⟨h1, h2, h3⟩ := ih t (svfStep_real c r x).2 f ys
         (fun z hz => hM z (List.mem_cons_of_mem _ hz)) hr' he' hrest
       exact ⟨List.Forall₂.cons hy h1, h2, h3⟩
 
@@ -559,7 +562,7 @@ Each rounding comes with a proposition `Fᵢ` (for floats, "this result is finit
 `hᵢ` says that if the propositions of its operands hold and its exact value `e` (on the computed
 operands) is at most `V` in size, then `Fᵢ` holds and the rounding is within `u·|e| + η` of `e`.
 If `0 ≤ u`, `0 ≤ η`, `|X| ≤ M`, `|S1|, |S2| ≤ Sb` and `stepValueBound ≤ V`, then all sixteen
-`Fᵢ` hold, `Y` is within `stepErrOut` of `stepReal`'s output from `(S1, S2)` on `X`, and the
+`Fᵢ` hold, `Y` is within `stepErrOut` of `svfStep_real`'s output from `(S1, S2)` on `X`, and the
 distances of `T1` and `T2` from its new state add up to at most `stepErrState`. -/
 theorem step_chain (c : CoeffsReal)
     {u η M Sb V X S1 S2 K1 P D1 D2 H Q B R Lp Y1 Y2 Y3 Y4 Y T1 T2 : ℝ}
@@ -583,8 +586,8 @@ theorem step_chain (c : CoeffsReal)
     (h15 : F6 → F7 → |Q + B| ≤ V → F15 ∧ |T1 - (Q + B)| ≤ u * |Q + B| + η)
     (h16 : F8 → F9 → |R + Lp| ≤ V → F16 ∧ |T2 - (R + Lp)| ≤ u * |R + Lp| + η) :
     (F1 ∧ F2 ∧ F3 ∧ F4 ∧ F5 ∧ F6 ∧ F7 ∧ F8 ∧ F9 ∧ F10 ∧ F11 ∧ F12 ∧ F13 ∧ F14 ∧ F15 ∧ F16) ∧
-      |Y - (stepReal c (S1, S2) X).1| ≤ stepErrOut c u η M Sb ∧
-      |T1 - (stepReal c (S1, S2) X).2.1| + |T2 - (stepReal c (S1, S2) X).2.2| ≤
+      |Y - (svfStep_real c (S1, S2) X).1| ≤ stepErrOut c u η M Sb ∧
+      |T1 - (svfStep_real c (S1, S2) X).2.1| + |T2 - (svfStep_real c (S1, S2) X).2.2| ≤
         stepErrState c u η M Sb := by
   have hM0 : 0 ≤ M := (abs_nonneg _).trans hX
   have hSb : 0 ≤ Sb := (abs_nonneg _).trans hS1
@@ -747,7 +750,7 @@ theorem stepErrState_nonneg (c : CoeffsReal) {u η M Sb : ℝ} (hu : 0 ≤ u) (h
 /-- **One step's roundings, without finiteness.** `step_chain` with every `Fᵢ` true: if
 `0 ≤ u`, `0 ≤ η`, `|X| ≤ M`, `|S1|, |S2| ≤ Sb`, and each of the sixteen roundings is within
 `u·|e| + η` of its exact operation `e` on the computed operands, then `Y` is within
-`stepErrOut` of `stepReal`'s output from `(S1, S2)` on `X`, and the distances of `T1` and `T2`
+`stepErrOut` of `svfStep_real`'s output from `(S1, S2)` on `X`, and the distances of `T1` and `T2`
 from its new state add up to at most `stepErrState`. -/
 theorem step_localErr (c : CoeffsReal)
     {u η M Sb X S1 S2 K1 P D1 D2 H Q B R Lp Y1 Y2 Y3 Y4 Y T1 T2 : ℝ}
@@ -768,8 +771,8 @@ theorem step_localErr (c : CoeffsReal)
     (h14 : |Y - (Y3 + Y4)| ≤ u * |Y3 + Y4| + η)
     (h15 : |T1 - (Q + B)| ≤ u * |Q + B| + η)
     (h16 : |T2 - (R + Lp)| ≤ u * |R + Lp| + η) :
-    |Y - (stepReal c (S1, S2) X).1| ≤ stepErrOut c u η M Sb ∧
-      |T1 - (stepReal c (S1, S2) X).2.1| + |T2 - (stepReal c (S1, S2) X).2.2| ≤
+    |Y - (svfStep_real c (S1, S2) X).1| ≤ stepErrOut c u η M Sb ∧
+      |T1 - (svfStep_real c (S1, S2) X).2.1| + |T2 - (svfStep_real c (S1, S2) X).2.2| ≤
         stepErrState c u η M Sb :=
   (step_chain c (V := stepValueBound c u η M Sb) (F1 := True) (F2 := True) (F3 := True)
     (F4 := True) (F5 := True) (F6 := True) (F7 := True) (F8 := True) (F9 := True)

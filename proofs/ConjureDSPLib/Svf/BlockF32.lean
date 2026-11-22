@@ -81,6 +81,18 @@ def StepFinite_f32 (c : CoeffsF32) (s : StateF32) (x : Float32) : Prop :=
     Y3.isFinite = true ∧ Y4.isFinite = true ∧ (Y3 + Y4).isFinite = true ∧
     (Q + B).isFinite = true ∧ (R + Lp).isFinite = true
 
+/-- If a step does not overflow, the new first state value is finite. -/
+theorem StepFinite_f32.next_s1_isFinite {c : CoeffsF32} {s : StateF32} {x : Float32}
+    (h : StepFinite_f32 c s x) : (svfStep_f32 c s x).2.s1.isFinite = true := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h1, -⟩ := h
+  exact h1
+
+/-- If a step does not overflow, the new second state value is finite. -/
+theorem StepFinite_f32.next_s2_isFinite {c : CoeffsF32} {s : StateF32} {x : Float32}
+    (h : StepFinite_f32 c s x) : (svfStep_f32 c s x).2.s2.isFinite = true := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h2⟩ := h
+  exact h2
+
 /-- No step overflows: running the filter from state `s` over the inputs, every step is
 `StepFinite_f32`. -/
 def NoOverflow_f32 (c : CoeffsF32) : StateF32 → List Float32 → Prop
@@ -108,13 +120,13 @@ noncomputable abbrev stateErrBound_f32 (c : CoeffsF32) (C : Contraction (realCoe
 /-- **One step's roundings in binary32.** If the coefficients and state are finite, the step does
 not overflow, both state values are at most `Sb` in size and the input at most `M`, then the
 output of `svfStep_f32` is within `stepErrOut_f32 c M Sb` of the exact step's from the same state
-(`stepReal`, on the real values of the stored coefficients, state and input), and the distances
+(`svfStep_real`, on the real values of the stored coefficients, state and input), and the distances
 of its two new state values from the exact step's add up to at most `stepErrState_f32 c M Sb`. -/
 theorem svfStep_f32_localErr (c : CoeffsF32) (s : StateF32) (x : Float32) (Sb M : ℝ)
     (hc : CoeffsFinite_f32 c) (hs1 : s.s1.isFinite = true) (hs2 : s.s2.isFinite = true)
     (hstep : StepFinite_f32 c s x) (hS1 : |real_f32 s.s1| ≤ Sb) (hS2 : |real_f32 s.s2| ≤ Sb)
     (hX : |real_f32 x| ≤ M) :
-    let e := stepReal (realCoeffs_f32 c) (realState_f32 s) (real_f32 x)
+    let e := svfStep_real (realCoeffs_f32 c) (realState_f32 s) (real_f32 x)
     |real_f32 (svfStep_f32 c s x).1 - e.1| ≤ stepErrOut_f32 c M Sb ∧
       |real_f32 (svfStep_f32 c s x).2.s1 - e.2.1| + |real_f32 (svfStep_f32 c s x).2.s2 - e.2.2| ≤
         stepErrState_f32 c M Sb := by
@@ -184,8 +196,8 @@ theorem filt_f32_withinLocalErr (c : CoeffsF32) (hc : CoeffsFinite_f32 c) (Sb M 
   | cons x xs ih =>
     intro s hs1 hs2 hno
     obtain ⟨hstep, hrest⟩ := hno
-    have ht1 : (svfStep_f32 c s x).2.s1.isFinite = true := hstep.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
-    have ht2 : (svfStep_f32 c s x).2.s2.isFinite = true := hstep.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+    have ht1 := hstep.next_s1_isFinite
+    have ht2 := hstep.next_s2_isFinite
     simp only [filt_f32, List.map_cons, WithinLocalErr]
     exact ⟨realState_f32 (svfStep_f32 c s x).2,
       fun h1 h2 hX => svfStep_f32_localErr c s x Sb M hc hs1 hs2 hstep h1 h2 hX,
@@ -279,7 +291,7 @@ theorem noOverflow_f32_of_inputs (c : CoeffsF32) (C : Contraction (realCoeffs_f3
     obtain ⟨hdy, hdt⟩ := svfStep_f32_localErr c s x Sb M hc hs1 hs2 hstep hS1 hS2 hX
     obtain ⟨-, hr', he'⟩ := block_step _ C (t := realState_f32 (svfStep_f32 c s x).2) hR hE hX
       hr he hdy hdt
-    exact ⟨hstep, ih _ _ hstep.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 hstep.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+    exact ⟨hstep, ih _ _ hstep.next_s1_isFinite hstep.next_s2_isFinite
       (fun z hz => hin z (List.mem_cons_of_mem _ hz)) hr' he'⟩
 
 /-- **Whole-block error of the f32 SVF, with conditions on the inputs only.** Let `C` be a
@@ -389,7 +401,6 @@ theorem block_bounds_of_rat_f32 (c : CoeffsF32) (q : CoeffsReal) (hc : realCoeff
     (stepErrState_f32 c 1 Sb) 0 _ _ ρu (realState_f32 s) zero_le_one hLs hs0 hci hk hρ hρ1
   have hE0 : 0 ≤ stateErrBound_f32 c C 1 Sb := by
     have := C.ρ_lt_one
-    have := C.K_nonneg
     unfold stateErrBound_f32 stateErrBound
     exact div_nonneg (mul_nonneg C.K_nonneg hLs) (by linarith)
   have hO : 0 ≤ outGain (realCoeffs_f32 c) * C.cInf * stateErrBound_f32 c C 1 Sb := by
@@ -406,8 +417,6 @@ coefficients at one cutoff `f`, with the mix `(0, 0, 1)`. Worked out outside Lea
 they are what `CoeffsF32::low_pass(f, 48000.0, 0.7071)` stores, computed by running the Rust code
 (with `libm` 0.2.16's `tanf`, which is outside the model). -/
 
--- `norm_num` below evaluates powers such as `2 ^ 150`, above Lean's default limit of 256 on
--- exponents that it evaluates.
 /-- The exact real values of the binary32 coefficients stored for the low-pass of this section at
 a 20 Hz cutoff. Their bits: `g = 0x3AAB92AD`, `k = 0x3FB50565`,
 `d = 0x3F7F86C9`, `m_hp = m_bp = 0`, `m_lp = 0x3F800000` (1). -/
@@ -419,6 +428,8 @@ noncomputable def lowPass20Hz_f32 : CoeffsReal where
   m_bp := 0
   m_lp := 1
 
+-- `norm_num` below evaluates powers such as `2 ^ 150` and `10 ^ 667`, above Lean's default
+-- limit of 256 on exponents that it evaluates.
 set_option exponentiation.threshold 4000 in
 /-- **Row 20 Hz of the SVF table in `proofs/README.md`, f32.** For stored binary32 coefficients
 whose real values are `lowPass20Hz_f32`, `M = 1` (inputs at most 1 in size) and a start of value

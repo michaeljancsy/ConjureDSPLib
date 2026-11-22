@@ -179,8 +179,8 @@ hand, not proved).
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
   separate multiply and add: Rust does not fuse `x + a * y` (or the smoother's
   `state + c * (x - state)`, or the biquad's `b0 * x + s1` and `b1 * x - a1 * y + s2`, or the
-  SVF's `g * hp + s1`, `g * bp + s2`, `g * hp + bp`, `g * bp + lp` and its output mix) into one
-  multiply-add instruction unless the code asks for `mul_add`, and this code does not.
+  SVF's `x - (k + g) * s1`, `1 + g * (g + k)`, `g * hp + s1`, `g * bp + s2`, `g * hp + bp`,
+  `g * bp + lp` and its output mix) into one multiply-add instruction unless the code asks for `mul_add`, and this code does not.
 - No floating-point error bound is proved for the smoother (`smoother::*`), and in floating
   point it need not land exactly on its input. The theorems in `Smoother/Exact.lean` are in
   exact arithmetic only.

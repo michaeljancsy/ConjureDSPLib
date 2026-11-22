@@ -14,8 +14,8 @@
 //!
 //! where `d = 1 / (1 + g·(g + k))` is computed once, by `CoeffsF64::new` / `CoeffsF32::new`.
 //! This module computes exactly these steps, in this order and grouping (the brackets above),
-//! with no fused multiply-add, so code that uses the same order gets bit-identical output. In
-//! exact arithmetic these are the equations of the trapezoidal ("topology-preserving") SVF in
+//! with no fused multiply-add (proved of the translated code as `svf.step_f64_eq` /
+//! `svf.step_f32_eq`, under the assumptions in `proofs/README.md`). In exact arithmetic these are the equations of the trapezoidal ("topology-preserving") SVF in
 //! V. Zavalishin, *The Art of VA Filter Design* (with `k = 2R`); that correspondence is not proved
 //! in `proofs/`.
 //!
@@ -46,8 +46,9 @@ pub struct CoeffsF64 {
 
 impl CoeffsF64 {
     /// Coefficients with integrator gain `g`, damping `k` and output mix `m_hp`, `m_bp`, `m_lp`:
-    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. As the names say, the mix `(0, 0, 1)` gives the
-    /// low-pass output, `(1, 0, 0)` the high-pass output and `(0, 1, 0)` the band-pass output. Computes
+    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. The mix `(0, 0, 1)` outputs the signal `lp`,
+    /// `(1, 0, 0)` the signal `hp` and `(0, 1, 0)` the signal `bp`; that these are low-, high- and
+    /// band-pass responses is not proved. Computes
     /// `d = 1.0 / (1.0 + g * (g + k))`, in that order.
     pub fn new(g: f64, k: f64, m_hp: f64, m_bp: f64, m_lp: f64) -> Self {
         Self {
@@ -61,8 +62,8 @@ impl CoeffsF64 {
     }
 }
 
-/// The two state values of one SVF channel, in `f64`. `StateF64::default()` is the zero state,
-/// for a filter that has seen only silence.
+/// The two state values of one SVF channel, in `f64`. `StateF64::default()` is the zero state
+/// (`s1 = s2 = 0`).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct StateF64 {
     /// The first integrator's state: `bp = g·hp + s1`.
@@ -113,8 +114,9 @@ pub struct CoeffsF32 {
 
 impl CoeffsF32 {
     /// Coefficients with integrator gain `g`, damping `k` and output mix `m_hp`, `m_bp`, `m_lp`:
-    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. As the names say, the mix `(0, 0, 1)` gives the
-    /// low-pass output, `(1, 0, 0)` the high-pass output and `(0, 1, 0)` the band-pass output. Computes
+    /// the output is `m_hp·hp + m_bp·bp + m_lp·lp`. The mix `(0, 0, 1)` outputs the signal `lp`,
+    /// `(1, 0, 0)` the signal `hp` and `(0, 1, 0)` the signal `bp`; that these are low-, high- and
+    /// band-pass responses is not proved. Computes
     /// `d = 1.0 / (1.0 + g * (g + k))`, in that order.
     pub fn new(g: f32, k: f32, m_hp: f32, m_bp: f32, m_lp: f32) -> Self {
         Self {
@@ -128,8 +130,8 @@ impl CoeffsF32 {
     }
 }
 
-/// The two state values of one SVF channel, in `f32`. `StateF32::default()` is the zero state,
-/// for a filter that has seen only silence.
+/// The two state values of one SVF channel, in `f32`. `StateF32::default()` is the zero state
+/// (`s1 = s2 = 0`).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct StateF32 {
     /// The first integrator's state: `bp = g·hp + s1`.

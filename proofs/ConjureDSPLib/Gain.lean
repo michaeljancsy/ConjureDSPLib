@@ -5,7 +5,7 @@ public import ConjureDSPLib.Code.Funs
 /-!
 # Gain
 
-About `src/gain.rs`, as Aeneas translated it (into `ConjureDSPLib/Code/ConjureDspLib.lean`):
+About `src/gain.rs`, as Aeneas translated it (into `ConjureDSPLib/Code/Funs.lean`):
 
 1. `apply_f64` and `apply_f32` are exactly Lean's `Float.mul` / `Float32.mul`, and never fail.
 2. `ramp_f64_spec` / `ramp_f32_spec`: `ramp_f64` and `ramp_f32` never fail, and multiply each

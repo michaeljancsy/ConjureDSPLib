@@ -10,7 +10,9 @@ publish = false
 
 [dependencies]
 # Pure-Rust maths (tan, pow, sqrt) for designing filter coefficients. Pinned exactly; default
-# features off, so no architecture-specific code paths: the same results on every platform.
+# features off, so libm uses its portable Rust code rather than CPU-specific instructions. That it
+# gives the same results on every platform is not proved (32-bit x86 without SSE2, for one, rounds
+# differently).
 libm = { version = "=0.2.16", default-features = false }
 
 [lints.rust]

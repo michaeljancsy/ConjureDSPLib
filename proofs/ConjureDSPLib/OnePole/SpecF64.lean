@@ -6,7 +6,7 @@ public import ConjureDSPLib.Code.Funs
 # The one-pole filter in f64: what the translated Rust does
 
 About `step_f64` and `process_f64` from `src/one_pole.rs`, as Aeneas translated them (into
-`ConjureDSPLib/Code/ConjureDspLib.lean`). This file proves:
+`ConjureDSPLib/Code/Funs.lean`). This file proves:
 
 1. `step_f64_eq`: one Rust step is exactly `x + a * state` in Lean's `Float` (IEEE binary64),
    and never fails.

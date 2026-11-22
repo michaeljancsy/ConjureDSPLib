@@ -52,11 +52,8 @@ committed. The script regenerates it and fails if it no longer matches the last 
 generated comments include source line numbers, so any edit to the Rust, even to a comment above
 a function, means regenerating it (`ALLOW_REGENERATED=1 scripts/prove.sh`) and committing it.
 
-One file there is written by hand: `proofs/ConjureDSPLib/Code/FunsExternal.lean`, which models the
-functions the crate calls from its one dependency, `libm` (`tan`, `pow`, `sqrt` and their `f32`
-versions), as unknown functions that always return a float. Aeneas's template for it, which
-declares them as axioms instead, is moved to `target/` by the script. See "What is assumed, not
-proved" in `proofs/README.md`.
+One file there, `Code/FunsExternal.lean`, is written by hand: it models the `libm` functions the
+crate calls; see `proofs/README.md`.
 
 ## License
 

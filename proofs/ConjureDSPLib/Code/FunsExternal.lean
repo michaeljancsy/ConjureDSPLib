@@ -19,42 +19,42 @@ set_option linter.dupNamespace false
 namespace libm
 
 /-- libm's `tan` (binary64): an unknown function. -/
-opaque tanModel : Float → Float
+opaque tanModel_f64 : Float → Float
 /-- libm's `pow` (binary64): an unknown function. -/
-opaque powModel : Float → Float → Float
+opaque powModel_f64 : Float → Float → Float
 /-- libm's `sqrt` (binary64): an unknown function. -/
-opaque sqrtModel : Float → Float
+opaque sqrtModel_f64 : Float → Float
 /-- libm's `tanf` (binary32): an unknown function. -/
-opaque tanfModel : Float32 → Float32
+opaque tanModel_f32 : Float32 → Float32
 /-- libm's `powf` (binary32): an unknown function. -/
-opaque powfModel : Float32 → Float32 → Float32
+opaque powModel_f32 : Float32 → Float32 → Float32
 /-- libm's `sqrtf` (binary32): an unknown function. -/
-opaque sqrtfModel : Float32 → Float32
+opaque sqrtModel_f32 : Float32 → Float32
 
 end libm
 
-/-- [libm::math::pow::pow]: never fails; returns `libm.powModel x y`. -/
+/-- [libm::math::pow::pow]: never fails; returns `libm.powModel_f64 x y`. -/
 @[rust_fun "libm::math::pow::pow"]
-def libm.math.pow.pow (x y : Float) : Result Float := ok (libm.powModel x y)
+def libm.math.pow.pow (x y : Float) : Result Float := ok (libm.powModel_f64 x y)
 
-/-- [libm::math::powf::powf]: never fails; returns `libm.powfModel x y`. -/
+/-- [libm::math::powf::powf]: never fails; returns `libm.powModel_f32 x y`. -/
 @[rust_fun "libm::math::powf::powf"]
-def libm.math.powf.powf (x y : Float32) : Result Float32 := ok (libm.powfModel x y)
+def libm.math.powf.powf (x y : Float32) : Result Float32 := ok (libm.powModel_f32 x y)
 
-/-- [libm::math::sqrt::sqrtf]: never fails; returns `libm.sqrtfModel x`. -/
+/-- [libm::math::sqrt::sqrtf]: never fails; returns `libm.sqrtModel_f32 x`. -/
 @[rust_fun "libm::math::sqrt::sqrtf"]
-def libm.math.sqrt.sqrtf (x : Float32) : Result Float32 := ok (libm.sqrtfModel x)
+def libm.math.sqrt.sqrtf (x : Float32) : Result Float32 := ok (libm.sqrtModel_f32 x)
 
-/-- [libm::math::sqrt::sqrt]: never fails; returns `libm.sqrtModel x`. -/
+/-- [libm::math::sqrt::sqrt]: never fails; returns `libm.sqrtModel_f64 x`. -/
 @[rust_fun "libm::math::sqrt::sqrt"]
-def libm.math.sqrt.sqrt (x : Float) : Result Float := ok (libm.sqrtModel x)
+def libm.math.sqrt.sqrt (x : Float) : Result Float := ok (libm.sqrtModel_f64 x)
 
-/-- [libm::math::tan::tan]: never fails; returns `libm.tanModel x`. -/
+/-- [libm::math::tan::tan]: never fails; returns `libm.tanModel_f64 x`. -/
 @[rust_fun "libm::math::tan::tan"]
-def libm.math.tan.tan (x : Float) : Result Float := ok (libm.tanModel x)
+def libm.math.tan.tan (x : Float) : Result Float := ok (libm.tanModel_f64 x)
 
-/-- [libm::math::tanf::tanf]: never fails; returns `libm.tanfModel x`. -/
+/-- [libm::math::tanf::tanf]: never fails; returns `libm.tanModel_f32 x`. -/
 @[rust_fun "libm::math::tanf::tanf"]
-def libm.math.tanf.tanf (x : Float32) : Result Float32 := ok (libm.tanfModel x)
+def libm.math.tanf.tanf (x : Float32) : Result Float32 := ok (libm.tanModel_f32 x)
 
 end

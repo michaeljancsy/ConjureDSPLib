@@ -24,23 +24,26 @@
 //!
 //! # Designing coefficients from a cutoff in hertz
 //!
-//! `CoeffsF64` and `CoeffsF32` have design functions for eight shapes: [`CoeffsF64::lowpass`],
-//! `highpass`, `bandpass`, `notch`, `allpass`, `bell`, `low_shelf` and `high_shelf`. Each
+//! `CoeffsF64` and `CoeffsF32` have design functions for eight shapes: [`CoeffsF64::low_pass`],
+//! `high_pass`, `band_pass`, `notch`, `all_pass`, `bell`, `low_shelf` and `high_shelf`. Each
 //! computes `g`, `k` and the output mix from `cutoff_hz`, `sample_rate_hz`, `q` (and `gain_db`
 //! for the bell and shelves) with `libm`'s `tan`, `pow` and `sqrt` (`tanf`, `powf`, `sqrtf` in
 //! `f32`), in the fixed order its documentation gives, then calls `new`. The Lean proofs pin that
-//! order (`svf.CoeffsF64.lowpass_eq` and the others).
+//! order (`svf.CoeffsF64.low_pass_eq` and the others).
 //!
 //! The formulas follow A. Simper (Cytomic), *Solving the continuous SVF equations using
 //! trapezoidal integration and equivalent currents*, rewritten in this module's `hp`/`bp`/`lp`
-//! mix basis using `x = hp + k·bp + lp` (true in exact arithmetic). For example Simper's bell
-//! output `x + k·(A² - 1)·bp` is `hp + k·A²·bp + lp`. The names describe the responses Simper
-//! intends; that the coefficients give those responses (or any frequency response, stability or
-//! accuracy) is **not proved**.
+//! mix basis using `x = hp + k·bp + lp` (true in exact arithmetic; worked out by hand, not
+//! proved). For example Simper's bell output `x + k·(A² - 1)·bp` is `hp + k·A²·bp + lp` (worked
+//! out by hand, not proved). The names describe the responses Simper intends; that the
+//! coefficients give those responses (or any frequency response, stability or accuracy) is **not
+//! proved**.
 //!
 //! Intended arguments: `0 < cutoff_hz < sample_rate_hz / 2`, `q > 0` and a finite `gain_db`.
 //! Nothing is checked, and nothing is claimed outside these ranges (the results may be infinite
-//! or NaN there). The design functions never panic, for any arguments.
+//! or NaN there). The design functions never panic, for any arguments, assuming libm's `tan`,
+//! `pow` and `sqrt` never panic (proved of the translated code as `svf.CoeffsF64.low_pass_eq` and
+//! the others, under that assumption; see `proofs/README.md`).
 //!
 //! Flushing subnormal numbers to zero is the caller's job.
 //!
@@ -89,45 +92,45 @@ impl CoeffsF64 {
     /// Computed as `g = libm::tan(PI * cutoff_hz / sample_rate_hz)` (`PI` is
     /// `core::f64::consts::PI`; the multiplication first, then the division) and
     /// `k = 1.0 / q`, then [`Self::new`]. The same `g` and `k` are used by every design function
-    /// below except the bell and shelves, as stated there. See the module documentation for the
-    /// intended argument ranges and what is not proved.
-    pub fn lowpass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
+    /// below; the bell changes `k` and the shelves change `g`, as stated there. See the module
+    /// documentation for the intended argument ranges and what is not proved.
+    pub fn low_pass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
         let g = libm::tan(PI_F64 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 0.0, 0.0, 1.0)
     }
 
-    /// High-pass design: `g` and `k` as in [`Self::lowpass`], mix `(1, 0, 0)`.
-    pub fn highpass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
+    /// High-pass design: `g` and `k` as in [`Self::low_pass`], mix `(1, 0, 0)`.
+    pub fn high_pass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
         let g = libm::tan(PI_F64 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 1.0, 0.0, 0.0)
     }
 
-    /// Band-pass design: `g` and `k` as in [`Self::lowpass`], mix `(0, k, 0)`: the band signal
+    /// Band-pass design: `g` and `k` as in [`Self::low_pass`], mix `(0, k, 0)`: the band signal
     /// scaled by `k`.
-    pub fn bandpass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
+    pub fn band_pass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
         let g = libm::tan(PI_F64 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 0.0, k, 0.0)
     }
 
-    /// Notch design: `g` and `k` as in [`Self::lowpass`], mix `(1, 0, 1)`: `hp + lp`.
+    /// Notch design: `g` and `k` as in [`Self::low_pass`], mix `(1, 0, 1)`: `hp + lp`.
     pub fn notch(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
         let g = libm::tan(PI_F64 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 1.0, 0.0, 1.0)
     }
 
-    /// All-pass design: `g` and `k` as in [`Self::lowpass`], mix `(1, -k, 1)`: `hp - k·bp + lp`.
-    pub fn allpass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
+    /// All-pass design: `g` and `k` as in [`Self::low_pass`], mix `(1, -k, 1)`: `hp - k·bp + lp`.
+    pub fn all_pass(cutoff_hz: f64, sample_rate_hz: f64, q: f64) -> Self {
         let g = libm::tan(PI_F64 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 1.0, -k, 1.0)
     }
 
     /// Bell (peak) design, with `gain_db` the intended gain at the cutoff:
-    /// `A = libm::pow(10.0, gain_db / 40.0)`, `g` as in [`Self::lowpass`],
+    /// `A = libm::pow(10.0, gain_db / 40.0)`, `g` as in [`Self::low_pass`],
     /// `k = 1.0 / (q * A)`, mix `(1, k * A * A, 1)` (that is, `(k·A)·A`).
     pub fn bell(cutoff_hz: f64, sample_rate_hz: f64, q: f64, gain_db: f64) -> Self {
         let a = libm::pow(10.0, gain_db / 40.0);
@@ -232,45 +235,45 @@ impl CoeffsF32 {
     /// Computed as `g = libm::tanf(PI * cutoff_hz / sample_rate_hz)` (`PI` is
     /// `core::f32::consts::PI`; the multiplication first, then the division) and
     /// `k = 1.0 / q`, then [`Self::new`]. The same `g` and `k` are used by every design function
-    /// below except the bell and shelves, as stated there. See the module documentation for the
-    /// intended argument ranges and what is not proved.
-    pub fn lowpass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
+    /// below; the bell changes `k` and the shelves change `g`, as stated there. See the module
+    /// documentation for the intended argument ranges and what is not proved.
+    pub fn low_pass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
         let g = libm::tanf(PI_F32 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 0.0, 0.0, 1.0)
     }
 
-    /// High-pass design: `g` and `k` as in [`Self::lowpass`], mix `(1, 0, 0)`.
-    pub fn highpass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
+    /// High-pass design: `g` and `k` as in [`Self::low_pass`], mix `(1, 0, 0)`.
+    pub fn high_pass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
         let g = libm::tanf(PI_F32 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 1.0, 0.0, 0.0)
     }
 
-    /// Band-pass design: `g` and `k` as in [`Self::lowpass`], mix `(0, k, 0)`: the band signal
+    /// Band-pass design: `g` and `k` as in [`Self::low_pass`], mix `(0, k, 0)`: the band signal
     /// scaled by `k`.
-    pub fn bandpass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
+    pub fn band_pass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
         let g = libm::tanf(PI_F32 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 0.0, k, 0.0)
     }
 
-    /// Notch design: `g` and `k` as in [`Self::lowpass`], mix `(1, 0, 1)`: `hp + lp`.
+    /// Notch design: `g` and `k` as in [`Self::low_pass`], mix `(1, 0, 1)`: `hp + lp`.
     pub fn notch(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
         let g = libm::tanf(PI_F32 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 1.0, 0.0, 1.0)
     }
 
-    /// All-pass design: `g` and `k` as in [`Self::lowpass`], mix `(1, -k, 1)`: `hp - k·bp + lp`.
-    pub fn allpass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
+    /// All-pass design: `g` and `k` as in [`Self::low_pass`], mix `(1, -k, 1)`: `hp - k·bp + lp`.
+    pub fn all_pass(cutoff_hz: f32, sample_rate_hz: f32, q: f32) -> Self {
         let g = libm::tanf(PI_F32 * cutoff_hz / sample_rate_hz);
         let k = 1.0 / q;
         Self::new(g, k, 1.0, -k, 1.0)
     }
 
     /// Bell (peak) design, with `gain_db` the intended gain at the cutoff:
-    /// `A = libm::powf(10.0, gain_db / 40.0)`, `g` as in [`Self::lowpass`],
+    /// `A = libm::powf(10.0, gain_db / 40.0)`, `g` as in [`Self::low_pass`],
     /// `k = 1.0 / (q * A)`, mix `(1, k * A * A, 1)` (that is, `(k·A)·A`).
     pub fn bell(cutoff_hz: f32, sample_rate_hz: f32, q: f32, gain_db: f32) -> Self {
         let a = libm::powf(10.0, gain_db / 40.0);
@@ -514,10 +517,10 @@ mod tests {
                 use super::*;
 
                 // Arguments that are not exact in binary, so any other order would likely differ.
-                const FC: $t = 1234.5;
+                const FC: $t = 1234.56;
                 const FS: $t = 48000.0;
                 const Q: $t = 0.707;
-                const DB: $t = -4.5;
+                const DB: $t = -4.3;
 
                 fn bits(c: &$coeffs) -> [u64; 6] {
                     [c.g, c.k, c.d, c.m_hp, c.m_bp, c.m_lp].map(|v| v.to_bits() as u64)
@@ -528,11 +531,11 @@ mod tests {
                     let g = $tan($pi * FC / FS);
                     let k = 1.0 / Q;
                     let n = |m_hp, m_bp, m_lp| bits(&$coeffs::new(g, k, m_hp, m_bp, m_lp));
-                    assert_eq!(bits(&$coeffs::lowpass(FC, FS, Q)), n(0.0, 0.0, 1.0));
-                    assert_eq!(bits(&$coeffs::highpass(FC, FS, Q)), n(1.0, 0.0, 0.0));
-                    assert_eq!(bits(&$coeffs::bandpass(FC, FS, Q)), n(0.0, k, 0.0));
+                    assert_eq!(bits(&$coeffs::low_pass(FC, FS, Q)), n(0.0, 0.0, 1.0));
+                    assert_eq!(bits(&$coeffs::high_pass(FC, FS, Q)), n(1.0, 0.0, 0.0));
+                    assert_eq!(bits(&$coeffs::band_pass(FC, FS, Q)), n(0.0, k, 0.0));
                     assert_eq!(bits(&$coeffs::notch(FC, FS, Q)), n(1.0, 0.0, 1.0));
-                    assert_eq!(bits(&$coeffs::allpass(FC, FS, Q)), n(1.0, -k, 1.0));
+                    assert_eq!(bits(&$coeffs::all_pass(FC, FS, Q)), n(1.0, -k, 1.0));
 
                     let a = $pow(10.0, DB / 40.0);
                     let kb = 1.0 / (Q * a);
@@ -557,8 +560,8 @@ mod tests {
                     let odd: [$t; 7] = [0.0, -1.0, 1e30, -1e30, <$t>::INFINITY, <$t>::NAN, 24000.0];
                     for &a in &odd {
                         for &b in &odd {
-                            let _ = $coeffs::lowpass(a, b, a);
-                            let _ = $coeffs::allpass(a, FS, b);
+                            let _ = $coeffs::low_pass(a, b, a);
+                            let _ = $coeffs::all_pass(a, FS, b);
                             let _ = $coeffs::bell(a, b, a, b);
                             let _ = $coeffs::low_shelf(FC, a, b, a);
                             let _ = $coeffs::high_shelf(b, FS, a, b);
@@ -588,11 +591,17 @@ mod tests {
         PI_F32
     );
 
-    /// The magnitude of the filter's response at `freq_hz` (sample rate 48 kHz), from a long run
+    const FS: f64 = 48000.0;
+    const FC: f64 = 1000.0;
+    const Q: f64 = 0.75;
+    const DB: f64 = 4.0;
+    const NYQUIST: f64 = 24000.0;
+
+    /// The magnitude of the filter's response at `freq_hz` (sample rate `FS`), from a long run
     /// on a cosine and a sine from the zero state: once the start-up has died away the outputs
     /// are `|H|·cos(ωn + φ)` and `|H|·sin(ωn + φ)`.
     fn magnitude_f64(c: &CoeffsF64, freq_hz: f64) -> f64 {
-        let w = 2.0 * PI_F64 * freq_hz / 48000.0;
+        let w = 2.0 * PI_F64 * freq_hz / FS;
         let (mut sc, mut ss) = (StateF64::default(), StateF64::default());
         let (mut yc, mut ys) = (0.0, 0.0);
         for n in 0..20000 {
@@ -603,28 +612,23 @@ mod tests {
         libm::sqrt(yc * yc + ys * ys)
     }
 
-    const FS: f64 = 48000.0;
-    const FC: f64 = 1000.0;
-    const Q: f64 = 0.75;
-    const NYQUIST: f64 = 24000.0;
-
     fn assert_near(got: f64, want: f64, what: &str) {
         assert!((got - want).abs() <= 1e-9, "{what}: {got} vs {want}");
     }
 
     #[test]
     fn simple_shapes_dc_cutoff_and_nyquist_magnitudes_f64() {
-        let lp = CoeffsF64::lowpass(FC, FS, Q);
+        let lp = CoeffsF64::low_pass(FC, FS, Q);
         assert_near(magnitude_f64(&lp, 0.0), 1.0, "low-pass DC");
         assert_near(magnitude_f64(&lp, FC), Q, "low-pass cutoff");
         assert_near(magnitude_f64(&lp, NYQUIST), 0.0, "low-pass Nyquist");
 
-        let hp = CoeffsF64::highpass(FC, FS, Q);
+        let hp = CoeffsF64::high_pass(FC, FS, Q);
         assert_near(magnitude_f64(&hp, 0.0), 0.0, "high-pass DC");
         assert_near(magnitude_f64(&hp, FC), Q, "high-pass cutoff");
         assert_near(magnitude_f64(&hp, NYQUIST), 1.0, "high-pass Nyquist");
 
-        let bp = CoeffsF64::bandpass(FC, FS, Q);
+        let bp = CoeffsF64::band_pass(FC, FS, Q);
         assert_near(magnitude_f64(&bp, 0.0), 0.0, "band-pass DC");
         assert_near(magnitude_f64(&bp, FC), 1.0, "band-pass cutoff");
         assert_near(magnitude_f64(&bp, NYQUIST), 0.0, "band-pass Nyquist");
@@ -634,7 +638,7 @@ mod tests {
         assert_near(magnitude_f64(&notch, FC), 0.0, "notch cutoff");
         assert_near(magnitude_f64(&notch, NYQUIST), 1.0, "notch Nyquist");
 
-        let ap = CoeffsF64::allpass(FC, FS, Q);
+        let ap = CoeffsF64::all_pass(FC, FS, Q);
         for f in [0.0, 100.0, FC, 5000.0, NYQUIST] {
             assert_near(magnitude_f64(&ap, f), 1.0, "all-pass");
         }
@@ -686,22 +690,36 @@ mod tests {
 
     #[test]
     fn f32_designs_are_close_to_f64_designs() {
+        let (fc, fs, q, db) = (FC as f32, FS as f32, Q as f32, DB as f32);
         let pairs = [
             (
-                CoeffsF32::lowpass(1000.0, 48000.0, 0.7),
-                CoeffsF64::lowpass(FC, FS, 0.7),
+                CoeffsF32::low_pass(fc, fs, q),
+                CoeffsF64::low_pass(FC, FS, Q),
             ),
             (
-                CoeffsF32::bell(1000.0, 48000.0, 0.7, -3.0),
-                CoeffsF64::bell(FC, FS, 0.7, -3.0),
+                CoeffsF32::high_pass(fc, fs, q),
+                CoeffsF64::high_pass(FC, FS, Q),
             ),
             (
-                CoeffsF32::low_shelf(1000.0, 48000.0, 0.7, 4.0),
-                CoeffsF64::low_shelf(FC, FS, 0.7, 4.0),
+                CoeffsF32::band_pass(fc, fs, q),
+                CoeffsF64::band_pass(FC, FS, Q),
+            ),
+            (CoeffsF32::notch(fc, fs, q), CoeffsF64::notch(FC, FS, Q)),
+            (
+                CoeffsF32::all_pass(fc, fs, q),
+                CoeffsF64::all_pass(FC, FS, Q),
             ),
             (
-                CoeffsF32::high_shelf(1000.0, 48000.0, 0.7, 4.0),
-                CoeffsF64::high_shelf(FC, FS, 0.7, 4.0),
+                CoeffsF32::bell(fc, fs, q, db),
+                CoeffsF64::bell(FC, FS, Q, DB),
+            ),
+            (
+                CoeffsF32::low_shelf(fc, fs, q, db),
+                CoeffsF64::low_shelf(FC, FS, Q, DB),
+            ),
+            (
+                CoeffsF32::high_shelf(fc, fs, q, db),
+                CoeffsF64::high_shelf(FC, FS, Q, DB),
             ),
         ];
         for (c32, c64) in pairs {
@@ -716,46 +734,16 @@ mod tests {
         }
     }
 
-    /// The low-pass design's impulse response against the bilinear-transform biquad for the same
-    /// `g = libm::tan(π·cutoff / 48000)` and `k = 1 / q` (as in the cross-check below).
-    #[test]
-    fn low_pass_design_matches_bilinear_biquad_f64() {
-        use crate::biquad;
-        for &(cutoff, q) in &[(1000.0, 0.75), (100.0, 2.0), (8000.0, 0.5)] {
-            let g = libm::tan(PI_F64 * cutoff / FS);
-            let k = 1.0 / q;
-            let a0 = 1.0 + k * g + g * g;
-            let bq = biquad::CoeffsF64 {
-                b0: g * g / a0,
-                b1: 2.0 * g * g / a0,
-                b2: g * g / a0,
-                a1: 2.0 * (g * g - 1.0) / a0,
-                a2: (1.0 - k * g + g * g) / a0,
-            };
-            let c = CoeffsF64::lowpass(cutoff, FS, q);
-            let mut svf_buf = [0.0_f64; 32];
-            svf_buf[0] = 1.0;
-            let mut bq_buf = svf_buf;
-            process_f64(&c, &mut StateF64::default(), &mut svf_buf);
-            biquad::process_f64(&bq, &mut biquad::StateF64::default(), &mut bq_buf);
-            for (a, b) in svf_buf.iter().zip(bq_buf.iter()) {
-                assert!((a - b).abs() <= 1e-12, "cutoff {cutoff}: {a} vs {b}");
-            }
-        }
-    }
-
     /// The low-pass mix against the biquad with the bilinear-transform low-pass coefficients for
     /// the same `g` and `k`: `H(s) = 1 / (s² + k·s + 1)` with `s = (1/g)·(z - 1)/(z + 1)` gives
     /// `b = [g², 2g², g²] / a0`, `a1 = 2(g² - 1) / a0`, `a2 = (1 - k·g + g²) / a0`, with
     /// `a0 = 1 + k·g + g²`.
     #[test]
     fn low_pass_matches_bilinear_biquad_f64() {
-        extern crate std;
         use crate::biquad;
-        use core::f64::consts::PI;
 
         for &(cutoff, q) in &[(1000.0, 0.75), (100.0, 2.0), (8000.0, 0.5)] {
-            let g = (PI * cutoff / 48000.0_f64).tan();
+            let g = libm::tan(PI_F64 * cutoff / FS);
             let k = 1.0 / q;
             let a0 = 1.0 + k * g + g * g;
             let bq = biquad::CoeffsF64 {

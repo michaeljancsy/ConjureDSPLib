@@ -5,16 +5,16 @@ public import ConjureDSPLib.Code.Funs
 /-!
 # The state-variable filter in f32: what the translated Rust does
 
-About `CoeffsF32.new`, its design functions (`lowpass` to `high_shelf`), `step_f32` and
+About `CoeffsF32.new`, its design functions (`low_pass` to `high_shelf`), `step_f32` and
 `process_f32` from `src/svf.rs`, as Aeneas translated them. This file proves:
 
 1. `CoeffsF32.new_eq`: the Rust constructor never fails, keeps `g`, `k` and the output mix, and
    computes `d` as exactly `1 / (1 + g * (g + k))` in Lean's `Float32` (IEEE binary32), in that
    order.
-2. `CoeffsF32.lowpass_eq`, `highpass_eq`, `bandpass_eq`, `notch_eq`, `allpass_eq`, `bell_eq`,
+2. `CoeffsF32.low_pass_eq`, `high_pass_eq`, `band_pass_eq`, `notch_eq`, `all_pass_eq`, `bell_eq`,
    `low_shelf_eq`, `high_shelf_eq`: each design function never fails and returns exactly the
    coefficients of its formula, in binary32, in the Rust code's order, with libm's functions as
-   the unknown functions `libm.tanfModel`, `libm.powfModel` and `libm.sqrtfModel`. Nothing
+   the unknown functions `libm.tanModel_f32`, `libm.powModel_f32` and `libm.sqrtModel_f32`. Nothing
    about the resulting frequency responses is proved.
 3. `step_f32_eq`: one Rust step is exactly `svfStep_f32` in binary32, in the Rust code's order,
    and never fails.
@@ -37,58 +37,58 @@ theorem CoeffsF32.new_eq (g k m_hp m_bp m_lp : Float32) :
 
 /-- Low-pass design: never fails, and returns exactly these coefficients, each operation in
 binary32 in this order:
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
 `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
-`(m_hp, m_bp, m_lp) = (0, 0, 1)`. `libm.tanfModel` is an unknown function
+`(m_hp, m_bp, m_lp) = (0, 0, 1)`. `libm.tanModel_f32` is an unknown function
 (`Code/FunsExternal.lean`). -/
-theorem CoeffsF32.lowpass_eq (cutoff_hz sample_rate_hz q : Float32) :
-    CoeffsF32.lowpass cutoff_hz sample_rate_hz q =
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+theorem CoeffsF32.low_pass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.low_pass cutoff_hz sample_rate_hz q =
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
       let k := 1 / q
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 0, m_bp := 0,
            m_lp := 1 } := by
-  simp only [CoeffsF32.lowpass, libm.math.tanf.tanf, bind_ok]
+  simp only [CoeffsF32.low_pass, libm.math.tanf.tanf, bind_ok]
   rfl
 
 /-- High-pass design: never fails, and returns exactly these coefficients, each operation in
 binary32 in this order:
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
 `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
-`(m_hp, m_bp, m_lp) = (1, 0, 0)`. `libm.tanfModel` is an unknown function
+`(m_hp, m_bp, m_lp) = (1, 0, 0)`. `libm.tanModel_f32` is an unknown function
 (`Code/FunsExternal.lean`). -/
-theorem CoeffsF32.highpass_eq (cutoff_hz sample_rate_hz q : Float32) :
-    CoeffsF32.highpass cutoff_hz sample_rate_hz q =
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+theorem CoeffsF32.high_pass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.high_pass cutoff_hz sample_rate_hz q =
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
       let k := 1 / q
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := 0,
            m_lp := 0 } := by
-  simp only [CoeffsF32.highpass, libm.math.tanf.tanf, bind_ok]
+  simp only [CoeffsF32.high_pass, libm.math.tanf.tanf, bind_ok]
   rfl
 
 /-- Band-pass design: never fails, and returns exactly these coefficients, each operation in
 binary32 in this order:
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
 `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
-`(m_hp, m_bp, m_lp) = (0, k, 0)`. `libm.tanfModel` is an unknown function
+`(m_hp, m_bp, m_lp) = (0, k, 0)`. `libm.tanModel_f32` is an unknown function
 (`Code/FunsExternal.lean`). -/
-theorem CoeffsF32.bandpass_eq (cutoff_hz sample_rate_hz q : Float32) :
-    CoeffsF32.bandpass cutoff_hz sample_rate_hz q =
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+theorem CoeffsF32.band_pass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.band_pass cutoff_hz sample_rate_hz q =
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
       let k := 1 / q
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 0, m_bp := k,
            m_lp := 0 } := by
-  simp only [CoeffsF32.bandpass, libm.math.tanf.tanf, bind_ok]
+  simp only [CoeffsF32.band_pass, libm.math.tanf.tanf, bind_ok]
   rfl
 
 /-- Notch design: never fails, and returns exactly these coefficients, each operation in
 binary32 in this order:
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
 `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
-`(m_hp, m_bp, m_lp) = (1, 0, 1)`. `libm.tanfModel` is an unknown function
+`(m_hp, m_bp, m_lp) = (1, 0, 1)`. `libm.tanModel_f32` is an unknown function
 (`Code/FunsExternal.lean`). -/
 theorem CoeffsF32.notch_eq (cutoff_hz sample_rate_hz q : Float32) :
     CoeffsF32.notch cutoff_hz sample_rate_hz q =
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
       let k := 1 / q
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := 0,
            m_lp := 1 } := by
@@ -97,29 +97,29 @@ theorem CoeffsF32.notch_eq (cutoff_hz sample_rate_hz q : Float32) :
 
 /-- All-pass design: never fails, and returns exactly these coefficients, each operation in
 binary32 in this order:
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
 `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
-`(m_hp, m_bp, m_lp) = (1, -k, 1)`. `libm.tanfModel` is an unknown function
+`(m_hp, m_bp, m_lp) = (1, -k, 1)`. `libm.tanModel_f32` is an unknown function
 (`Code/FunsExternal.lean`). -/
-theorem CoeffsF32.allpass_eq (cutoff_hz sample_rate_hz q : Float32) :
-    CoeffsF32.allpass cutoff_hz sample_rate_hz q =
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+theorem CoeffsF32.all_pass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.all_pass cutoff_hz sample_rate_hz q =
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
       let k := 1 / q
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := -k,
            m_lp := 1 } := by
-  simp only [CoeffsF32.allpass, libm.math.tanf.tanf, bind_ok]
+  simp only [CoeffsF32.all_pass, libm.math.tanf.tanf, bind_ok]
   rfl
 
 /-- Bell design: never fails, and returns exactly these coefficients, each operation in
-binary32 in this order: `A = libm.powfModel 10 (gain_db / 40)`,
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+binary32 in this order: `A = libm.powModel_f32 10 (gain_db / 40)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
 `k = 1 / (q * A)`, `d = 1 / (1 + g * (g + k))` and the mix
 `(m_hp, m_bp, m_lp) = (1, k * A * A, 1)`.
-`libm.tanfModel` and `libm.powfModel` are unknown functions (`Code/FunsExternal.lean`). -/
+`libm.tanModel_f32` and `libm.powModel_f32` are unknown functions (`Code/FunsExternal.lean`). -/
 theorem CoeffsF32.bell_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
     CoeffsF32.bell cutoff_hz sample_rate_hz q gain_db =
-      let A := libm.powfModel 10 (gain_db / 40)
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let A := libm.powModel_f32 10 (gain_db / 40)
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
       let k := 1 / (q * A)
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := k * A * A,
            m_lp := 1 } := by
@@ -127,17 +127,17 @@ theorem CoeffsF32.bell_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
   rfl
 
 /-- Low-shelf design: never fails, and returns exactly these coefficients, each operation in
-binary32 in this order: `A = libm.powfModel 10 (gain_db / 40)`,
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) / libm.sqrtfModel A`,
+binary32 in this order: `A = libm.powModel_f32 10 (gain_db / 40)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz) / libm.sqrtModel_f32 A`,
 `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
 `(m_hp, m_bp, m_lp) = (1, k * A, A * A)`.
-`libm.tanfModel`, `libm.powfModel` and `libm.sqrtfModel` are unknown functions
+`libm.tanModel_f32`, `libm.powModel_f32` and `libm.sqrtModel_f32` are unknown functions
 (`Code/FunsExternal.lean`). -/
 theorem CoeffsF32.low_shelf_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
     CoeffsF32.low_shelf cutoff_hz sample_rate_hz q gain_db =
-      let A := libm.powfModel 10 (gain_db / 40)
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) /
-          libm.sqrtfModel A
+      let A := libm.powModel_f32 10 (gain_db / 40)
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz) /
+          libm.sqrtModel_f32 A
       let k := 1 / q
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := k * A,
            m_lp := A * A } := by
@@ -146,17 +146,17 @@ theorem CoeffsF32.low_shelf_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
   rfl
 
 /-- High-shelf design: never fails, and returns exactly these coefficients, each operation in
-binary32 in this order: `A = libm.powfModel 10 (gain_db / 40)`,
-`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) * libm.sqrtfModel A`,
+binary32 in this order: `A = libm.powModel_f32 10 (gain_db / 40)`,
+`g = libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz) * libm.sqrtModel_f32 A`,
 `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
 `(m_hp, m_bp, m_lp) = (A * A, k * A, 1)`.
-`libm.tanfModel`, `libm.powfModel` and `libm.sqrtfModel` are unknown functions
+`libm.tanModel_f32`, `libm.powModel_f32` and `libm.sqrtModel_f32` are unknown functions
 (`Code/FunsExternal.lean`). -/
 theorem CoeffsF32.high_shelf_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
     CoeffsF32.high_shelf cutoff_hz sample_rate_hz q gain_db =
-      let A := libm.powfModel 10 (gain_db / 40)
-      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) *
-          libm.sqrtfModel A
+      let A := libm.powModel_f32 10 (gain_db / 40)
+      let g := libm.tanModel_f32 (core.f32.consts.PI * cutoff_hz / sample_rate_hz) *
+          libm.sqrtModel_f32 A
       let k := 1 / q
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := A * A, m_bp := k * A,
            m_lp := 1 } := by

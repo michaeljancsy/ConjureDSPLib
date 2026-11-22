@@ -161,8 +161,9 @@ In brief; the full list is in
   unless the code asks for `mul_add`, and this code does not.
 - **libm.** The one dependency, `libm` 0.2.16, is not translated. Its `tan`, `pow` and `sqrt`
   (and `tanf`, `powf`, `sqrtf`) are modelled as unknown functions that always return, and return
-  the same float for the same arguments. Their accuracy is not assumed or proved. That libm gives
-  the same results on every platform is not proved.
+  the same float for the same arguments. The proofs hold whatever values these functions return,
+  so they don't depend on `libm`'s accuracy; that accuracy is not proved here either. That libm
+  gives the same results on every platform is not proved.
 - **Filter design.** The frequency responses of the SVF design functions' coefficients are not
   proved, nor that those coefficients are stable or meet the error bounds' conditions at every
   cutoff (the low-pass examples in `proofs/README.md` are proved for stated coefficient values;

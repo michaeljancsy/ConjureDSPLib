@@ -38,7 +38,8 @@ Each `_f64` theorem named here has an `_f32` counterpart.
 faithful translation by Charon and a fork of Aeneas (`conjure` branch, pinned commit); IEEE
 round-to-nearest in the processor's default mode (no flush-to-zero, no x87), with flush-to-zero not
 covered; no fused multiply-add; libm's `tan`, `pow` and `sqrt` modelled as unknown functions that
-always return, their accuracy not assumed or proved; the design functions' frequency responses; the
+always return (the proofs hold whatever values they return, so they don't depend on libm's
+accuracy, which is not proved here either); the design functions' frequency responses; the
 trusted base (Lean's kernel, Mathlib, FloatLib, Aeneas's Lean library). Nothing is proved about
 compiled machine code.
 

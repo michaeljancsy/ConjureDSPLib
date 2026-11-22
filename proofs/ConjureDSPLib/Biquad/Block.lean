@@ -1,6 +1,7 @@
 module
 
 public import ConjureDSPLib.Biquad.Textbook
+public import ConjureDSPLib.TwoState
 public import Mathlib.Tactic.Linarith
 public import Mathlib.Tactic.Positivity
 public import Mathlib.Tactic.FieldSimp
@@ -18,8 +19,9 @@ is the state-update map (the filter's own, whose eigenvalues are its poles) and 
 this step's rounding. Whether such errors pile up depends on the state-update map. This file is
 parametric in a `Contraction`: any way `N` of measuring a pair of numbers under which the
 state-update map takes every pair to one whose measure is at most `ρ` times the original's, with
-`0 ≤ ρ < 1`. `Biquad/Contraction.lean` gives one for biquads with complex poles, distinct real
-poles or a repeated real pole, inside the unit circle.
+`0 ≤ ρ < 1`: `two_state.Contraction` (`TwoState.lean`, shared with the SVF) at the companion
+matrix `(−a1, 1; −a2, 0)`. `Biquad/Contraction.lean` gives one for biquads with complex poles,
+distinct real poles or a repeated real pole, inside the unit circle.
 
 With it, `block_error_real` shows that over a block of any length the computed outputs and state
 stay within fixed distances of the exact filter's, provided the inputs are at most `M`, each
@@ -28,8 +30,8 @@ step's rounding is at most `α + β·Sb` while the state is within `Sb`, and `cI
 Rust layers are in `BlockF64.lean` and `BlockF32.lean`.
 
 `step_values_le` bounds the exact value of each of one step's nine operations by
-`stepValueBound`; the floating-point files use it, with `block_step` and `block_state_le`, to
-prove that no step overflows.
+`stepValueBound`; the floating-point files use it, with `block_step` and
+`two_state.Contraction.state_le`, to prove that no step overflows.
 
 `block_bounds_le` and `block_bounds_ge` bound `computedStateBound` and the output error bound
 `cInf·Ê + L` above and below from numbers on either side of `cInf`, `K` and `ρ`
@@ -46,26 +48,16 @@ namespace conjure_dsp_lib.biquad
 under which the biquad's state-update map `(v₁, v₂) ↦ (-a1·v₁ + v₂, -a2·v₁)` takes every pair to
 one whose measure is at most `ρ` times the original's, with `0 ≤ ρ < 1`. `cInf ≥ 0` is the
 constant comparing each entry with `N`: `|v₁| ≤ cInf·N(v₁, v₂)` and `|v₂| ≤ cInf·N(v₁, v₂)`.
-`K ≥ 0` compares `N` with the entries' sizes: `N(v₁, v₂) ≤ K·(|v₁| + |v₂|)`. -/
-structure Contraction (c : CoeffsReal) where
-  /-- The measure of a pair. -/
-  N : ℝ → ℝ → ℝ
-  /-- How much the state-update map shrinks a pair. -/
-  ρ : ℝ
-  /-- Each entry is at most `cInf` times the measure. -/
-  cInf : ℝ
-  /-- The measure is at most `K` times the sum of the entries' sizes. -/
-  K : ℝ
-  nonneg : ∀ v₁ v₂, 0 ≤ N v₁ v₂
-  add_le : ∀ u₁ u₂ v₁ v₂, N (u₁ + v₁) (u₂ + v₂) ≤ N u₁ u₂ + N v₁ v₂
-  contract : ∀ v₁ v₂, N (-c.a1 * v₁ + v₂) (-c.a2 * v₁) ≤ ρ * N v₁ v₂
-  ρ_nonneg : 0 ≤ ρ
-  cInf_nonneg : 0 ≤ cInf
-  K_nonneg : 0 ≤ K
-  ρ_lt_one : ρ < 1
-  le_fst : ∀ v₁ v₂, |v₁| ≤ cInf * N v₁ v₂
-  le_snd : ∀ v₁ v₂, |v₂| ≤ cInf * N v₁ v₂
-  le_sum : ∀ v₁ v₂, N v₁ v₂ ≤ K * (|v₁| + |v₂|)
+`K ≥ 0` compares `N` with the entries' sizes: `N(v₁, v₂) ≤ K·(|v₁| + |v₂|)`. It is the shared
+`two_state.Contraction` at the companion matrix `(−a1, 1; −a2, 0)`, whose `contract` field reads
+`N(−a1·v₁ + 1·v₂, −a2·v₁ + 0·v₂) ≤ ρ·N(v₁, v₂)`; `Contraction.contract` states it as above. -/
+abbrev Contraction (c : CoeffsReal) : Type := two_state.Contraction (-c.a1) 1 (-c.a2) 0
+
+/-- The state-update map `(v₁, v₂) ↦ (-a1·v₁ + v₂, -a2·v₁)` takes every pair to one whose
+measure is at most `ρ` times the original's. -/
+theorem Contraction.contract {c : CoeffsReal} (C : Contraction c) (v₁ v₂ : ℝ) :
+    C.N (-c.a1 * v₁ + v₂) (-c.a2 * v₁) ≤ C.ρ * C.N v₁ v₂ := by
+  simpa only [one_mul, zero_mul, add_zero] using two_state.Contraction.contract C v₁ v₂
 
 /-- `WithinLocalErr c Sb M L s xs f ys`: `ys` has one entry per input, and there are intermediate
 states starting at `s` and ending at `f` such that, at every step where both state values are at
@@ -90,31 +82,6 @@ def inputGain (c : CoeffsReal) : ℝ := |c.b1 - c.a1 * c.b0| + |c.b2 - c.a2 * c.
 `|w₁| + |w₂|`, where `w` is that step's contribution to the state error. -/
 def roundGain (c : CoeffsReal) : ℝ := 2 + |c.a1| + |c.a2|
 
-/-- The computed state is within `Sb`: if the exact state `(r₁, r₂)` measures at most `R`, the
-error `(s₁ - r₁, s₂ - r₂)` (computed minus exact state) measures at most `Ê`, and
-`cInf·(R + Ê) ≤ Sb`, then both computed state values `s₁`, `s₂` are at most `Sb` in size. -/
-theorem block_state_le (c : CoeffsReal) (C : Contraction c) {Sb R Ê s₁ s₂ r₁ r₂ : ℝ}
-    (hS : C.cInf * (R + Ê) ≤ Sb) (hr : C.N r₁ r₂ ≤ R) (he : C.N (s₁ - r₁) (s₂ - r₂) ≤ Ê) :
-    |s₁| ≤ Sb ∧ |s₂| ≤ Sb := by
-  have hci := C.cInf_nonneg
-  constructor
-  · have h1 := C.le_fst r₁ r₂
-    have h2 := C.le_fst (s₁ - r₁) (s₂ - r₂)
-    calc |s₁| = |r₁ + (s₁ - r₁)| := by ring_nf
-      _ ≤ |r₁| + |s₁ - r₁| := abs_add_le _ _
-      _ ≤ C.cInf * R + C.cInf * Ê := add_le_add
-          (h1.trans (mul_le_mul_of_nonneg_left hr hci))
-          (h2.trans (mul_le_mul_of_nonneg_left he hci))
-      _ ≤ Sb := by linarith
-  · have h1 := C.le_snd r₁ r₂
-    have h2 := C.le_snd (s₁ - r₁) (s₂ - r₂)
-    calc |s₂| = |r₂ + (s₂ - r₂)| := by ring_nf
-      _ ≤ |r₂| + |s₂ - r₂| := abs_add_le _ _
-      _ ≤ C.cInf * R + C.cInf * Ê := add_le_add
-          (h1.trans (mul_le_mul_of_nonneg_left hr hci))
-          (h2.trans (mul_le_mul_of_nonneg_left he hci))
-      _ ≤ Sb := by linarith
-
 /-- One step of the induction behind `block_error_real`. Suppose the exact state `(r₁, r₂)`
 measures at most `R`, the error `(s₁ - r₁, s₂ - r₂)` (computed minus exact state) measures at
 most `Ê`, the input `x` is at most `M`, and the computed output `y` and next state `(t₁, t₂)` are
@@ -133,7 +100,6 @@ theorem block_step (c : CoeffsReal) (C : Contraction c) {M L R Ê x s₁ s₂ r�
       C.N (c.b1 * x - c.a1 * (c.b0 * x + r₁) + r₂) (c.b2 * x - c.a2 * (c.b0 * x + r₁)) ≤ R ∧
       C.N (t₁ - (c.b1 * x - c.a1 * (c.b0 * x + r₁) + r₂))
         (t₂ - (c.b2 * x - c.a2 * (c.b0 * x + r₁))) ≤ Ê := by
-  have hci := C.cInf_nonneg
   set dy := y - (c.b0 * x + s₁) with hdy_def
   set d₁ := t₁ - (c.b1 * x - c.a1 * y + s₂) with hd₁_def
   set d₂ := t₂ - (c.b2 * x - c.a2 * y) with hd₂_def
@@ -152,49 +118,27 @@ theorem block_step (c : CoeffsReal) (C : Contraction c) {M L R Ê x s₁ s₂ r�
   have he' : C.N (t₁ - (c.b1 * x - c.a1 * (c.b0 * x + r₁) + r₂))
       (t₂ - (c.b2 * x - c.a2 * (c.b0 * x + r₁))) ≤ Ê := by
     have e1 : t₁ - (c.b1 * x - c.a1 * (c.b0 * x + r₁) + r₂) =
-        (-c.a1 * e₁ + e₂) + (d₁ - c.a1 * dy) := by
+        -c.a1 * e₁ + 1 * e₂ + (d₁ - c.a1 * dy) := by
       simp only [hd₁_def, hdy_def, e₁, e₂]; ring
     have e2 : t₂ - (c.b2 * x - c.a2 * (c.b0 * x + r₁)) =
-        (-c.a2 * e₁) + (d₂ - c.a2 * dy) := by
-      simp only [hd₂_def, hdy_def, e₁]; ring
+        -c.a2 * e₁ + 0 * e₂ + (d₂ - c.a2 * dy) := by
+      simp only [hd₂_def, hdy_def, e₁, e₂]; ring
     rw [e1, e2]
-    calc C.N ((-c.a1 * e₁ + e₂) + (d₁ - c.a1 * dy)) ((-c.a2 * e₁) + (d₂ - c.a2 * dy))
-        ≤ C.N (-c.a1 * e₁ + e₂) (-c.a2 * e₁) + C.N (d₁ - c.a1 * dy) (d₂ - c.a2 * dy) :=
-          C.add_le _ _ _ _
-      _ ≤ C.ρ * Ê + C.K * (L * roundGain c) := by
-          refine add_le_add ((C.contract _ _).trans
-            (mul_le_mul_of_nonneg_left he C.ρ_nonneg)) ?_
-          refine (C.le_sum _ _).trans (mul_le_mul_of_nonneg_left ?_ C.K_nonneg)
-          unfold roundGain
-          linarith
-      _ ≤ Ê := hE
+    exact C.map_add_le he (by unfold roundGain; linarith) hE
   -- The exact state stays within `R`.
   have hr' : C.N (c.b1 * x - c.a1 * (c.b0 * x + r₁) + r₂) (c.b2 * x - c.a2 * (c.b0 * x + r₁))
       ≤ R := by
     have e1 : c.b1 * x - c.a1 * (c.b0 * x + r₁) + r₂ =
-        (-c.a1 * r₁ + r₂) + (c.b1 - c.a1 * c.b0) * x := by ring
-    have e2 : c.b2 * x - c.a2 * (c.b0 * x + r₁) = (-c.a2 * r₁) + (c.b2 - c.a2 * c.b0) * x := by
-      ring
+        -c.a1 * r₁ + 1 * r₂ + (c.b1 - c.a1 * c.b0) * x := by ring
+    have e2 : c.b2 * x - c.a2 * (c.b0 * x + r₁) =
+        -c.a2 * r₁ + 0 * r₂ + (c.b2 - c.a2 * c.b0) * x := by ring
     rw [e1, e2]
-    calc C.N ((-c.a1 * r₁ + r₂) + (c.b1 - c.a1 * c.b0) * x)
-          ((-c.a2 * r₁) + (c.b2 - c.a2 * c.b0) * x)
-        ≤ C.N (-c.a1 * r₁ + r₂) (-c.a2 * r₁) +
-            C.N ((c.b1 - c.a1 * c.b0) * x) ((c.b2 - c.a2 * c.b0) * x) := C.add_le _ _ _ _
-      _ ≤ C.ρ * R + C.K * inputGain c * M := by
-          refine add_le_add ((C.contract _ _).trans
-            (mul_le_mul_of_nonneg_left hr C.ρ_nonneg)) ?_
-          refine (C.le_sum _ _).trans ?_
-          unfold inputGain
-          rw [abs_mul, abs_mul, ← add_mul, mul_assoc]
-          exact mul_le_mul_of_nonneg_left
-            (mul_le_mul_of_nonneg_left hx (by positivity)) C.K_nonneg
-      _ ≤ R := hR
+    exact C.map_add_le hr (two_state.abs_mul_add_abs_mul_le hx) (by rw [← mul_assoc]; exact hR)
   -- The output's error is the first state error plus this step's output rounding.
   have hy : |y - (c.b0 * x + r₁)| ≤ C.cInf * Ê + L := by
     have e : y - (c.b0 * x + r₁) = e₁ + dy := by simp only [hdy_def, e₁]; ring
     rw [e]
-    exact (abs_add_le _ _).trans (add_le_add
-      ((C.le_fst _ _).trans (mul_le_mul_of_nonneg_left he hci)) hdy)
+    exact (abs_add_le _ _).trans (add_le_add (C.fst_le he) hdy)
   exact ⟨hy, hr', he'⟩
 
 /-- The induction behind `block_error_real`. Two bounds hold at every step: the exact state
@@ -221,9 +165,7 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ
       obtain ⟨s₁, s₂⟩ := s
       simp only [WithinLocalErr] at hw
       subst hw
-      refine ⟨List.Forall₂.nil, ?_, ?_⟩
-      · exact (C.le_fst _ _).trans (mul_le_mul_of_nonneg_left he C.cInf_nonneg)
-      · exact (C.le_snd _ _).trans (mul_le_mul_of_nonneg_left he C.cInf_nonneg)
+      exact ⟨List.Forall₂.nil, C.fst_le he, C.snd_le he⟩
     | cons => obtain ⟨s₁, s₂⟩ := s; simp [WithinLocalErr] at hw
   | cons x xs ih =>
     intro s r f ys hM hr he hw
@@ -237,7 +179,7 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ
       simp only at hr he
       have hx : |x| ≤ M := hM x (by simp)
       -- The computed state is within `Sb`, so this step's roundings are at most `L`.
-      obtain ⟨hs₁, hs₂⟩ := block_state_le c C hS hr he
+      obtain ⟨hs₁, hs₂⟩ := C.state_le hS hr he
       obtain ⟨hdy, hd₁, hd₂⟩ := hloc hs₁ hs₂ hx
       obtain ⟨hy, hr', he'⟩ := block_step c C hR hE hx hr he hdy hd₁ hd₂
       obtain ⟨h1, h2, h3⟩ := ih (t₁, t₂)
@@ -273,10 +215,10 @@ noncomputable def stateErrBound (c : CoeffsReal) (C : Contraction c) (M α β : 
   C.K * (localErrBound c C M α β s * roundGain c) / (1 - C.ρ)
 
 /-- `R = exactStateBound`, `Sb = computedStateBound`, `L = localErrBound` and
-`Ê = stateErrBound` satisfy what `block_step` and `block_state_le` need, when `0 ≤ M`, `0 ≤ α`,
-`0 ≤ β` and `cInf·K·κ·β < 1 − ρ` (`κ = roundGain`): `ρ·R + K·inputGain·M ≤ R`,
-`ρ·Ê + K·L·κ ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, the starting state `s` measures at most `R`, and the
-zero error `s − s` measures at most `Ê`. -/
+`Ê = stateErrBound` satisfy what `block_step` and `two_state.Contraction.state_le` need, when
+`0 ≤ M`, `0 ≤ α`, `0 ≤ β` and `cInf·K·κ·β < 1 − ρ` (`κ = roundGain`):
+`ρ·R + K·inputGain·M ≤ R`, `ρ·Ê + K·L·κ ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, the starting state `s`
+measures at most `R`, and the zero error `s − s` measures at most `Ê`. -/
 theorem block_constants (c : CoeffsReal) (C : Contraction c) (M α β : ℝ) (s : ℝ × ℝ)
     (hM0 : 0 ≤ M) (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hsmall : C.cInf * C.K * roundGain c * β < 1 - C.ρ) :
@@ -296,18 +238,12 @@ theorem block_constants (c : CoeffsReal) (C : Contraction c) (M α β : ℝ) (s 
   have hD : 0 < 1 - C.ρ - C.cInf * C.K * roundGain c * β := by linarith
   have hRdef : R = exactStateBound c C M s := rfl
   have hSbdef : Sb = computedStateBound c C M α β s := rfl
-  have hN0 : 0 ≤ C.N s.1 s.2 := C.nonneg _ _
   -- The three invariance conditions of `block_error_core`.
-  have hR : C.ρ * R + C.K * inputGain c * M ≤ R := by
-    have e : C.K * inputGain c * M = (1 - C.ρ) * (C.K * inputGain c * M / (1 - C.ρ)) := by
-      field_simp
-    have : R = C.N s.1 s.2 + C.K * inputGain c * M / (1 - C.ρ) := rfl
-    nlinarith [C.ρ_nonneg]
+  have hR : C.ρ * R + C.K * inputGain c * M ≤ R := C.exactBound_invariant s.1 s.2 _ M
   have hLdef : L = α + β * Sb := rfl
   have hEdef : Ê * (1 - C.ρ) = C.K * (L * roundGain c) := by
     simp only [Ê, L, stateErrBound]; field_simp
-  have hE : C.ρ * Ê + C.K * (L * roundGain c) ≤ Ê := by
-    nlinarith [hEdef]
+  have hE : C.ρ * Ê + C.K * (L * roundGain c) ≤ Ê := C.errBound_invariant _
   have hSbeq : Sb * (1 - C.ρ - C.cInf * C.K * roundGain c * β) =
       C.cInf * (R * (1 - C.ρ) + C.K * roundGain c * α) := by
     simp only [hSbdef, hRdef, computedStateBound]; field_simp
@@ -318,28 +254,21 @@ theorem block_constants (c : CoeffsReal) (C : Contraction c) (M α β : ℝ) (s 
     have key : C.cInf * (R + Ê) * (1 - C.ρ) = Sb * (1 - C.ρ) := by
       linear_combination C.cInf * hE' - hSbeq
     exact le_of_eq (mul_right_cancel₀ h1ρ.ne' key)
-  have hr : C.N s.1 s.2 ≤ R := by
-    rw [hRdef]; unfold exactStateBound
-    have : 0 ≤ C.K * inputGain c * M / (1 - C.ρ) := by positivity
-    linarith
-  have hR0 : 0 ≤ R := hN0.trans hr
-  have he : C.N (s.1 - s.1) (s.2 - s.2) ≤ Ê := by
-    have h0 := C.le_sum 0 0
-    simp only [sub_self, abs_zero, add_zero, mul_zero] at h0 ⊢
-    have hE0 : 0 ≤ Ê := by
-      have : 0 ≤ Ê * (1 - C.ρ) := by
-        rw [hEdef]
-        have hL0 : 0 ≤ L := by
-          rw [hLdef]
-          have : 0 ≤ Sb := by
-            rw [hSbdef]; unfold computedStateBound
-            have : 0 ≤ C.cInf * (R * (1 - C.ρ) + C.K * roundGain c * α) := by positivity
-            exact div_nonneg this hD.le
-          positivity
+  have hr : C.N s.1 s.2 ≤ R := C.le_exactBound s.1 s.2 hG hM0
+  have hR0 : 0 ≤ R := (C.nonneg _ _).trans hr
+  have hE0 : 0 ≤ Ê := by
+    have : 0 ≤ Ê * (1 - C.ρ) := by
+      rw [hEdef]
+      have hL0 : 0 ≤ L := by
+        rw [hLdef]
+        have : 0 ≤ Sb := by
+          rw [hSbdef]; unfold computedStateBound
+          have : 0 ≤ C.cInf * (R * (1 - C.ρ) + C.K * roundGain c * α) := by positivity
+          exact div_nonneg this hD.le
         positivity
-      exact nonneg_of_mul_nonneg_left this h1ρ
-    linarith
-  exact ⟨hR, hE, hS, hr, he⟩
+      positivity
+    exact nonneg_of_mul_nonneg_left this h1ρ
+  exact ⟨hR, hE, hS, hr, C.sub_self_le hE0⟩
 
 /-- **Whole-block error of the biquad, on real numbers.** Let `C` be a `Contraction`, and
 suppose `0 ≤ M`, `0 ≤ α`, `0 ≤ β`, every input in `xs` is at most `M`,

@@ -353,11 +353,8 @@ about rational numbers in the worked examples of `Svf/BlockF64.lean` and `Svf/Bl
 lives here rather than in `Svf/Block.lean` because it also unfolds `normCoeffs`, defined in this
 file. -/
 scoped macro "svf_bound_norm_num" "[" c:ident "]" : tactic =>
-  `(tactic| norm_num [$c:ident, normCoeffs, stateBoundAt, outErrBoundAt, inputGain, outGain,
-    bx1, bx2, cs1, cs2, stepErrOut, stepErrState, stepValueBound, errY, errY3, errY4, errY1,
-    errY2, errT1, errT2, errL, errR, errB, errQ, errH, errD2, errD1, errP, errK1, opY, opY3, opY4,
-    opY1, opY2, opT1, opT2, opL, opR, opB, opQ, opH, opD2, opD1, opP, opK1, abs_of_neg,
-    abs_of_pos])
+  `(tactic| ((try unfold_step_bounds); norm_num [$c:ident, normCoeffs, stateBoundAt,
+    outErrBoundAt, inputGain, outGain, bx1, bx2, cs1, cs2, abs_of_neg, abs_of_pos]))
 
 end conjure_dsp_lib.svf
 

@@ -109,7 +109,8 @@ noncomputable def complexPolesContraction (c : CoeffsReal) (h : c.a1 ^ 2 < 4 * c
       apply Complex.ext <;> simp <;> ring
     rw [e]
     exact norm_add_le _ _
-  contract v₁ v₂ := le_of_eq (complexPoleNorm_update c h v₁ v₂)
+  contract v₁ v₂ := by
+    rw [one_mul, zero_mul, add_zero]; exact le_of_eq (complexPoleNorm_update c h v₁ v₂)
   ρ_nonneg := Real.sqrt_nonneg _
   ρ_lt_one := by
     rw [Real.sqrt_lt' one_pos]; simpa using h1
@@ -396,7 +397,7 @@ noncomputable def realPolesContraction (c : CoeffsReal) (h : 4 * c.a2 < c.a1 ^ 2
     linarith [abs_add_le ((-c.a1 + poleGap c) / 2 * u₁ + u₂) ((-c.a1 + poleGap c) / 2 * v₁ + v₂),
       abs_add_le ((-c.a1 - poleGap c) / 2 * u₁ + u₂) ((-c.a1 - poleGap c) / 2 * v₁ + v₂)]
   contract v₁ v₂ := by
-    rw [realPoleNorm_update c h]
+    rw [one_mul, zero_mul, add_zero, realPoleNorm_update c h]
     obtain ⟨hp, hq⟩ := abs_realPoles_le c
     unfold realPoleNorm
     have h3 := mul_le_mul_of_nonneg_right hp (abs_nonneg ((-c.a1 + poleGap c) / 2 * v₁ + v₂))
@@ -548,6 +549,7 @@ noncomputable def repeatedPoleContraction (c : CoeffsReal) (h : c.a1 ^ 2 = 4 * c
     have := abs_add_le u₁ v₁
     nlinarith
   contract v₁ v₂ := by
+    rw [one_mul, zero_mul, add_zero]
     unfold repeatedPoleNorm
     have hp : |-c.a1 / 2| = |c.a1| / 2 := by rw [abs_div, abs_neg, abs_two]
     set w := -c.a1 / 2 * v₁ + v₂

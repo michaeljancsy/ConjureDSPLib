@@ -12,8 +12,8 @@ About `src/gain.rs`, as Aeneas translated it (into `ConjureDSPLib/Code/ConjureDs
    sample `i` of a block of `n` samples by exactly `start + ((end - start) / n) * i`, computed in
    binary64 / binary32 in that order, with `n` and `i` converted by `castNat_f64` /
    `castNat_f32` (Lean's own `Float.Model.ofNat`; `usize_toFloat_eq_castNat_*` shows this is the
-   translated `as`) (`rampGain_f64`, `rampGain_f32`). These are statements about float operations, not
-   about real numbers.
+   translated `as`) (`rampGain_f64`, `rampGain_f32`). These are statements about float
+   operations, not about real numbers.
 -/
 
 @[expose] public section

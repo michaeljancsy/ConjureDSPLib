@@ -29,8 +29,8 @@ pub fn apply_f32(gain: f32, x: f32) -> f32 {
 /// The gain is recomputed from the index for every sample, not built up by adding `step`
 /// repeatedly, so each gain carries the same few roundings (subtract, divide, cast, multiply, add)
 /// wherever it is in the block. `i as f64` and `n as f64` are exact for every value up to `2^53`
-/// (9,007,199,254,740,992); above that some values may be rounded to the nearest `f64`, and the gain is computed
-/// from the rounded values.
+/// (9,007,199,254,740,992); above that some values may be rounded to the nearest `f64`, and the
+/// gain is computed from the rounded values.
 pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
     let n = buf.len();
     if n == 0 {
@@ -61,8 +61,8 @@ pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
 /// The gain is recomputed from the index for every sample, not built up by adding `step`
 /// repeatedly, so each gain carries the same few roundings (subtract, divide, cast, multiply, add)
 /// wherever it is in the block. `i as f32` and `n as f32` are exact for every value up to `2^24`
-/// (16,777,216); above that some values may be rounded to the nearest `f32`, and the gain is computed
-/// from the rounded values.
+/// (16,777,216); above that some values may be rounded to the nearest `f32`, and the gain is
+/// computed from the rounded values.
 pub fn ramp_f32(start: f32, end: f32, buf: &mut [f32]) {
     let n = buf.len();
     if n == 0 {

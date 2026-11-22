@@ -41,7 +41,7 @@ pub fn apply_f32(gain: f32, x: f32) -> f32 {
 /// - **Next block.** A following block from `end`, of any length and to any target, starts at
 ///   exactly `end` when its own `target - end` is finite and `end` is not `-0.0`
 ///   (`gain.rampGain_f64_zero` applied to that block). With this block under the accuracy
-///   conditions, the step from this block's last gain to that `end` is within
+///   conditions as well, the step from this block's last gain to that `end` is within
 ///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `s` (`gain.rampGain_f64_next_block`).
 /// - **Direction.** Finite gains never go the wrong way: along the block they do not decrease
 ///   when `start <= end`, and do not increase when `end <= start` (`gain.rampGain_f64_mono`).
@@ -92,7 +92,7 @@ pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
 /// - **Next block.** A following block from `end`, of any length and to any target, starts at
 ///   exactly `end` when its own `target - end` is finite and `end` is not `-0.0`
 ///   (`gain.rampGain_f32_zero` applied to that block). With this block under the accuracy
-///   conditions, the step from this block's last gain to that `end` is within
+///   conditions as well, the step from this block's last gain to that `end` is within
 ///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `s` (`gain.rampGain_f32_next_block`).
 /// - **Direction.** Finite gains never go the wrong way: along the block they do not decrease
 ///   when `start <= end`, and do not increase when `end <= start` (`gain.rampGain_f32_mono`).

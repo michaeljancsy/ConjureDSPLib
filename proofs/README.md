@@ -456,6 +456,6 @@ What is listed here is observed or expected behaviour, not proved.
   `real_f64` / `real_f32` (the exact real value of a float).
 - `TwoState.lean` (real numbers only) holds what the biquad's and the SVF's whole-block arguments
   share: `two_state.Contraction`, the `Contraction` structure for a filter with two state values
-  and any 2 × 2 state-update matrix (the biquad's `Contraction` is it at the companion matrix
+  and any 2 × 2 state-update matrix (`biquad.Contraction` is it at the companion matrix
   `(−a1, 1; −a2, 0)`, `svf.Contraction` at the SVF's `A`), and the facts about it that both
   use.

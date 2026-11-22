@@ -7,6 +7,7 @@ public import Mathlib.Tactic.Positivity
 public import Mathlib.Tactic.FieldSimp
 public import Mathlib.Tactic.LinearCombination
 public import Mathlib.Algebra.Order.Field.Basic
+public import ConjureDSPLib.TwoState
 
 /-!
 # The state-variable filter over a whole block: the real-number argument
@@ -25,8 +26,9 @@ given in terms of `g`, `k`, `d` and the mix, for any real `g`, `k`, `d` (it does
 If the computed state differs from the exact one by `e`, one step changes that difference to
 `A·e + w`, where `w` comes from this step's rounding. As for the biquad (`Biquad/Block.lean`),
 this file is parametric in a `Contraction`: a measure `N` of pairs under which `A` shrinks every
-pair by at least `ρ < 1`. `Svf/Contraction.lean` gives one for complex poles and transfers any
-biquad `Contraction` of the matching biquad.
+pair by at least `ρ < 1`, the shared `two_state.Contraction` (`TwoState.lean`) at `A`.
+`Svf/Contraction.lean` gives one for complex poles and transfers any biquad `Contraction` of the
+matching biquad.
 
 `block_error_real`: over a block of any length, if the inputs are at most `M`, each step's
 roundings from a state within `Sb` are at most `Ly` on the output and `Ls` on the state
@@ -114,27 +116,9 @@ theorem svfStep_real_linear (c : CoeffsReal) (s1 s2 x : ℝ) :
 under which the SVF's state-update map `v ↦ A·v` (`a11` … `a22`) takes every pair to one whose
 measure is at most `ρ` times the original's, with `0 ≤ ρ < 1`. `cInf ≥ 0` compares each entry
 with `N`: `|v₁| ≤ cInf·N(v₁, v₂)` and `|v₂| ≤ cInf·N(v₁, v₂)`. `K ≥ 0` compares `N` with the
-entries' sizes: `N(v₁, v₂) ≤ K·(|v₁| + |v₂|)`. The same fields as the biquad's `Contraction`,
-for the SVF's map. -/
-structure Contraction (c : CoeffsReal) where
-  /-- The measure of a pair. -/
-  N : ℝ → ℝ → ℝ
-  /-- How much the state-update map shrinks a pair. -/
-  ρ : ℝ
-  /-- Each entry is at most `cInf` times the measure. -/
-  cInf : ℝ
-  /-- The measure is at most `K` times the sum of the entries' sizes. -/
-  K : ℝ
-  nonneg : ∀ v₁ v₂, 0 ≤ N v₁ v₂
-  add_le : ∀ u₁ u₂ v₁ v₂, N (u₁ + v₁) (u₂ + v₂) ≤ N u₁ u₂ + N v₁ v₂
-  contract : ∀ v₁ v₂, N (a11 c * v₁ + a12 c * v₂) (a21 c * v₁ + a22 c * v₂) ≤ ρ * N v₁ v₂
-  ρ_nonneg : 0 ≤ ρ
-  cInf_nonneg : 0 ≤ cInf
-  K_nonneg : 0 ≤ K
-  ρ_lt_one : ρ < 1
-  le_fst : ∀ v₁ v₂, |v₁| ≤ cInf * N v₁ v₂
-  le_snd : ∀ v₁ v₂, |v₂| ≤ cInf * N v₁ v₂
-  le_sum : ∀ v₁ v₂, N v₁ v₂ ≤ K * (|v₁| + |v₂|)
+entries' sizes: `N(v₁, v₂) ≤ K·(|v₁| + |v₂|)`. It is the shared `two_state.Contraction` at the
+SVF's matrix `A`; the biquad's `Contraction` is the same structure at its companion matrix. -/
+abbrev Contraction (c : CoeffsReal) : Type := two_state.Contraction (a11 c) (a12 c) (a21 c) (a22 c)
 
 /-- `WithinLocalErr c Sb M Ly Ls s xs f ys`: `ys` has one entry per input, and there are
 intermediate states starting at `s` and ending at `f` such that, at every step where both state
@@ -166,31 +150,6 @@ theorem inputGain_nonneg (c : CoeffsReal) : 0 ≤ inputGain c := by unfold input
 /-- `outGain` is nonnegative. -/
 theorem outGain_nonneg (c : CoeffsReal) : 0 ≤ outGain c := by unfold outGain; positivity
 
-/-- The computed state is within `Sb`: if the exact state `r` measures at most `R`, the error
-`s − r` measures at most `Ê`, and `cInf·(R + Ê) ≤ Sb`, then both computed state values are at
-most `Sb` in size. -/
-theorem block_state_le (c : CoeffsReal) (C : Contraction c) {Sb R Ê : ℝ} {s r : ℝ × ℝ}
-    (hS : C.cInf * (R + Ê) ≤ Sb) (hr : C.N r.1 r.2 ≤ R) (he : C.N (s.1 - r.1) (s.2 - r.2) ≤ Ê) :
-    |s.1| ≤ Sb ∧ |s.2| ≤ Sb := by
-  have hci := C.cInf_nonneg
-  constructor
-  · have h1 := C.le_fst r.1 r.2
-    have h2 := C.le_fst (s.1 - r.1) (s.2 - r.2)
-    calc |s.1| = |r.1 + (s.1 - r.1)| := by ring_nf
-      _ ≤ |r.1| + |s.1 - r.1| := abs_add_le _ _
-      _ ≤ C.cInf * R + C.cInf * Ê := add_le_add
-          (h1.trans (mul_le_mul_of_nonneg_left hr hci))
-          (h2.trans (mul_le_mul_of_nonneg_left he hci))
-      _ ≤ Sb := by linarith
-  · have h1 := C.le_snd r.1 r.2
-    have h2 := C.le_snd (s.1 - r.1) (s.2 - r.2)
-    calc |s.2| = |r.2 + (s.2 - r.2)| := by ring_nf
-      _ ≤ |r.2| + |s.2 - r.2| := abs_add_le _ _
-      _ ≤ C.cInf * R + C.cInf * Ê := add_le_add
-          (h1.trans (mul_le_mul_of_nonneg_left hr hci))
-          (h2.trans (mul_le_mul_of_nonneg_left he hci))
-      _ ≤ Sb := by linarith
-
 /-- One step of the induction behind `block_error_real`. Suppose the exact state `r` measures at
 most `R`, the error `s − r` (computed minus exact state) at most `Ê`, the input `x` is at most
 `M`, the computed output `y` is within `Ly` of the exact step's from `s`, and the computed next
@@ -213,7 +172,6 @@ theorem block_step (c : CoeffsReal) (C : Contraction c) {M Ly Ls R Ê x y : ℝ}
   simp only at hr he hdt ⊢
   rw [svfStep_real_linear] at hdy hdt ⊢
   simp only at hdy hdt ⊢
-  have hci := C.cInf_nonneg
   set e₁ := s₁ - r₁ with he₁
   set e₂ := s₂ - r₂ with he₂
   -- The new error is `A·e` plus this step's rounding.
@@ -226,34 +184,18 @@ theorem block_step (c : CoeffsReal) (C : Contraction c) {M Ly Ls R Ê x y : ℝ}
         (a21 c * e₁ + a22 c * e₂) + (t₂ - (a21 c * s₁ + a22 c * s₂ + bx2 c * x)) := by
       rw [he₁, he₂]; ring
     rw [q1, q2]
-    calc _ ≤ C.N (a11 c * e₁ + a12 c * e₂) (a21 c * e₁ + a22 c * e₂) +
-          C.N (t₁ - (a11 c * s₁ + a12 c * s₂ + bx1 c * x))
-            (t₂ - (a21 c * s₁ + a22 c * s₂ + bx2 c * x)) := C.add_le _ _ _ _
-      _ ≤ C.ρ * Ê + C.K * Ls := add_le_add
-          ((C.contract _ _).trans (mul_le_mul_of_nonneg_left he C.ρ_nonneg))
-          ((C.le_sum _ _).trans (mul_le_mul_of_nonneg_left hdt C.K_nonneg))
-      _ ≤ Ê := hE
+    exact C.map_add_le he hdt hE
   -- The exact state stays within `R`.
   have hr' : C.N (a11 c * r₁ + a12 c * r₂ + bx1 c * x) (a21 c * r₁ + a22 c * r₂ + bx2 c * x)
-      ≤ R := by
-    calc _ ≤ C.N (a11 c * r₁ + a12 c * r₂) (a21 c * r₁ + a22 c * r₂) +
-          C.N (bx1 c * x) (bx2 c * x) := C.add_le _ _ _ _
-      _ ≤ C.ρ * R + C.K * inputGain c * M := by
-          refine add_le_add ((C.contract _ _).trans
-            (mul_le_mul_of_nonneg_left hr C.ρ_nonneg)) ?_
-          refine (C.le_sum _ _).trans ?_
-          unfold inputGain
-          rw [abs_mul, abs_mul, ← add_mul, mul_assoc]
-          exact mul_le_mul_of_nonneg_left
-            (mul_le_mul_of_nonneg_left hx (by positivity)) C.K_nonneg
-      _ ≤ R := hR
+      ≤ R :=
+    C.map_add_le hr (two_state.abs_mul_add_abs_mul_le hx) (by rw [← mul_assoc]; exact hR)
   -- The output's error is `cOut·e` plus this step's output rounding.
   have hy : |y - (cs1 c * r₁ + cs2 c * r₂ + dx c * x)| ≤ outGain c * C.cInf * Ê + Ly := by
     have q : y - (cs1 c * r₁ + cs2 c * r₂ + dx c * x) =
         (cs1 c * e₁ + cs2 c * e₂) + (y - (cs1 c * s₁ + cs2 c * s₂ + dx c * x)) := by
       rw [he₁, he₂]; ring
-    have h1 : |e₁| ≤ C.cInf * Ê := (C.le_fst _ _).trans (mul_le_mul_of_nonneg_left he hci)
-    have h2 : |e₂| ≤ C.cInf * Ê := (C.le_snd _ _).trans (mul_le_mul_of_nonneg_left he hci)
+    have h1 : |e₁| ≤ C.cInf * Ê := C.fst_le he
+    have h2 : |e₂| ≤ C.cInf * Ê := C.snd_le he
     rw [q]
     calc _ ≤ |cs1 c * e₁ + cs2 c * e₂| + |y - (cs1 c * s₁ + cs2 c * s₂ + dx c * x)| :=
           abs_add_le _ _
@@ -285,9 +227,7 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M Ly Ls R Ê :
     | nil =>
       simp only [WithinLocalErr] at hw
       subst hw
-      refine ⟨List.Forall₂.nil, ?_, ?_⟩
-      · exact (C.le_fst _ _).trans (mul_le_mul_of_nonneg_left he C.cInf_nonneg)
-      · exact (C.le_snd _ _).trans (mul_le_mul_of_nonneg_left he C.cInf_nonneg)
+      exact ⟨List.Forall₂.nil, C.fst_le he, C.snd_le he⟩
     | cons => simp [WithinLocalErr] at hw
   | cons x xs ih =>
     intro s r f ys hM hr he hw
@@ -297,7 +237,7 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M Ly Ls R Ê :
       simp only [WithinLocalErr] at hw
       obtain ⟨t, hloc, hrest⟩ := hw
       have hx : |x| ≤ M := hM x (by simp)
-      obtain ⟨hs₁, hs₂⟩ := block_state_le c C hS hr he
+      obtain ⟨hs₁, hs₂⟩ := C.state_le hS hr he
       obtain ⟨hdy, hdt⟩ := hloc hs₁ hs₂ hx
       obtain ⟨hy, hr', he'⟩ := block_step c C hR hE hx hr he hdy hdt
       obtain ⟨h1, h2, h3⟩ := ih t (svfStep_real c r x).2 f ys
@@ -324,29 +264,10 @@ theorem block_constants (c : CoeffsReal) (C : Contraction c) (M Ls : ℝ) (s : �
     C.ρ * R + C.K * inputGain c * M ≤ R ∧ C.ρ * Ê + C.K * Ls ≤ Ê ∧ C.N s.1 s.2 ≤ R ∧
       C.N (s.1 - s.1) (s.2 - s.2) ≤ Ê := by
   intro R Ê
-  have hρ := C.ρ_lt_one
-  have h1ρ : 0 < 1 - C.ρ := by linarith
-  have hK := C.K_nonneg
-  have hR : C.ρ * R + C.K * inputGain c * M ≤ R := by
-    simp only [R, exactStateBound]
-    have e : C.K * inputGain c * M = (1 - C.ρ) * (C.K * inputGain c * M / (1 - C.ρ)) := by
-      field_simp
-    nlinarith [C.ρ_nonneg, C.nonneg s.1 s.2]
-  have hE : C.ρ * Ê + C.K * Ls ≤ Ê := by
-    have e : Ê * (1 - C.ρ) = C.K * Ls := by
-      simp only [Ê, stateErrBound]; field_simp
-    nlinarith
-  have hr : C.N s.1 s.2 ≤ R := by
-    simp only [R, exactStateBound]
-    have : 0 ≤ C.K * inputGain c * M / (1 - C.ρ) := by
-      have := inputGain_nonneg c; positivity
-    linarith
-  have he : C.N (s.1 - s.1) (s.2 - s.2) ≤ Ê := by
-    have h0 := C.le_sum 0 0
-    simp only [sub_self, abs_zero, add_zero, mul_zero] at h0 ⊢
-    have : 0 ≤ Ê := by simp only [Ê, stateErrBound]; positivity
-    linarith
-  exact ⟨hR, hE, hr, he⟩
+  have h1ρ : 0 < 1 - C.ρ := by linarith [C.ρ_lt_one]
+  have hE0 : 0 ≤ Ê := by have := C.K_nonneg; simp only [Ê, stateErrBound]; positivity
+  exact ⟨C.exactBound_invariant s.1 s.2 _ M, C.errBound_invariant Ls,
+    C.le_exactBound s.1 s.2 (inputGain_nonneg c) hM0, C.sub_self_le hE0⟩
 
 /-- **Whole-block error of the SVF, on real numbers.** Let `C` be a `Contraction`, `0 ≤ M`,
 `0 ≤ Ls`, every input in `xs` at most `M`, and `Sb` a number with `cInf·(R + Ê) ≤ Sb`, where
@@ -505,6 +426,13 @@ noncomputable def stepValueBound : ℝ :=
     opY3 c u η M Sb + opY4 c u η M Sb + opY c u η M Sb + opT1 c u η M Sb + opT2 c u η M Sb
 
 end StepBounds
+
+/-- Unfolds `stepErrOut`, `stepErrState`, `stepValueBound` and every per-operation bound
+`errK1` … `errT2`, `opK1` … `opT2` they are built from. -/
+scoped macro "unfold_step_bounds" : tactic =>
+  `(tactic| simp only [stepErrOut, stepErrState, stepValueBound, errY, errY3, errY4, errY1,
+    errY2, errT1, errT2, errL, errR, errB, errQ, errH, errD2, errD1, errP, errK1, opY, opY3, opY4,
+    opY1, opY2, opT1, opT2, opL, opR, opB, opQ, opH, opD2, opD1, opP, opK1])
 
 /-- One rounding `r` of `e`, within `u·|e| + η` of it, with `|e| ≤ ob`: `r` is within `u·ob + η`
 of `e` and at most `(1 + u)·ob + η` in size. -/
@@ -729,22 +657,19 @@ theorem step_chain (c : CoeffsReal)
 /-- `stepErrOut` is nonnegative. -/
 theorem stepErrOut_nonneg (c : CoeffsReal) {u η M Sb : ℝ} (hu : 0 ≤ u) (hη : 0 ≤ η)
     (hM : 0 ≤ M) (hSb : 0 ≤ Sb) : 0 ≤ stepErrOut c u η M Sb := by
-  unfold stepErrOut errY errY3 errY4 errY1 errY2 errL errR errB errQ errH errD2 errD1 errP errK1
-    opY opY3 opY4 opY1 opY2 opL opR opB opQ opH opD2 opD1 opP opK1
+  unfold_step_bounds
   positivity
 
 /-- `stepErrOut` is positive when `η > 0`. -/
 theorem stepErrOut_pos (c : CoeffsReal) {u η M Sb : ℝ} (hu : 0 ≤ u) (hη : 0 < η)
     (hM : 0 ≤ M) (hSb : 0 ≤ Sb) : 0 < stepErrOut c u η M Sb := by
-  unfold stepErrOut errY errY3 errY4 errY1 errY2 errL errR errB errQ errH errD2 errD1 errP errK1
-    opY opY3 opY4 opY1 opY2 opL opR opB opQ opH opD2 opD1 opP opK1
+  unfold_step_bounds
   positivity
 
 /-- `stepErrState` is nonnegative. -/
 theorem stepErrState_nonneg (c : CoeffsReal) {u η M Sb : ℝ} (hu : 0 ≤ u) (hη : 0 ≤ η)
     (hM : 0 ≤ M) (hSb : 0 ≤ Sb) : 0 ≤ stepErrState c u η M Sb := by
-  unfold stepErrState errT1 errT2 errL errR errB errQ errH errD2 errD1 errP errK1
-    opT1 opT2 opL opR opB opQ opH opD2 opD1 opP opK1
+  unfold_step_bounds
   positivity
 
 /-- **One step's roundings, without finiteness.** `step_chain` with every `Fᵢ` true: if

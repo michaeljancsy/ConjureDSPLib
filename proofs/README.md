@@ -123,7 +123,7 @@ The `toReal` and error theorems are stated about the expression `x + a * y`; the
 theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
 about `process_f64` / `process_f32` directly. Their real-number argument is in `OnePole/Block.lean`
 (`block_error_real`), shared by both precisions; the biquad's is in `Biquad/Block.lean` and the
-SVF's in `Svf/Block.lean`.
+SVF's in `Svf/Block.lean`, both using the facts about a `Contraction` in `TwoState.lean`.
 
 For the one-pole, the whole-block theorems compare the Rust outputs with the exact filter run on
 the exact real values of the stored floats: `A` is the value of `a`, `S` of the starting `state`,
@@ -454,3 +454,8 @@ What is listed here is observed or expected behaviour, not proved.
   starts lowercase (`filt_f64_withinStepErr`, `noOverflow_f64_of_inputs`).
 - `FloatFacts.lean` holds facts about floats shared by every module's proofs, including
   `real_f64` / `real_f32` (the exact real value of a float).
+- `TwoState.lean` (real numbers only) holds what the biquad's and the SVF's whole-block arguments
+  share: `two_state.Contraction`, the `Contraction` structure for a filter with two state values
+  and any 2 × 2 state-update matrix (`biquad.Contraction` is it at the companion matrix
+  `(−a1, 1; −a2, 0)`, `svf.Contraction` at the SVF's `A`), and the facts about it that both
+  use.

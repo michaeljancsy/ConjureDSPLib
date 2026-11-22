@@ -285,7 +285,7 @@ theorem noOverflow_f32_of_inputs (c : CoeffsF32) (C : Contraction (realCoeffs_f3
     intro s r hs1 hs2 hin hr he
     obtain ⟨hx, hX⟩ := hin x (by simp)
     -- The computed state is within `Sb`, so the step does not overflow.
-    obtain ⟨hS1, hS2⟩ := block_state_le _ C (s := realState_f32 s) hS hr he
+    obtain ⟨hS1, hS2⟩ := C.state_le hS hr he
     have hstep := stepFinite_f32 c s x Sb M hc hs1 hs2 hx hS1 hS2 hX hcap
     -- Its roundings are within `Ly` and `Ls`, so both bounds carry on to the next step.
     obtain ⟨hdy, hdt⟩ := svfStep_f32_localErr c s x Sb M hc hs1 hs2 hstep hS1 hS2 hX

@@ -5,6 +5,7 @@ public import ConjureDSPLib.Code.FunsExternal
 public import ConjureDSPLib.Code.Funs
 public import ConjureDSPLib.FloatFacts
 public import ConjureDSPLib.Gain
+public import ConjureDSPLib.TwoState
 public import ConjureDSPLib.OnePole.SpecF64
 public import ConjureDSPLib.OnePole.BridgeF64
 public import ConjureDSPLib.OnePole.SpecF32

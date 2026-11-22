@@ -19,8 +19,8 @@ The smoother `y = y_prev + (1 - A) * (x - y_prev)` (`process_f64` / `process_f32
    `X` as `n` grows: a steady input settles on itself.
 
 These are about exact arithmetic only. In floating point the smoother and the one-pole round
-differently, the smoother need not land exactly on its input, and no error bound for the
-smoother is proved here.
+differently, and the smoother need not land exactly on its input. The smoother's floating-point
+error bounds are in `Block.lean`, `BlockF64.lean` and `BlockF32.lean`.
 -/
 
 @[expose] public section

@@ -21,7 +21,7 @@ set_option maxRecDepth 2048
 namespace conjure_dsp_lib
 
 /-- [conjure_dsp_lib::biquad::CoeffsF64]
-    Source: 'src/biquad.rs', lines 31:0-42:1
+    Source: 'src/biquad.rs', lines 33:0-44:1
     Visibility: public -/
 structure biquad.CoeffsF64 where
   b0 : Float
@@ -31,14 +31,14 @@ structure biquad.CoeffsF64 where
   a2 : Float
 
 /-- [conjure_dsp_lib::biquad::StateF64]
-    Source: 'src/biquad.rs', lines 58:0-63:1
+    Source: 'src/biquad.rs', lines 60:0-65:1
     Visibility: public -/
 structure biquad.StateF64 where
   s1 : Float
   s2 : Float
 
 /-- [conjure_dsp_lib::biquad::CoeffsF32]
-    Source: 'src/biquad.rs', lines 87:0-98:1
+    Source: 'src/biquad.rs', lines 89:0-100:1
     Visibility: public -/
 structure biquad.CoeffsF32 where
   b0 : Float32
@@ -48,7 +48,7 @@ structure biquad.CoeffsF32 where
   a2 : Float32
 
 /-- [conjure_dsp_lib::biquad::StateF32]
-    Source: 'src/biquad.rs', lines 114:0-119:1
+    Source: 'src/biquad.rs', lines 116:0-121:1
     Visibility: public -/
 structure biquad.StateF32 where
   s1 : Float32

@@ -12,9 +12,9 @@ public import ConjureDSPLib.FloatFacts
 for the real values of the stored coefficients (see `Block.lean`), finite coefficients and
 starting state, inputs at most `M`, no overflow and `cInf·K·κ·β < 1 − ρ`, every output and the
 final state are within distances of the exact real-number filter `filt_real` that depend on the
-coefficients, the `Contraction`, `M` and the starting state but not on the block length. A
-`Contraction` for biquads with complex poles inside the unit circle is in
-`Biquad/Contraction.lean`.
+coefficients, the `Contraction`, `M` and the starting state but not on the block length.
+`Contraction`s for biquads with complex poles, distinct real poles or a repeated real pole inside
+the unit circle are in `Biquad/Contraction.lean`.
 
 Each step rounds nine times (`tdf2_f64`); `tdf2_f64_localErr` bounds the effect of those
 roundings on the step's output and new state by `α + β·Sb` when the state is at most `Sb` in
@@ -29,10 +29,12 @@ the largest finite value, and `noOverflow_f64_of_inputs` carries the state bound
 block with `block_step`.
 
 `block_bound_of_rat_f64` and `block_bounds_of_rat_f64` turn rational bounds on `ω` and `√a2` into
-bounds on the constants of these theorems for `complexPolesContraction`; the last section applies
-them to RBJ-cookbook low-pass coefficients at chosen cutoffs (the biquad table and cutoff facts in
-`proofs/README.md`). No lower bounds, and no failures of the condition `cInf·K·κ·β < 1 − ρ`, are
-claimed in f64, so only the upper-bound lemmas are here (`BlockF32.lean` has the others).
+bounds on the constants of these theorems for `complexPolesContraction`, and
+`realPolesContraction_block_bounds_of_rat_f64` does the same from rational bounds on
+`d = √(a1² − 4·a2)` for `realPolesContraction`; the last sections apply them to RBJ-cookbook
+low-pass coefficients at chosen cutoffs (the biquad table and cutoff facts in `proofs/README.md`).
+No lower bounds, and no failures of the condition `cInf·K·κ·β < 1 − ρ`, are claimed in f64, so
+only the upper-bound lemmas are here (`BlockF32.lean` has the others).
 -/
 
 @[expose] public section
@@ -444,6 +446,54 @@ theorem block_bounds_of_rat_f64 (c : CoeffsF64) (q : CoeffsReal) (hc : realCoeff
     (localErrSlope_nonneg _ hu.le) hs0 hωl hωu hωl2 hωu2 hρu hρu2 hsm
   exact ⟨hsmall, hpos, hX', hSb'.trans hSb, hV'.trans hV⟩
 
+/-- **The f64 whole-block constants with `realPolesContraction`, from rational numbers.** For
+stored coefficients with real values `q`, a start of value `(0, 0)` and `M = 1` (inputs at most 1
+in size): if `q` has distinct real poles inside the unit circle (`4·q.a2 < q.a1²`, `q.a2 < 1`,
+`|q.a1| < 1 + q.a2`), `0 < dl`, `0 ≤ du`, `dl² ≤ q.a1² - 4·q.a2 ≤ du²`, and, with `ci = 1/dl`,
+`k = 2`, `ρu = (|q.a1| + du)/2`, `u = 2⁻⁵³`, `η = 2⁻¹⁰⁷⁵`, `α = localErrBase q u η 1`,
+`β = localErrSlope q u` and `Sb' = stateBoundAt q 1 α β 0 ci k ρu`: `ci·k·κ·β < 1 − ρu`
+(`κ = roundGain q`), `outErrBoundAt q 1 α β 0 ci k ρu ≤ X`, `Sb' ≤ Sbb` and
+`stepValueBound q η 1 Sb' ≤ Vb`; then for `realPolesContraction` the condition
+`cInf·K·κ·β < 1 − ρ` of the whole-block theorems holds, the bound `cInf·Ê + L` on each output's
+error is positive and at most `X`, `Sb = computedStateBound_f64` is at most `Sbb` and
+`V = stepValueBound_f64` at most `Vb`. The hypotheses are statements about rational numbers that
+`norm_num` checks. -/
+theorem realPolesContraction_block_bounds_of_rat_f64 (c : CoeffsF64) (q : CoeffsReal)
+    (hc : realCoeffs_f64 c = q) (s : StateF64) (hs : realState_f64 s = (0, 0))
+    (dl du X Sbb Vb : ℝ) (h : 4 * q.a2 < q.a1 ^ 2) (h1 : q.a2 < 1) (h2 : |q.a1| < 1 + q.a2)
+    (hdl : 0 < dl) (hdu : 0 ≤ du)
+    (hdl2 : dl ^ 2 ≤ q.a1 ^ 2 - 4 * q.a2) (hdu2 : q.a1 ^ 2 - 4 * q.a2 ≤ du ^ 2)
+    (hsm : 1 / dl * 2 * roundGain q * localErrSlope q (2 ^ (-53 : ℤ)) < 1 - (|q.a1| + du) / 2)
+    (hX : outErrBoundAt q 1 (localErrBase q (2 ^ (-53 : ℤ)) (2 ^ (-1075 : ℤ)) 1)
+      (localErrSlope q (2 ^ (-53 : ℤ))) 0 (1 / dl) 2 ((|q.a1| + du) / 2) ≤ X)
+    (hSb : stateBoundAt q 1 (localErrBase q (2 ^ (-53 : ℤ)) (2 ^ (-1075 : ℤ)) 1)
+      (localErrSlope q (2 ^ (-53 : ℤ))) 0 (1 / dl) 2 ((|q.a1| + du) / 2) ≤ Sbb)
+    (hV : stepValueBound q (2 ^ (-1075 : ℤ)) 1
+      (stateBoundAt q 1 (localErrBase q (2 ^ (-53 : ℤ)) (2 ^ (-1075 : ℤ)) 1)
+        (localErrSlope q (2 ^ (-53 : ℤ))) 0 (1 / dl) 2 ((|q.a1| + du) / 2)) ≤ Vb) :
+    ∃ (h : 4 * (realCoeffs_f64 c).a2 < (realCoeffs_f64 c).a1 ^ 2)
+      (h1 : (realCoeffs_f64 c).a2 < 1) (h2 : |(realCoeffs_f64 c).a1| < 1 + (realCoeffs_f64 c).a2),
+      let C := realPolesContraction (realCoeffs_f64 c) h h1 h2
+      C.cInf * C.K * roundGain (realCoeffs_f64 c) * localErrSlope_f64 c < 1 - C.ρ ∧
+        0 < C.cInf * stateErrBound_f64 c C 1 s + localErrBound_f64 c C 1 s ∧
+        C.cInf * stateErrBound_f64 c C 1 s + localErrBound_f64 c C 1 s ≤ X ∧
+        computedStateBound_f64 c C 1 s ≤ Sbb ∧ stepValueBound_f64 c C 1 s ≤ Vb := by
+  subst hc
+  rw [← unitRoundoff_f64_eq] at hsm hX hSb hV
+  rw [← underflowErr_f64_eq] at hX hSb hV
+  refine ⟨h, h1, h2, ?_⟩
+  intro C
+  have hu := (Model.unitRoundoffAt_pos _ : 0 < unitRoundoff_f64)
+  have hη := (Model.underflowErrorAt_pos _ : 0 < underflowErr_f64)
+  have hα : 0 < localErrBase_f64 c 1 := localErrBase_pos _ hu.le hη zero_le_one
+  have hβ : 0 ≤ localErrSlope_f64 c := localErrSlope_nonneg _ hu.le
+  have hs0 : realPoleNorm (realCoeffs_f64 c) (realState_f64 s).1 (realState_f64 s).2 ≤ 0 := by
+    rw [hs]; exact (realPoleNorm_zero _).le
+  obtain ⟨hsmall, hSb', -, hpos, hbd, hV'⟩ := realPolesContraction_block_bounds_le
+    (realCoeffs_f64 c) h h1 h2 1 (localErrBase_f64 c 1) (localErrSlope_f64 c) underflowErr_f64 0
+    dl du (realState_f64 s) zero_le_one hα.le hβ hs0 hdl hdu hdl2 hdu2 hsm
+  exact ⟨hsmall, hα.trans_le hpos, hbd.trans hX, hSb'.trans hSb, hV'.trans hV⟩
+
 /-! ## RBJ low-pass examples, f64
 
 The theorems behind the biquad table and cutoff facts in `proofs/README.md`, for an RBJ-cookbook
@@ -700,6 +750,59 @@ theorem lowPass23800Hz_bound_f64 (c : CoeffsF64) (hc : realCoeffs_f64 c = lowPas
     · exact (twenty_logb_le_of_pow_le _ _ 25 164 hpos hX (by norm_num)
         (by norm_num)).trans (by norm_num)
   all_goals bound_norm_num [lowPass23800Hz_f64]
+
+/-! ## An RBJ low-pass example with real poles, f64
+
+Worked out outside Lean, not proved: for an RBJ-cookbook low-pass at 48 kHz with `Q < 1/2` the
+poles are real and distinct. `lowPass1kHzQ04_f64` holds the exact real values of the stored
+coefficients at a 1 kHz cutoff with `Q = 0.4`. Worked out outside Lean, not proved: they are what
+the computation of the section above gives with `Q = 0.4` in place of `0.7071`, in binary64.
+`cos` and `sin` are outside the model. -/
+
+/-- The exact real values of the binary64 coefficients stored for an RBJ low-pass with `Q = 0.4`
+at a 1 kHz cutoff. Their bits: `b0 = 0x3F6E2060F5D26D0A`, `b1 = 0x3F7E2060F5D26D0A`,
+`b2 = 0x3F6E2060F5D26D0A`, `a1 = 0xBFFB46A4D6E25BDE`, `a2 = 0x3FE705CB319C0170`. -/
+noncomputable def lowPass1kHzQ04_f64 : CoeffsReal where
+  b0 := (4239925057238661 / 2 ^ 60)
+  b1 := (4239925057238661 / 2 ^ 59)
+  b2 := (4239925057238661 / 2 ^ 60)
+  a1 := -(3838749082463727 / 2 ^ 51)
+  a2 := (405018420822039 / 2 ^ 49)
+
+set_option exponentiation.threshold 4000 in
+/-- **The f64 bound for a real-pole low-pass (`Q = 0.4`) at 1 kHz.** For stored binary64
+coefficients whose real values are `lowPass1kHzQ04_f64`, `M = 1` (inputs at most 1 in size) and a
+start of value `(0, 0)`: they have distinct real poles inside the unit circle, and for
+`realPolesContraction` the condition `cInf·K·κ·β < 1 − ρ` of the whole-block theorems holds, the
+bound `cInf·Ê + L` on each output's error is at most 1.04 × 10⁻¹¹, `20·log₁₀` of it (the bound in
+decibels relative to 1.0) is at most −219.6, `Sb = computedStateBound_f64` is at most 2.75,
+`V = stepValueBound_f64` is at most 56.2, and `V·10³⁵` is at most the largest finite binary64
+value. -/
+theorem lowPass1kHzQ04_bounds_f64 (c : CoeffsF64) (hc : realCoeffs_f64 c = lowPass1kHzQ04_f64)
+    (s : StateF64) (hs : realState_f64 s = (0, 0)) :
+    ∃ (h : 4 * (realCoeffs_f64 c).a2 < (realCoeffs_f64 c).a1 ^ 2)
+      (h1 : (realCoeffs_f64 c).a2 < 1) (h2 : |(realCoeffs_f64 c).a1| < 1 + (realCoeffs_f64 c).a2),
+      let C := realPolesContraction (realCoeffs_f64 c) h h1 h2
+      C.cInf * C.K * roundGain (realCoeffs_f64 c) * localErrSlope_f64 c < 1 - C.ρ ∧
+        C.cInf * stateErrBound_f64 c C 1 s + localErrBound_f64 c C 1 s ≤ 1.04 * 10 ^ (-11 : ℤ) ∧
+        20 * Real.logb 10 (C.cInf * stateErrBound_f64 c C 1 s + localErrBound_f64 c C 1 s) ≤
+          -219.6 ∧
+        computedStateBound_f64 c C 1 s ≤ 2.75 ∧
+        stepValueBound_f64 c C 1 s ≤ 56.2 ∧
+        stepValueBound_f64 c C 1 s * 10 ^ 35 ≤ maxFinite_f64 := by
+  refine (fun H => ?main) (realPolesContraction_block_bounds_of_rat_f64 c _ hc s hs
+    0.16832565 0.16832566 (1.04 * 10 ^ (-11 : ℤ)) 2.75 (56.2)
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
+  case main =>
+    obtain ⟨h, h1, h2, hsmall, hpos, hX, hSb, hV⟩ := H
+    refine ⟨h, h1, h2, ?_⟩
+    intro C
+    refine ⟨hsmall, hX, ?_, hSb, hV, ?_⟩
+    · exact (twenty_logb_le_of_pow_le _ _ 50 549 hpos hX (by norm_num)
+        (by norm_num)).trans (by norm_num)
+    · exact (mul_le_mul_of_nonneg_right hV (by positivity)).trans
+        (by rw [maxFinite_f64_eq]; norm_num)
+  all_goals bound_norm_num [lowPass1kHzQ04_f64]
 
 end conjure_dsp_lib.biquad
 

@@ -11,6 +11,9 @@ coefficient (with a little room for rounding) and no step overflows, every outpu
 final state are within a fixed distance `E` of the exact real-number filter, for a block of any
 length. `E` depends only on the input bound `M`, the coefficient, the starting state and
 binary32's rounding constants.
+
+`process_f32_block_error_of_inputs` gives the same bound with the no-overflow condition proved
+from the inputs instead of assumed.
 -/
 
 @[expose] public section
@@ -72,7 +75,8 @@ theorem filt_f32_block_error (a s : Float32) (xs : List Float32) (M : ℝ)
 
 /-- **Whole-block error of the Rust `process_f32`.** Under the conditions of
 `filt_f32_block_error`, `process_f32` never fails, and every sample it writes into the buffer,
-and the state it leaves, are within `E` of the exact real-number filter. -/
+and the state it leaves, are within `E` of the exact real-number filter. See
+`process_f32_block_error_of_inputs` for a version whose conditions are on the inputs only. -/
 theorem process_f32_block_error (a state : Float32) (buf : Slice Float32) (M : ℝ)
     (ha : a.isFinite = true) (hs : state.isFinite = true) (hno : NoOverflow_f32 a state buf.val)
     (hM0 : 0 ≤ M) (hM : ∀ x ∈ buf.val, |real_f32 x| ≤ M)
@@ -94,6 +98,121 @@ theorem process_f32_block_error (a state : Float32) (buf : Slice Float32) (M : �
   rintro r ⟨hbuf, hst⟩
   rw [hbuf, hst]
   exact hblock
+
+/-- **No overflow, from the inputs alone.** Let `A` be the value of `a`, and `u`, `η` binary32's
+rounding constants. Suppose `a` and every input are finite, every input is at most `M` in size,
+`|A| ≤ 1`, and the bounds `B` and `E` satisfy the two inequalities of `block_step`. Start from
+any finite state `s` within `E` of a real state `r` with `|r| ≤ B` (for the filter's own start,
+`r` is the state's value). If `M + (1 + u)·(B + E) + η` is at most the largest finite binary32
+value, then no step of the filter overflows. -/
+theorem noOverflow_f32_of_inputs (a : Float32) (ha : a.isFinite = true) (M B E : ℝ)
+    (hB : M + |real_f32 a| * B ≤ B)
+    (hE : unitRoundoff_f32 * M + underflowErr_f32 * (2 + unitRoundoff_f32) +
+        |real_f32 a| * unitRoundoff_f32 * (2 + unitRoundoff_f32) * (B + E) +
+        |real_f32 a| * E ≤ E)
+    (hA1 : |real_f32 a| ≤ 1)
+    (hcap : M + (1 + unitRoundoff_f32) * (B + E) + underflowErr_f32 ≤ maxFinite_f32) :
+    ∀ (xs : List Float32) (s : Float32) (r : ℝ), s.isFinite = true →
+      (∀ x ∈ xs, x.isFinite = true ∧ |real_f32 x| ≤ M) →
+      |real_f32 s - r| ≤ E → |r| ≤ B → NoOverflow_f32 a s xs := by
+  have hu : 0 ≤ Model.unitRoundoffAt FloatFormat.binary32 := (Model.unitRoundoffAt_pos _).le
+  have hη : 0 ≤ Model.underflowErrorAt FloatFormat.binary32 := (Model.underflowErrorAt_pos _).le
+  intro xs
+  induction xs with
+  | nil => intro _ _ _ _ _ _; trivial
+  | cons x xs ih =>
+    intro s r hs hin hsr hr
+    obtain ⟨hx, hxM⟩ := hin x (by simp)
+    have hE0 : 0 ≤ E := (abs_nonneg _).trans hsr
+    have hB0 : 0 ≤ B := (abs_nonneg _).trans hr
+    have hS : |real_f32 s| ≤ B + E := by
+      calc |real_f32 s| = |(real_f32 s - r) + r| := by ring_nf
+        _ ≤ |real_f32 s - r| + |r| := abs_add_le _ _
+        _ ≤ B + E := by linarith
+    have hAS : |real_f32 a * real_f32 s| ≤ B + E := by
+      rw [abs_mul]
+      calc |real_f32 a| * |real_f32 s| ≤ 1 * (B + E) :=
+            mul_le_mul hA1 hS (abs_nonneg _) zero_le_one
+        _ = B + E := one_mul _
+    have hBEcap : B + E ≤ maxFinite_f32 := by
+      have : B + E ≤ (1 + Model.unitRoundoffAt FloatFormat.binary32) * (B + E) := by nlinarith
+      linarith [(abs_nonneg _).trans hxM]
+    -- The product is finite, and its value is the exact product rounded once.
+    have hp : (a * s).isFinite = true := isFinite_mul_f32 a s ha hs (hAS.trans hBEcap)
+    have hP : |real_f32 (a * s)| ≤
+        (1 + Model.unitRoundoffAt FloatFormat.binary32) * (B + E) +
+          Model.underflowErrorAt FloatFormat.binary32 := by
+      have hprod := isFinite_ofFloat32 _ hp
+      have e : real_f32 (a * s) =
+          Model.roundAt FloatFormat.binary32 (real_f32 a * real_f32 s) := by
+        unfold real_f32
+        rw [ofFloat32_mul_of_isFinite a s ha hs] at hprod ⊢
+        rw [toReal_mul_eq_roundAt hprod]
+        rfl
+      rw [e]
+      obtain ⟨δ, η1, h1, hd, he, -⟩ :=
+        Model.roundAt_standardModel FloatFormat.binary32 (real_f32 a * real_f32 s)
+      rw [h1]
+      have k : |1 + δ| ≤ 1 + Model.unitRoundoffAt FloatFormat.binary32 :=
+        (abs_add_le _ _).trans (by simpa using hd)
+      calc |real_f32 a * real_f32 s * (1 + δ) + η1|
+          ≤ |real_f32 a * real_f32 s| * |1 + δ| + |η1| := by
+            rw [← abs_mul]; exact abs_add_le _ _
+        _ ≤ (B + E) * (1 + Model.unitRoundoffAt FloatFormat.binary32) +
+              Model.underflowErrorAt FloatFormat.binary32 :=
+            add_le_add (mul_le_mul hAS k (abs_nonneg _) (by linarith)) he
+        _ = _ := by ring
+    -- So the sum is finite too.
+    have hsum : (x + a * s).isFinite = true := by
+      refine isFinite_add_f32 x (a * s) hx hp ?_
+      calc |real_f32 x + real_f32 (a * s)| ≤ |real_f32 x| + |real_f32 (a * s)| :=
+            abs_add_le _ _
+        _ ≤ M + ((1 + Model.unitRoundoffAt FloatFormat.binary32) * (B + E) +
+              Model.underflowErrorAt FloatFormat.binary32) := add_le_add hxM hP
+        _ ≤ maxFinite_f32 := by linarith
+    -- The step is within its error bound, so both bounds carry on to the next step.
+    obtain ⟨herr, hr'⟩ := block_step (real_f32 a) _ _ M B E (real_f32 x) (real_f32 s) r
+      (real_f32 (x + a * s)) hu hB hE hxM hsr hr (step_f32_error a s x ha hs hx hp hsum)
+    exact ⟨hx, hp, hsum, ih (x + a * s) _ hsum
+      (fun z hz => hin z (List.mem_cons_of_mem _ hz)) herr hr'⟩
+
+/-- **Whole-block error of `process_f32`, with conditions on the inputs only.** Let `A` and `S`
+be the values of `a` and the starting state, and `u`, `η` binary32's rounding constants (as in
+`filt_f32_block_error`). If `a`, the starting state and every sample in the buffer are finite,
+every sample is at most `M` in size, `|A| + |A|·u·(2 + u) < 1`, and `M + (1 + u)·(B + E) + η` is
+at most the largest finite binary32 value (about 3.4 × 10³⁸), then no step overflows,
+`process_f32` never fails, and every sample it writes and the state it leaves are within `E` of
+the exact real-number filter. `B` and `E` are `outBound` and `errBound`, the same as in
+`process_f32_block_error`. -/
+theorem process_f32_block_error_of_inputs (a state : Float32) (buf : Slice Float32) (M : ℝ)
+    (ha : a.isFinite = true) (hs : state.isFinite = true)
+    (hin : ∀ x ∈ buf.val, x.isFinite = true ∧ |real_f32 x| ≤ M) (hM0 : 0 ≤ M)
+    (hstab : |real_f32 a| + |real_f32 a| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1)
+    (hcap : M + (1 + unitRoundoff_f32) *
+        (outBound (real_f32 a) M (real_f32 state) +
+          errBound (real_f32 a) unitRoundoff_f32 underflowErr_f32 M (real_f32 state)) +
+      underflowErr_f32 ≤ maxFinite_f32) :
+    let E := errBound (real_f32 a) unitRoundoff_f32 underflowErr_f32 M (real_f32 state)
+    NoOverflow_f32 a state buf.val ∧
+      process_f32 a state buf ⦃ fun r =>
+        List.Forall₂ (fun c e => |real_f32 c - e| ≤ E) r.2.val
+          (filt_real (real_f32 a) (real_f32 state) (buf.val.map real_f32)).2 ∧
+        |real_f32 r.1 - (filt_real (real_f32 a) (real_f32 state) (buf.val.map real_f32)).1|
+          ≤ E ⦄ := by
+  intro E
+  obtain ⟨hE0, hSB, hB, hE⟩ := block_constants (real_f32 a)
+    (Model.unitRoundoffAt FloatFormat.binary32) (Model.underflowErrorAt FloatFormat.binary32)
+    M (real_f32 state) (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hM0 hstab
+  have hA1 : |real_f32 a| ≤ 1 := by
+    have : 0 ≤ |real_f32 a| * Model.unitRoundoffAt FloatFormat.binary32 *
+        (2 + Model.unitRoundoffAt FloatFormat.binary32) := by
+      have := (Model.unitRoundoffAt_pos FloatFormat.binary32).le
+      positivity
+    linarith
+  have hno := noOverflow_f32_of_inputs a ha M _ _ hB hE hA1 hcap buf.val state (real_f32 state)
+    hs hin (by simpa using hE0) hSB
+  exact ⟨hno, process_f32_block_error a state buf M ha hs hno hM0
+    (fun x hx => (hin x hx).2) hstab⟩
 
 end conjure_dsp_lib.one_pole
 

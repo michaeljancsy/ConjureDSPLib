@@ -8,9 +8,11 @@ public import ConjureDSPLib.OnePole.BridgeF64
 public import ConjureDSPLib.OnePole.SpecF32
 public import ConjureDSPLib.OnePole.BridgeF32
 public import ConjureDSPLib.OnePole.Block
-public import ConjureDSPLib.OnePole.Smooth
 public import ConjureDSPLib.OnePole.BlockF64
 public import ConjureDSPLib.OnePole.BlockF32
+public import ConjureDSPLib.Smoother.SpecF64
+public import ConjureDSPLib.Smoother.SpecF32
+public import ConjureDSPLib.Smoother.Exact
 public import ConjureDSPLib.Biquad.SpecF64
 public import ConjureDSPLib.Biquad.SpecF32
 public import ConjureDSPLib.Biquad.Textbook

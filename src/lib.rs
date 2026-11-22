@@ -17,3 +17,4 @@
 pub mod biquad;
 pub mod gain;
 pub mod one_pole;
+pub mod smoother;

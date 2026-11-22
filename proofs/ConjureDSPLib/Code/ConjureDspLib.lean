@@ -597,65 +597,15 @@ def one_pole.process_f64
   := do
   one_pole.process_f64_loop a state buf 0#usize
 
-/-- [conjure_dsp_lib::one_pole::smooth_step_f64]:
-    Source: 'src/one_pole.rs', lines 45:0-47:1
-    Visibility: public -/
-def one_pole.smooth_step_f64
-  (a : Float) (state : Float) (target : Float) : Result Float := do
-  ok (Float.add state (Float.mul (Float.sub (Float.ofBits 4607182418800017408)
-    a) (Float.sub target state)))
-
-/-- [conjure_dsp_lib::one_pole::smooth_f64]: loop body 0:
-    Source: 'src/one_pole.rs', lines 62:4-67:5
-    Visibility: public -/
-@[rust_loop_body]
-def one_pole.smooth_f64_loop.body
-  (c : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
-  Result (ControlFlow (Float × (Slice Float) × Std.Usize) (Float × (Slice
-    Float)))
-  := do
-  let i1 := Slice.len buf
-  if i < i1
-  then
-    let fl ← Slice.index_usize buf i
-    let s ←
-      Slice.update buf i (Float.add state (Float.mul c (Float.sub fl state)))
-    let i2 ← i + 1#usize
-    ok (cont (Float.add state (Float.mul c (Float.sub fl state)), s, i2))
-  else ok (done (state, buf))
-
-/-- [conjure_dsp_lib::one_pole::smooth_f64]: loop 0:
-    Source: 'src/one_pole.rs', lines 62:4-67:5
-    Visibility: public -/
-@[rust_loop]
-def one_pole.smooth_f64_loop
-  (state : Float) (buf : Slice Float) (c : Float) (i : Std.Usize) :
-  Result (Float × (Slice Float))
-  := do
-  loop
-    (fun (state1, buf1, i1) => one_pole.smooth_f64_loop.body c state1 buf1 i1)
-    (state, buf, i)
-
-/-- [conjure_dsp_lib::one_pole::smooth_f64]:
-    Source: 'src/one_pole.rs', lines 58:0-68:1
-    Visibility: public -/
-@[reducible]
-def one_pole.smooth_f64
-  (a : Float) (state : Float) (buf : Slice Float) :
-  Result (Float × (Slice Float))
-  := do
-  one_pole.smooth_f64_loop state buf (Float.sub
-    (Float.ofBits 4607182418800017408) a) 0#usize
-
 /-- [conjure_dsp_lib::one_pole::step_f32]:
-    Source: 'src/one_pole.rs', lines 73:0-75:1
+    Source: 'src/one_pole.rs', lines 40:0-42:1
     Visibility: public -/
 def one_pole.step_f32
   (a : Float32) (state : Float32) (x : Float32) : Result Float32 := do
   ok (Float32.add x (Float32.mul a state))
 
 /-- [conjure_dsp_lib::one_pole::process_f32]: loop body 0:
-    Source: 'src/one_pole.rs', lines 82:4-87:5
+    Source: 'src/one_pole.rs', lines 49:4-54:5
     Visibility: public -/
 @[rust_loop_body]
 def one_pole.process_f32_loop.body
@@ -674,7 +624,7 @@ def one_pole.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::one_pole::process_f32]: loop 0:
-    Source: 'src/one_pole.rs', lines 82:4-87:5
+    Source: 'src/one_pole.rs', lines 49:4-54:5
     Visibility: public -/
 @[rust_loop]
 def one_pole.process_f32_loop
@@ -686,7 +636,7 @@ def one_pole.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::one_pole::process_f32]:
-    Source: 'src/one_pole.rs', lines 79:0-88:1
+    Source: 'src/one_pole.rs', lines 46:0-55:1
     Visibility: public -/
 @[reducible]
 def one_pole.process_f32
@@ -695,19 +645,69 @@ def one_pole.process_f32
   := do
   one_pole.process_f32_loop a state buf 0#usize
 
-/-- [conjure_dsp_lib::one_pole::smooth_step_f32]:
-    Source: 'src/one_pole.rs', lines 98:0-100:1
+/-- [conjure_dsp_lib::smoother::step_f64]:
+    Source: 'src/smoother.rs', lines 26:0-28:1
     Visibility: public -/
-def one_pole.smooth_step_f32
+def smoother.step_f64
+  (a : Float) (state : Float) (target : Float) : Result Float := do
+  ok (Float.add state (Float.mul (Float.sub (Float.ofBits 4607182418800017408)
+    a) (Float.sub target state)))
+
+/-- [conjure_dsp_lib::smoother::process_f64]: loop body 0:
+    Source: 'src/smoother.rs', lines 38:4-43:5
+    Visibility: public -/
+@[rust_loop_body]
+def smoother.process_f64_loop.body
+  (c : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
+  Result (ControlFlow (Float × (Slice Float) × Std.Usize) (Float × (Slice
+    Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let s ←
+      Slice.update buf i (Float.add state (Float.mul c (Float.sub fl state)))
+    let i2 ← i + 1#usize
+    ok (cont (Float.add state (Float.mul c (Float.sub fl state)), s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::smoother::process_f64]: loop 0:
+    Source: 'src/smoother.rs', lines 38:4-43:5
+    Visibility: public -/
+@[rust_loop]
+def smoother.process_f64_loop
+  (state : Float) (buf : Slice Float) (c : Float) (i : Std.Usize) :
+  Result (Float × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => smoother.process_f64_loop.body c state1 buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::smoother::process_f64]:
+    Source: 'src/smoother.rs', lines 34:0-44:1
+    Visibility: public -/
+@[reducible]
+def smoother.process_f64
+  (a : Float) (state : Float) (buf : Slice Float) :
+  Result (Float × (Slice Float))
+  := do
+  smoother.process_f64_loop state buf (Float.sub
+    (Float.ofBits 4607182418800017408) a) 0#usize
+
+/-- [conjure_dsp_lib::smoother::step_f32]:
+    Source: 'src/smoother.rs', lines 50:0-52:1
+    Visibility: public -/
+def smoother.step_f32
   (a : Float32) (state : Float32) (target : Float32) : Result Float32 := do
   ok (Float32.add state (Float32.mul (Float32.sub (Float32.ofBits 1065353216)
     a) (Float32.sub target state)))
 
-/-- [conjure_dsp_lib::one_pole::smooth_f32]: loop body 0:
-    Source: 'src/one_pole.rs', lines 115:4-120:5
+/-- [conjure_dsp_lib::smoother::process_f32]: loop body 0:
+    Source: 'src/smoother.rs', lines 62:4-67:5
     Visibility: public -/
 @[rust_loop_body]
-def one_pole.smooth_f32_loop.body
+def smoother.process_f32_loop.body
   (c : Float32) (state : Float32) (buf : Slice Float32) (i : Std.Usize) :
   Result (ControlFlow (Float32 × (Slice Float32) × Std.Usize) (Float32 ×
     (Slice Float32)))
@@ -723,27 +723,27 @@ def one_pole.smooth_f32_loop.body
     ok (cont (Float32.add state (Float32.mul c (Float32.sub fl state)), s, i2))
   else ok (done (state, buf))
 
-/-- [conjure_dsp_lib::one_pole::smooth_f32]: loop 0:
-    Source: 'src/one_pole.rs', lines 115:4-120:5
+/-- [conjure_dsp_lib::smoother::process_f32]: loop 0:
+    Source: 'src/smoother.rs', lines 62:4-67:5
     Visibility: public -/
 @[rust_loop]
-def one_pole.smooth_f32_loop
+def smoother.process_f32_loop
   (state : Float32) (buf : Slice Float32) (c : Float32) (i : Std.Usize) :
   Result (Float32 × (Slice Float32))
   := do
   loop
-    (fun (state1, buf1, i1) => one_pole.smooth_f32_loop.body c state1 buf1 i1)
+    (fun (state1, buf1, i1) => smoother.process_f32_loop.body c state1 buf1 i1)
     (state, buf, i)
 
-/-- [conjure_dsp_lib::one_pole::smooth_f32]:
-    Source: 'src/one_pole.rs', lines 111:0-121:1
+/-- [conjure_dsp_lib::smoother::process_f32]:
+    Source: 'src/smoother.rs', lines 58:0-68:1
     Visibility: public -/
 @[reducible]
-def one_pole.smooth_f32
+def smoother.process_f32
   (a : Float32) (state : Float32) (buf : Slice Float32) :
   Result (Float32 × (Slice Float32))
   := do
-  one_pole.smooth_f32_loop state buf (Float32.sub (Float32.ofBits 1065353216)
+  smoother.process_f32_loop state buf (Float32.sub (Float32.ofBits 1065353216)
     a) 0#usize
 
 end conjure_dsp_lib

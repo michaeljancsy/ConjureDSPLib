@@ -1,12 +1,12 @@
 module
 
-public import ConjureDSPLib.Code.ConjureDspLib
+public import ConjureDSPLib.Code.Funs
 
 /-!
 # The smoother in f64: what the translated Rust does
 
 About `step_f64` and `process_f64` from `src/smoother.rs`, as Aeneas translated them (into
-`ConjureDSPLib/Code/ConjureDspLib.lean`). This file proves:
+`ConjureDSPLib/Code/Funs.lean`). This file proves:
 
 1. `step_f64_eq`: one Rust step is exactly `state + (1 - a) * (target - state)` in Lean's `Float`
    (IEEE binary64), in that order, and never fails.

@@ -1,6 +1,8 @@
 module
 
-public import ConjureDSPLib.Code.ConjureDspLib
+public import ConjureDSPLib.Code.Types
+public import ConjureDSPLib.Code.FunsExternal
+public import ConjureDSPLib.Code.Funs
 public import ConjureDSPLib.FloatFacts
 public import ConjureDSPLib.Gain
 public import ConjureDSPLib.OnePole.SpecF64

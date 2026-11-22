@@ -1,6 +1,6 @@
 module
 
-public import ConjureDSPLib.Code.ConjureDspLib
+public import ConjureDSPLib.Code.Funs
 
 /-!
 # The one-pole filter in f32: what the translated Rust does

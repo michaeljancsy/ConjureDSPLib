@@ -55,6 +55,14 @@ index, no arithmetic overflow on indices, and it terminates.
 | `svf::step_f64` | `svf.step_f64_eq` | `Svf/SpecF64.lean` | Exactly the step `svfStep_f64` in binary64, in the Rust code's order; never fails. With `hp = ((x - (k + g) * s1) - s2) * d`, `bp = g * hp + s1` and `lp = g * bp + s2`, the output is `(m_hp * hp + m_bp * bp) + m_lp * lp` and the new state is `s1 = g * hp + bp`, `s2 = g * bp + lp`. |
 | `svf::process_f64` | `svf.process_f64_spec` | `Svf/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `svfStep_f64` to each sample in turn (Lean's `filt_f64`). |
 | `svf::CoeffsF32::new`, `step_f32`, `process_f32` | `svf.CoeffsF32.new_eq`, `svf.step_f32_eq`, `svf.process_f32_spec` | `Svf/SpecF32.lean` | The same three facts in binary32 (`svfStep_f32`, `filt_f32`). |
+| `svf::CoeffsF64::low_pass`, `high_pass`, `band_pass`, `notch`, `all_pass` | `svf.CoeffsF64.low_pass_eq`, `high_pass_eq`, `band_pass_eq`, `notch_eq`, `all_pass_eq` | `Svf/SpecF64.lean` | Never fails, and returns exactly the coefficients with `g = libm.tanModel_f64 (PI * cutoff_hz / sample_rate_hz)` (`PI` is `core.f64.consts.PI`, Rust's binary64 constant for π, bits `0x400921FB54442D18`; multiplication first), `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix `(m_hp, m_bp, m_lp)` `(0, 0, 1)`, `(1, 0, 0)`, `(0, k, 0)`, `(1, 0, 1)` and `(1, -k, 1)` respectively, each operation in binary64 in that order. `libm.tanModel_f64` is an unknown function standing for libm's `tan` (see below). That these are low-pass, high-pass, band-pass, notch and all-pass responses is not proved. |
+| `svf::CoeffsF64::bell` | `svf.CoeffsF64.bell_eq` | `Svf/SpecF64.lean` | Never fails, and returns exactly the coefficients with `A = libm.powModel_f64 10 (gain_db / 40)`, `g` as above, `k = 1 / (q * A)`, `d = 1 / (1 + g * (g + k))` and the mix `(1, k * A * A, 1)`, each operation in binary64 in that order. That this is a bell (peak) response is not proved. |
+| `svf::CoeffsF64::low_shelf`, `high_shelf` | `svf.CoeffsF64.low_shelf_eq`, `high_shelf_eq` | `Svf/SpecF64.lean` | Never fails, and returns exactly the coefficients with `A = libm.powModel_f64 10 (gain_db / 40)`, `g = libm.tanModel_f64 (PI * cutoff_hz / sample_rate_hz) / libm.sqrtModel_f64 A` (low shelf) or `… * libm.sqrtModel_f64 A` (high shelf), `k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix `(1, k * A, A * A)` (low shelf) or `(A * A, k * A, 1)` (high shelf), each operation in binary64 in that order. That these are shelving responses is not proved. |
+| `svf::CoeffsF32::low_pass` … `high_shelf` | `svf.CoeffsF32.low_pass_eq` … `high_shelf_eq` | `Svf/SpecF32.lean` | The same eight facts in binary32, with `core.f32.consts.PI` and the unknown functions `libm.tanModel_f32`, `libm.powModel_f32` and `libm.sqrtModel_f32` standing for libm's `tanf`, `powf` and `sqrtf`. |
+
+For the SVF design functions (`low_pass` to `high_shelf`), "never fails" holds given the libm model
+in `Code/FunsExternal.lean`, which assumes that libm's functions never panic (see "What is
+assumed, not proved").
 
 For the biquad whole-block theorems (`Biquad/Block.lean`, `Biquad/BlockF64.lean`), every
 quantity below is computed from the real values of the stored coefficients, with `u` and `η` of
@@ -182,8 +190,17 @@ is worked out by hand, not proved.
   differ from compiled Rust. `min`/`max` of +0 and −0 may return either; Rust leaves this open
   too, and the model does not let a proof depend on which. No proof here relies on NaN bit
   patterns, NaN signs, or which zero `min`/`max` returns.
-- Not modelled: `sin`, `exp` and other transcendental functions, and the `NAN` constant. This
-  crate uses none of them.
+- Not modelled: `sin`, `exp` and other transcendental functions from Rust's standard library,
+  and the `NAN` constant. This crate uses none of them.
+- The crate's one dependency, `libm` 0.2.16 (a pure-Rust port of the musl and FreeBSD maths
+  libraries, pinned exactly, default features off), is not translated. Its `tan`, `pow` and
+  `sqrt` (and the binary32 `tanf`, `powf` and `sqrtf`) are modelled in the hand-written
+  `Code/FunsExternal.lean` as unknown functions that always return a float and return the same
+  float for the same arguments: `libm.tanModel_f64` and the others are Lean `opaque` constants,
+  which no proof can look inside (they are not axioms). So the proofs assume that these functions
+  never panic, always return, and return the same float for the same arguments; their accuracy, and
+  even which float they return, are taken on trust. Nothing about the frequency responses of the
+  coefficients the SVF design functions compute is proved.
 - Rust's `f32`/`f64` operations and Lean's `Float32`/`Float` operations are the same IEEE 754
   round-to-nearest operations. FloatLib relates Lean's floats to real numbers; nothing here
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
@@ -197,7 +214,9 @@ is worked out by hand, not proved.
   exact arithmetic only.
 - No floating-point error bound is proved for the state-variable filter (`svf::*`), and nothing
   about its stability or frequency response, or that it matches Zavalishin's filter: the theorems
-  in `Svf/` say only what the translated code computes.
+  in `Svf/` say only what the translated code computes. The same holds for the design functions
+  (`low_pass` to `high_shelf`): their names and formulas follow A. Simper (Cytomic), and that the
+  coefficients give the named responses is not proved.
 - The biquad's whole-block error bound is proved for any given `Contraction` of its state-update
   map. One is supplied only for complex poles inside the unit circle (`complexPolesContraction`),
   so for real-pole biquads (for example an RBJ low-pass with `Q ≤ 1/2`) no bound is proved yet. It
@@ -212,7 +231,11 @@ is worked out by hand, not proved.
 
 ## Layout
 
-- `Code/` is generated by Aeneas from the whole crate. Never edit it by hand.
+- `Code/` is generated by Aeneas from the whole crate (`Types.lean`, `Funs.lean`). Never edit
+  those by hand. The exception is `Code/FunsExternal.lean`, written by hand: the models of the
+  external `libm` functions the crate calls, which `Funs.lean` imports. Aeneas writes a template
+  for it declaring those functions as axioms; `scripts/prove.sh` moves the template to
+  `target/FunsExternal_Template.lean`, outside the Lean library.
 - One file per Rust module while it has one proof file (`Gain.lean`); a folder once it has more
   (`OnePole/`). Inside a folder: `SpecF64.lean`/`SpecF32.lean` say what the translated code
   computes; `BridgeF64.lean`/`BridgeF32.lean` relate one step to real numbers; `Block.lean` holds

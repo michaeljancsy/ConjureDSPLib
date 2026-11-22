@@ -52,6 +52,9 @@ committed. The script regenerates it and fails if it no longer matches the last 
 generated comments include source line numbers, so any edit to the Rust, even to a comment above
 a function, means regenerating it (`ALLOW_REGENERATED=1 scripts/prove.sh`) and committing it.
 
+One file there, `Code/FunsExternal.lean`, is written by hand: it models the `libm` functions the
+crate calls; see `proofs/README.md`.
+
 ## License
 
 Dual-licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.

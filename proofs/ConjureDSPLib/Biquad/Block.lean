@@ -18,8 +18,8 @@ is the state-update map (the filter's own, whose eigenvalues are its poles) and 
 this step's rounding. Whether such errors pile up depends on the state-update map. This file is
 parametric in a `Contraction`: any way `N` of measuring a pair of numbers under which the
 state-update map takes every pair to one whose measure is at most `ρ` times the original's, with
-`0 ≤ ρ < 1`. `Biquad/Contraction.lean` gives one for biquads with complex poles inside the unit
-circle.
+`0 ≤ ρ < 1`. `Biquad/Contraction.lean` gives one for biquads with complex poles, distinct real
+poles or a repeated real pole, inside the unit circle.
 
 With it, `block_error_real` shows that over a block of any length the computed outputs and state
 stay within fixed distances of the exact filter's, provided the inputs are at most `M`, each

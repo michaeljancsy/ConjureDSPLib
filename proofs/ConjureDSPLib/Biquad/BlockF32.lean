@@ -159,9 +159,8 @@ theorem filt_f32_withinLocalErr (c : CoeffsF32) (hc : CoeffsFinite_f32 c) (Sb M 
 
 /-- **Whole-block error of the f32 biquad.** Let `C` be a `Contraction` for the real values of the
 stored coefficients (`realCoeffs_f32 c`), `0 ≤ M`, every input's real value at most `M` in size,
-with
-`β = localErrSlope_f32 c` and `κ = roundGain (realCoeffs_f32 c)`. If the coefficients and the
-starting state are finite, no step overflows (`NoOverflow_f32`), and `cInf·K·κ·β < 1 − ρ`, then
+with `β = localErrSlope_f32 c` and `κ = roundGain (realCoeffs_f32 c)`. If the coefficients and
+the starting state are finite, no step overflows (`NoOverflow_f32`), and `cInf·K·κ·β < 1 − ρ`, then
 the outputs of `filt_f32` and of `filt_real` (run on the real values of the inputs from
 `realState_f32 s`) have the same length, every output's real value is within `cInf·Ê + L` of the
 corresponding exact output, and each final state value's real value within `cInf·Ê` of the

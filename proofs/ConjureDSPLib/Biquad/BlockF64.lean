@@ -159,9 +159,8 @@ theorem filt_f64_withinLocalErr (c : CoeffsF64) (hc : CoeffsFinite_f64 c) (Sb M 
 
 /-- **Whole-block error of the f64 biquad.** Let `C` be a `Contraction` for the real values of the
 stored coefficients (`realCoeffs_f64 c`), `0 ≤ M`, every input's real value at most `M` in size,
-with
-`β = localErrSlope_f64 c` and `κ = roundGain (realCoeffs_f64 c)`. If the coefficients and the
-starting state are finite, no step overflows (`NoOverflow_f64`), and `cInf·K·κ·β < 1 − ρ`, then
+with `β = localErrSlope_f64 c` and `κ = roundGain (realCoeffs_f64 c)`. If the coefficients and
+the starting state are finite, no step overflows (`NoOverflow_f64`), and `cInf·K·κ·β < 1 − ρ`, then
 the outputs of `filt_f64` and of `filt_real` (run on the real values of the inputs from
 `realState_f64 s`) have the same length, every output's real value is within `cInf·Ê + L` of the
 corresponding exact output, and each final state value's real value within `cInf·Ê` of the

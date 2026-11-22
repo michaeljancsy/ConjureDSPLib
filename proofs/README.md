@@ -136,9 +136,10 @@ At these cutoffs `V` is below the largest finite value (about 3.4 × 10³⁸ in 
 f64) by a factor of more than 10³⁵ (worked out by hand, not proved). With
 `complexPolesContraction`, in f32 below about 82.4 Hz the biquad whole-block `_of_inputs` theorems
 prove nothing, because their condition `cInf·K·κ·β < 1 - ρ` fails there, as for the other
-whole-block theorems; the hypotheses of `noOverflow_f32_of_inputs` cannot all hold there either
-(its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê` and `cInf·(R + Ê) ≤ Sb` together imply that condition when
-`α > 0`).
+whole-block theorems. The hypotheses of `noOverflow_f32_of_inputs` cannot all hold there either:
+its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and `N(S − r) ≤ Ê` together
+imply that condition when `α > 0` and `cInf·K·κ > 0`, as for `complexPolesContraction` (shown by
+hand, not proved).
 
 ## What is assumed, not proved
 

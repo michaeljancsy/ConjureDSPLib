@@ -30,6 +30,12 @@ Rust layers are in `BlockF64.lean` and `BlockF32.lean`.
 `step_values_le` bounds the exact value of each of one step's nine operations by
 `stepValueBound`; the floating-point files use it, with `block_step` and `block_state_le`, to
 prove that no step overflows.
+
+`block_bounds_le` and `block_bounds_ge` bound `computedStateBound` and the output error bound
+`cInf·Ê + L` above and below from numbers on either side of `cInf`, `K` and `ρ`
+(`stateBoundAt`, `outErrBoundAt`), and `smallness_fails` shows when `cInf·K·κ·β < 1 − ρ` is
+false; with numbers checked by `norm_num` they give the worked examples in `BlockF64.lean` and
+`BlockF32.lean`.
 -/
 
 @[expose] public section
@@ -380,6 +386,11 @@ theorem localErrSlope_nonneg (c : CoeffsReal) {u : ℝ} (hu : 0 ≤ u) :
     0 ≤ localErrSlope c u := by
   unfold localErrSlope; positivity
 
+/-- `localErrBase` is positive when `η > 0`. -/
+theorem localErrBase_pos (c : CoeffsReal) {u η M : ℝ} (hu : 0 ≤ u) (hη : 0 < η)
+    (hM : 0 ≤ M) : 0 < localErrBase c u η M := by
+  unfold localErrBase; positivity
+
 /-- One rounding `r` of an exact value `e` with `|e| ≤ E`, within `u·|e| + η` of `e`, is within
 `u·E + η` of `e` and at most `2·E + η` in size (when `0 ≤ u ≤ 1`). -/
 theorem round_bounds {r e E u η : ℝ} (hu0 : 0 ≤ u) (hu1 : u ≤ 1)
@@ -585,6 +596,189 @@ theorem smallness_of_invariant (c : CoeffsReal) (C : Contraction c)
     mul_le_mul_of_nonneg_left hSE (by linarith)
   have h4 : 0 < C.cInf * C.K * roundGain c * α := mul_pos hpos hα
   nlinarith [h1, h2, h3, h4]
+
+/-- `Sb'` at given numbers: `ci·(n₀ + k·G·M + k·κ·α)/(1 − ρ' − ci·k·κ·β)` (`G = inputGain c`,
+`κ = roundGain c`). With `ci`, `k`, `ρ'` and `n₀` at `cInf`, `K`, `ρ` and `N(s)` of a
+`Contraction` it is `computedStateBound` (`block_bounds_le`, `block_bounds_ge` compare them). -/
+noncomputable def stateBoundAt (c : CoeffsReal) (M α β n₀ ci k ρ' : ℝ) : ℝ :=
+  ci * (n₀ + k * inputGain c * M + k * roundGain c * α) / (1 - ρ' - ci * k * roundGain c * β)
+
+/-- The bound on each output's error at given numbers: `(α + β·Sb')·(1 + ci·k·κ/(1 − ρ'))`, with
+`Sb' = stateBoundAt c M α β n₀ ci k ρ'` and `κ = roundGain c`. With `ci`, `k`, `ρ'` and `n₀` at
+`cInf`, `K`, `ρ` and `N(s)` of a `Contraction` it is `cInf·Ê + L` (`block_bounds_le`,
+`block_bounds_ge` compare them). -/
+noncomputable def outErrBoundAt (c : CoeffsReal) (M α β n₀ ci k ρ' : ℝ) : ℝ :=
+  (α + β * stateBoundAt c M α β n₀ ci k ρ') * (1 + ci * k * roundGain c / (1 - ρ'))
+
+/-- **Numbers above the bounds, from numbers above `cInf`, `K` and `ρ`.** Let `0 ≤ M`, `0 ≤ α`,
+`0 ≤ β`, and let `n₀`, `ci`, `k` and `ρu` be at least `N(s)`, `cInf`, `K` and `ρ`, with
+`ci·k·κ·β < 1 − ρu` (`κ = roundGain c`). Then `cInf·K·κ·β < 1 − ρ` (the condition of
+`block_error_real`), and, with `Sb' = stateBoundAt c M α β n₀ ci k ρu`:
+`Sb = computedStateBound ≤ Sb'`, `L = localErrBound ≤ α + β·Sb'`,
+`α ≤ cInf·Ê + L ≤ outErrBoundAt c M α β n₀ ci k ρu` (with `Ê = stateErrBound`, so `cInf·Ê + L`
+is `block_error_real`'s bound on each output's error), and `stepValueBound c η M Sb` is at most
+`stepValueBound c η M Sb'` for every `η`. -/
+theorem block_bounds_le (c : CoeffsReal) (C : Contraction c) (M α β η n₀ ci k ρu : ℝ)
+    (s : ℝ × ℝ) (hM0 : 0 ≤ M) (hα : 0 ≤ α) (hβ : 0 ≤ β) (hs : C.N s.1 s.2 ≤ n₀)
+    (hci : C.cInf ≤ ci) (hk : C.K ≤ k) (hρ : C.ρ ≤ ρu)
+    (hsm : ci * k * roundGain c * β < 1 - ρu) :
+    C.cInf * C.K * roundGain c * β < 1 - C.ρ ∧
+      computedStateBound c C M α β s ≤ stateBoundAt c M α β n₀ ci k ρu ∧
+      localErrBound c C M α β s ≤ α + β * stateBoundAt c M α β n₀ ci k ρu ∧
+      α ≤ C.cInf * stateErrBound c C M α β s + localErrBound c C M α β s ∧
+      C.cInf * stateErrBound c C M α β s + localErrBound c C M α β s ≤
+        outErrBoundAt c M α β n₀ ci k ρu ∧
+      stepValueBound c η M (computedStateBound c C M α β s) ≤
+        stepValueBound c η M (stateBoundAt c M α β n₀ ci k ρu) := by
+  unfold outErrBoundAt
+  set Sb' := stateBoundAt c M α β n₀ ci k ρu with hSb'def
+  set L' := α + β * Sb' with hL'def
+  have hρ0 := C.ρ_nonneg
+  have hρ1 := C.ρ_lt_one
+  have hK0 := C.K_nonneg
+  have hc0 := C.cInf_nonneg
+  have hN0 := C.nonneg s.1 s.2
+  have hG : 0 ≤ inputGain c := by unfold inputGain; positivity
+  have hκ : 0 ≤ roundGain c := by unfold roundGain; positivity
+  have hci0 : 0 ≤ ci := hc0.trans hci
+  have hk0 : 0 ≤ k := hK0.trans hk
+  have hCK : C.cInf * C.K ≤ ci * k := mul_le_mul hci hk hK0 hci0
+  have hCKκ : C.cInf * C.K * roundGain c ≤ ci * k * roundGain c :=
+    mul_le_mul_of_nonneg_right hCK hκ
+  have hCKκβ : C.cInf * C.K * roundGain c * β ≤ ci * k * roundGain c * β :=
+    mul_le_mul_of_nonneg_right hCKκ hβ
+  have hsmall : C.cInf * C.K * roundGain c * β < 1 - C.ρ := by linarith
+  have hD' : 0 < 1 - ρu - ci * k * roundGain c * β := by linarith
+  have hDD : 1 - ρu - ci * k * roundGain c * β ≤ 1 - C.ρ - C.cInf * C.K * roundGain c * β := by
+    linarith
+  have h1ρ : 0 < 1 - C.ρ := by linarith
+  have h1ρu : 0 < 1 - ρu := by nlinarith [mul_nonneg (mul_nonneg (mul_nonneg hci0 hk0) hκ) hβ]
+  -- `R·(1 − ρ) = N(s)·(1 − ρ) + K·G·M`.
+  have hR : exactStateBound c C M s * (1 - C.ρ) =
+      C.N s.1 s.2 * (1 - C.ρ) + C.K * inputGain c * M := by
+    unfold exactStateBound; field_simp
+  have hX0 : 0 ≤ exactStateBound c C M s * (1 - C.ρ) + C.K * roundGain c * α := by
+    rw [hR]; have := h1ρ.le; positivity
+  have hXY : exactStateBound c C M s * (1 - C.ρ) + C.K * roundGain c * α ≤
+      n₀ + k * inputGain c * M + k * roundGain c * α := by
+    rw [hR]
+    have h1 : C.N s.1 s.2 * (1 - C.ρ) ≤ n₀ := by nlinarith
+    have h2 : C.K * inputGain c * M ≤ k * inputGain c * M := by gcongr
+    have h3 : C.K * roundGain c * α ≤ k * roundGain c * α := by gcongr
+    linarith
+  have hSb : computedStateBound c C M α β s ≤ Sb' := by
+    rw [hSb'def]; unfold computedStateBound stateBoundAt
+    exact div_le_div₀ (by have := hX0.trans hXY; positivity)
+      (mul_le_mul hci hXY hX0 hci0) hD' hDD
+  have hSb0 : 0 ≤ computedStateBound c C M α β s := by
+    unfold computedStateBound
+    exact div_nonneg (mul_nonneg hc0 hX0) (by linarith)
+  have hSb'0 : 0 ≤ Sb' := hSb0.trans hSb
+  have hL : localErrBound c C M α β s ≤ L' := by
+    unfold localErrBound
+    have := mul_le_mul_of_nonneg_left hSb hβ
+    linarith
+  have hLα : α ≤ localErrBound c C M α β s := by
+    unfold localErrBound
+    have := mul_nonneg hβ hSb0
+    linarith
+  have he : C.cInf * stateErrBound c C M α β s =
+      localErrBound c C M α β s * (C.cInf * C.K * roundGain c / (1 - C.ρ)) := by
+    unfold stateErrBound; ring
+  have ht0 : 0 ≤ C.cInf * C.K * roundGain c / (1 - C.ρ) := by
+    have := mul_nonneg (mul_nonneg hc0 hK0) hκ
+    exact div_nonneg this h1ρ.le
+  have ht : C.cInf * C.K * roundGain c / (1 - C.ρ) ≤ ci * k * roundGain c / (1 - ρu) :=
+    div_le_div₀ (mul_nonneg (mul_nonneg hci0 hk0) hκ) hCKκ h1ρu (by linarith)
+  have hL0 : 0 ≤ localErrBound c C M α β s := hα.trans hLα
+  refine ⟨hsmall, hSb, hL, ?_, ?_, ?_⟩
+  · rw [he]
+    have := mul_nonneg hL0 ht0
+    linarith
+  · rw [he]
+    have h := mul_le_mul hL (add_le_add_left ht 1) (by linarith) (by positivity)
+    linarith
+  · unfold stepValueBound
+    have : 0 ≤ |c.a1| + |c.a2| := by positivity
+    nlinarith
+
+/-- **Numbers below the bounds, from numbers below `cInf`, `K` and `ρ`.** Let `0 ≤ M`, `0 ≤ α`,
+`0 ≤ β`, `cInf·K·κ·β < 1 − ρ` (`κ = roundGain c`, `G = inputGain c`), and let `ci ≥ 0`, `k ≥ 0`
+and `ρl` be at most `cInf`, `K` and `ρ`. Then `stateBoundAt c M α β 0 ci k ρl` is at most
+`Sb = computedStateBound`, and `outErrBoundAt c M α β 0 ci k ρl` is at most `cInf·Ê + L` (with
+`Ê = stateErrBound` and `L = localErrBound`), the bound of `block_error_real` on each output's
+error. -/
+theorem block_bounds_ge (c : CoeffsReal) (C : Contraction c) (M α β ci k ρl : ℝ) (s : ℝ × ℝ)
+    (hM0 : 0 ≤ M) (hα : 0 ≤ α) (hβ : 0 ≤ β)
+    (hsmall : C.cInf * C.K * roundGain c * β < 1 - C.ρ)
+    (hci0 : 0 ≤ ci) (hk0 : 0 ≤ k) (hci : ci ≤ C.cInf) (hk : k ≤ C.K) (hρ : ρl ≤ C.ρ) :
+    stateBoundAt c M α β 0 ci k ρl ≤ computedStateBound c C M α β s ∧
+      outErrBoundAt c M α β 0 ci k ρl ≤
+        C.cInf * stateErrBound c C M α β s + localErrBound c C M α β s := by
+  unfold outErrBoundAt
+  set Sb'' := stateBoundAt c M α β 0 ci k ρl with hSb''def
+  set L'' := α + β * Sb'' with hL''def
+  have hρ1 := C.ρ_lt_one
+  have hK0 := C.K_nonneg
+  have hc0 := C.cInf_nonneg
+  have hN0 := C.nonneg s.1 s.2
+  have hG : 0 ≤ inputGain c := by unfold inputGain; positivity
+  have hκ : 0 ≤ roundGain c := by unfold roundGain; positivity
+  have hCK : ci * k ≤ C.cInf * C.K := mul_le_mul hci hk hk0 hc0
+  have hCKκ : ci * k * roundGain c ≤ C.cInf * C.K * roundGain c :=
+    mul_le_mul_of_nonneg_right hCK hκ
+  have hCKκβ : ci * k * roundGain c * β ≤ C.cInf * C.K * roundGain c * β :=
+    mul_le_mul_of_nonneg_right hCKκ hβ
+  have hD : 0 < 1 - C.ρ - C.cInf * C.K * roundGain c * β := by linarith
+  have hDD : 1 - C.ρ - C.cInf * C.K * roundGain c * β ≤ 1 - ρl - ci * k * roundGain c * β := by
+    linarith
+  have h1ρ : 0 < 1 - C.ρ := by linarith
+  have hR : exactStateBound c C M s * (1 - C.ρ) =
+      C.N s.1 s.2 * (1 - C.ρ) + C.K * inputGain c * M := by
+    unfold exactStateBound; field_simp
+  have hY0 : 0 ≤ 0 + k * inputGain c * M + k * roundGain c * α := by positivity
+  have hXY : 0 + k * inputGain c * M + k * roundGain c * α ≤
+      exactStateBound c C M s * (1 - C.ρ) + C.K * roundGain c * α := by
+    rw [hR]
+    have h1 : 0 ≤ C.N s.1 s.2 * (1 - C.ρ) := mul_nonneg hN0 h1ρ.le
+    have h2 : k * inputGain c * M ≤ C.K * inputGain c * M := by gcongr
+    have h3 : k * roundGain c * α ≤ C.K * roundGain c * α := by gcongr
+    linarith
+  have hSb : Sb'' ≤ computedStateBound c C M α β s := by
+    rw [hSb''def]; unfold computedStateBound stateBoundAt
+    exact div_le_div₀ (mul_nonneg hc0 (hY0.trans hXY)) (mul_le_mul hci hXY hY0 hc0) hD hDD
+  have hSb''0 : 0 ≤ Sb'' := by
+    rw [hSb''def]; exact div_nonneg (mul_nonneg hci0 hY0) (by linarith)
+  have hL : L'' ≤ localErrBound c C M α β s := by
+    unfold localErrBound
+    have := mul_le_mul_of_nonneg_left hSb hβ
+    linarith
+  have hL''0 : 0 ≤ L'' := by have := mul_nonneg hβ hSb''0; linarith
+  have he : C.cInf * stateErrBound c C M α β s =
+      localErrBound c C M α β s * (C.cInf * C.K * roundGain c / (1 - C.ρ)) := by
+    unfold stateErrBound; ring
+  have ht : ci * k * roundGain c / (1 - ρl) ≤ C.cInf * C.K * roundGain c / (1 - C.ρ) :=
+    div_le_div₀ (mul_nonneg (mul_nonneg hc0 hK0) hκ) hCKκ h1ρ (by linarith)
+  have ht0 : 0 ≤ ci * k * roundGain c / (1 - ρl) :=
+    div_nonneg (mul_nonneg (mul_nonneg hci0 hk0) hκ) (by linarith)
+  refine ⟨hSb, ?_⟩
+  rw [he]
+  have h := mul_le_mul hL (add_le_add_left ht 1) (by linarith) (hL''0.trans hL)
+  linarith
+
+/-- **When the condition of `block_error_real` fails.** If `ci`, `k ≥ 0` and `ρl` are at most
+`cInf`, `K` and `ρ`, `0 ≤ β`, and `1 − ρl ≤ ci·k·κ·β` (`κ = roundGain c`), then
+`cInf·K·κ·β < 1 − ρ` is false. -/
+theorem smallness_fails (c : CoeffsReal) (C : Contraction c) (β ci k ρl : ℝ) (hβ : 0 ≤ β)
+    (hk0 : 0 ≤ k) (hci : ci ≤ C.cInf) (hk : k ≤ C.K) (hρ : ρl ≤ C.ρ)
+    (h : 1 - ρl ≤ ci * k * roundGain c * β) :
+    ¬ C.cInf * C.K * roundGain c * β < 1 - C.ρ := by
+  have hκ : 0 ≤ roundGain c := by unfold roundGain; positivity
+  have hCK : ci * k ≤ C.cInf * C.K := mul_le_mul hci hk hk0 C.cInf_nonneg
+  have : ci * k * roundGain c * β ≤ C.cInf * C.K * roundGain c * β :=
+    mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hCK hκ) hβ
+  intro hlt
+  linarith
 
 end conjure_dsp_lib.biquad
 

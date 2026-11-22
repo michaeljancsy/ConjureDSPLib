@@ -10,8 +10,10 @@
 //! Naming: each function comes in `_f32` and `_f64` versions, and is called through its module,
 //! which names the algorithm: `gain::apply_f32`, `one_pole::process_f64`. Function names inside a
 //! module are short (`step`, `process`, `apply`) and repeat across modules.
+//! Types carry the precision as a capitalized suffix: `biquad::CoeffsF32`.
 
 #![no_std]
 
+pub mod biquad;
 pub mod gain;
 pub mod one_pole;

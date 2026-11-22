@@ -113,7 +113,11 @@ fi
 
 step "1. Charon"
 mkdir -p target
-"$CHARON_BIN" cargo --preset=aeneas --dest-file target/conjure_dsp_lib.llbc
+# Derived `Debug` and `Default` implementations are not DSP code, and translating them would bring
+# in Aeneas axioms for formatting and defaults of floats, so they are left out.
+"$CHARON_BIN" cargo --preset=aeneas \
+  --exclude '{impl core::fmt::Debug for _}' --exclude '{impl core::default::Default for _}' \
+  --dest-file target/conjure_dsp_lib.llbc
 
 step "2. Aeneas"
 "$AENEAS_BIN" -backend lean target/conjure_dsp_lib.llbc -dest proofs/ConjureDSPLib/Code

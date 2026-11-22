@@ -19,6 +19,10 @@ index, no arithmetic overflow on indices, and it terminates.
 | `one_pole::step_f32` | `one_pole.step_f32_toReal`, `one_pole.step_f32_error` | `OnePole/BridgeF32.lean` | The same real-number link and error bound in binary32 (`u = 2⁻²⁴`), under the same no-overflow conditions. |
 | `one_pole::process_f64` | `one_pole.process_f64_block_error` (and `filt_f64_block_error`, the same about `filt_f64`) | `OnePole/BlockF64.lean` | **Whole-block error.** Under the conditions below: never fails, and every output sample and the final state are within `E` of the exact real-number filter `filt_real`, for a block of any length. |
 | `one_pole::process_f32` | `one_pole.process_f32_block_error` (and `filt_f32_block_error`) | `OnePole/BlockF32.lean` | The same in binary32. |
+| `biquad::step_f64` | `biquad.step_f64_eq` | `Biquad/SpecF64.lean` | Exactly the transposed-direct-form-II step `tdf2_f64` (output `b0·x + s1`, new state `b1·x - a1·y + s2` and `b2·x - a2·y`) in binary64, in the Rust code's order; never fails. |
+| `biquad::process_f64` | `biquad.process_f64_spec` | `Biquad/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `tdf2_f64` to each sample in turn (Lean's `filt_f64`). |
+| `biquad::step_f32`, `process_f32` | `biquad.step_f32_eq`, `biquad.process_f32_spec` | `Biquad/SpecF32.lean` | The same two facts in binary32. |
+| (the biquad's form) | `biquad.tdf2_real_eq_df1_real_zero`, `biquad.tdf2_real_eq_df1_real` | `Biquad/Textbook.lean` | In exact arithmetic, the transposed form from a zero state gives exactly the textbook recurrence `y[n] = b0·x[n] + b1·x[n-1] + b2·x[n-2] - a1·y[n-1] - a2·y[n-2]` with zero history (and, in general, from the state that matches a given history). |
 
 The `toReal` and error theorems are stated about the expression `x + a * y`; the `step_*_eq`
 theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
@@ -65,6 +69,9 @@ The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
   separate multiply and add: Rust does not fuse `x + a * y` into one multiply-add instruction
   unless the code asks for `mul_add`, and this code does not.
+- The biquad's floating-point error bound is not proved yet (issue #5, second part). The
+  textbook equivalence is in exact arithmetic: in floating point the transposed form and the
+  textbook form round differently.
 - The whole-block bound needs no step to overflow (`NoOverflow_f64` / `NoOverflow_f32`), a
   condition on the computed values. It should always hold when `B + E` is far below the largest
   finite float (about 1.8 × 10³⁰⁸ in f64, 3.4 × 10³⁸ in f32), but that is not yet proved

@@ -135,7 +135,7 @@ sit near the real axis, and the filter's own worst-case error gain is large (abo
 100 Hz). Part is slack in the proof: the state bound `Sb` used for the per-step rounding is about
 7–23× the true largest state (at 100 Hz, 1 kHz and 10 kHz), the per-step bound is crude, and the
 contraction step adds a factor of about 4. Typical rounding errors are much smaller. In f64 the
-bound is below −120 dB from about 10 Hz to about 23.8 kHz, and −80 dB at 1 Hz. In f32 it is below
+bound is below −120 dB from about 10 Hz to about 23.9 kHz, and −80 dB at 1 Hz. In f32 it is below
 −25 dB only from about 1 kHz to about 21 kHz, above 1.0 below about 250 Hz and above about 23 kHz,
 and absent below about 82.4 Hz. The bound is not monotonic in the cutoff (for example f32: −74.9 dB
 at 10 kHz, −37.9 dB at 20 kHz). Everything in this paragraph is worked out by hand, not proved.
@@ -156,8 +156,8 @@ f64) by a factor of more than 10³⁵ (worked out by hand, not proved). With
 prove nothing, because their condition `cInf·K·κ·β < 1 - ρ` fails there, as for the other
 whole-block theorems. The hypotheses of `noOverflow_f32_of_inputs` cannot all hold there either:
 its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and `N(S − r) ≤ Ê` together
-imply that condition when `α > 0` and `cInf·K·κ > 0`, as for `complexPolesContraction` (shown by
-hand, not proved).
+imply that condition when `α > 0` and `cInf·K·κ > 0`, as for `complexPolesContraction`
+(`biquad.smallness_of_invariant`).
 
 ## What is assumed, not proved
 

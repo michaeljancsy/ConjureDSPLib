@@ -243,7 +243,7 @@ theorem table_row_le_of_abs_le_099_f64 (A : ℝ) (hA : |A| ≤ 0.99) :
       20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0 / outBound A 1 0) ≤
         -273.1 := by
   have hu : 0 < unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
-  have hη : 0 ≤ underflowErr_f64 := by rw [underflowErr_f64_eq]; positivity
+  have hη : 0 ≤ underflowErr_f64 := underflowErr_f64_nonneg
   obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.99 _ _ (2 ^ (-200 : ℤ)) 100
     (2.21 * 10 ^ (-12 : ℤ)) 221 16 200 2731 hu hη underflowErr_f64_le hA
     (by rw [unitRoundoff_f64_eq]; norm_num) (by norm_num) (by norm_num)
@@ -267,7 +267,7 @@ theorem table_row_le_of_abs_le_0999_f64 (A : ℝ) (hA : |A| ≤ 0.999) :
       20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0 / outBound A 1 0) ≤
         -253 := by
   have hu : 0 < unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
-  have hη : 0 ≤ underflowErr_f64 := by rw [underflowErr_f64_eq]; positivity
+  have hη : 0 ≤ underflowErr_f64 := underflowErr_f64_nonneg
   obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.999 _ _ (2 ^ (-200 : ℤ)) 1000
     (2.22 * 10 ^ (-10 : ℤ)) 222 15 20 253 hu hη underflowErr_f64_le hA
     (by rw [unitRoundoff_f64_eq]; norm_num) (by norm_num) (by norm_num)
@@ -285,7 +285,7 @@ theorem errBound_between_of_abs_le_f64 (A : ℝ) (hA1 : 1 / 2 ≤ |A|)
       errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤
         3 * unitRoundoff_f64 / (1 - |A|) ^ 2 := by
   refine errBound_between_of_abs_le A _ _ _ (by rw [unitRoundoff_f64_eq]; positivity)
-    (by rw [unitRoundoff_f64_eq]; norm_num) (by rw [underflowErr_f64_eq]; positivity) ?_
+    (by rw [unitRoundoff_f64_eq]; norm_num) underflowErr_f64_nonneg ?_
     (by rw [unitRoundoff_f64_eq]; norm_num) hA1 hA2
   have hu : 0 ≤ unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
   calc underflowErr_f64 * (2 + unitRoundoff_f64) ≤ 2 ^ (-200 : ℤ) * (2 + unitRoundoff_f64) :=

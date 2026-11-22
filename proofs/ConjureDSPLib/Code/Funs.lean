@@ -560,7 +560,7 @@ def gain.apply_f32 (gain : Float32) (x : Float32) : Result Float32 := do
   ok (Float32.mul gain x)
 
 /-- [conjure_dsp_lib::gain::ramp_f64]: loop body 0:
-    Source: 'src/gain.rs', lines 62:4-65:5
+    Source: 'src/gain.rs', lines 61:4-64:5
     Visibility: public -/
 @[rust_loop_body]
 def gain.ramp_f64_loop.body
@@ -579,7 +579,7 @@ def gain.ramp_f64_loop.body
   else ok (done buf)
 
 /-- [conjure_dsp_lib::gain::ramp_f64]: loop 0:
-    Source: 'src/gain.rs', lines 62:4-65:5
+    Source: 'src/gain.rs', lines 61:4-64:5
     Visibility: public -/
 @[rust_loop]
 def gain.ramp_f64_loop
@@ -591,7 +591,7 @@ def gain.ramp_f64_loop
     (buf, i)
 
 /-- [conjure_dsp_lib::gain::ramp_f64]:
-    Source: 'src/gain.rs', lines 54:0-66:1
+    Source: 'src/gain.rs', lines 53:0-65:1
     Visibility: public -/
 def gain.ramp_f64
   (start : Float) («end» : Float) (buf : Slice Float) :
@@ -606,7 +606,7 @@ def gain.ramp_f64
       0#usize
 
 /-- [conjure_dsp_lib::gain::ramp_f32]: loop body 0:
-    Source: 'src/gain.rs', lines 114:4-117:5
+    Source: 'src/gain.rs', lines 112:4-115:5
     Visibility: public -/
 @[rust_loop_body]
 def gain.ramp_f32_loop.body
@@ -626,7 +626,7 @@ def gain.ramp_f32_loop.body
   else ok (done buf)
 
 /-- [conjure_dsp_lib::gain::ramp_f32]: loop 0:
-    Source: 'src/gain.rs', lines 114:4-117:5
+    Source: 'src/gain.rs', lines 112:4-115:5
     Visibility: public -/
 @[rust_loop]
 def gain.ramp_f32_loop
@@ -638,7 +638,7 @@ def gain.ramp_f32_loop
     (buf, i)
 
 /-- [conjure_dsp_lib::gain::ramp_f32]:
-    Source: 'src/gain.rs', lines 106:0-118:1
+    Source: 'src/gain.rs', lines 104:0-116:1
     Visibility: public -/
 def gain.ramp_f32
   (start : Float32) («end» : Float32) (buf : Slice Float32) :

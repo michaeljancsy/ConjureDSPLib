@@ -23,34 +23,33 @@ pub fn apply_f32(gain: f32, x: f32) -> f32 {
 /// by adding `step` repeatedly, so each gain carries the same few roundings (subtract, divide,
 /// cast, multiply, add) wherever it is in the block.
 ///
-/// What else is proved in Lean (`proofs/ConjureDSPLib/Gain.lean`; `S` and `E` stand for `start`
-/// and `end`, `u = 2^-53`, `η = 2^-1075`):
+/// Proved in Lean (`proofs/ConjureDSPLib/Gain/`), with `S`, `E` the values of `start`, `end`,
+/// `s` the exact value of the computed `step`, `u = 2^-53` and `η = 2^-1075`:
 ///
-/// - **First sample.** When `end - start` is finite (both ends finite and no overflow), the
-///   first gain is exactly `start`, bit for bit, except that a `start` of `-0.0` may give `+0.0`
+/// - **First sample.** When `end - start` is finite (both ends finite, no overflow), the first
+///   gain is exactly `start`, bit for bit, except that a `start` of `-0.0` may give `+0.0`
 ///   (`gain.rampGain_f64_zero`, `gain.rampGain_f64_zero_negZero`).
-/// - **Last sample.** The last gain is `start + step * (n - 1)`. The straight line
-///   `S + (E - S)·i/n` that the bounds below measure against is `S` at the first sample,
-///   `E - (E - S)/n` at the last, and reaches `E` at `i = n`, one sample after the block
-///   (`gain.ramp_line_zero`, `gain.ramp_line_last`, `gain.ramp_line_end`).
 /// - **Accuracy.** When both ends are finite and at most `2^1020` in size and `n <= 2^53`, every
 ///   gain is finite and within `u·|S| + 5u·|E - S| + (2n + 4)·η` of the straight line
-///   `S + (E - S)·i/n` (`gain.rampGain_f64_error`). So the last gain is within
-///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `end - step` (`gain.rampGain_f64_last_error`), and
-///   each step inside the block differs from `step` by at most
-///   `2u·|S| + 13u·|E - S| + (4n + 11)·η` (`gain.rampGain_f64_succ_sub`).
-/// - **Next block.** A following block from `end` to any target, of any length, starts exactly
-///   at `end` (when its own `target - end` is finite and `end` is not `-0.0`). Under the accuracy
-///   conditions above, the step from this block's last gain to that `end` differs from `step` by
-///   at most `u·|S| + 8u·|E - S| + (2n + 7)·η` (`gain.rampGain_f64_next_block`).
+///   `S + (E - S)·i/n` (`gain.rampGain_f64_error`). That line is `S` at `i = 0`,
+///   `E - (E - S)/n` at the last sample and `E` at `i = n`, one sample after the block
+///   (`gain.ramp_line_zero`, `gain.ramp_line_last`, `gain.ramp_line_end`).
+/// - **Steps.** Under the same conditions the last gain, `start + step * (n - 1)`, is within
+///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `E - s` (`gain.rampGain_f64_last_error`), and each
+///   step inside the block is within `2u·|S| + 13u·|E - S| + (4n + 11)·η` of `s`
+///   (`gain.rampGain_f64_succ_sub`).
+/// - **Next block.** A following block from `end`, of any length and to any target, starts at
+///   exactly `end` when its own `target - end` is finite and `end` is not `-0.0`
+///   (`gain.rampGain_f64_zero` applied to that block). With this block under the accuracy
+///   conditions, the step from this block's last gain to that `end` is within
+///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `s` (`gain.rampGain_f64_next_block`).
 /// - **Direction.** Finite gains never go the wrong way: along the block they do not decrease
 ///   when `start <= end`, and do not increase when `end <= start` (`gain.rampGain_f64_mono`).
 /// - **Infinity and NaN.** If either end is not finite, or `end - start` overflows, every gain is
-///   infinite or NaN, the first sample's included (`gain.rampGain_f64_not_finite`).
-/// - **Index conversion.** `i as f64` and `n as f64` are exact for every value up to `2^53`
-///   (9,007,199,254,740,992) (`gain.real_castNat_f64`). Above that they are rounded to the
-///   nearest `f64`, ties to even (`gain.real_castNat_f64_eq_roundAt`), and the gain is computed
-///   from the rounded values.
+///   infinite or NaN, the first included (`gain.rampGain_f64_not_finite`).
+/// - **Index conversion.** `i as f64` and `n as f64` are exact up to `2^53` (9,007,199,254,740,992)
+///   (`gain.real_castNat_f64`). Above that they are rounded to the nearest `f64`, ties to even
+///   (`gain.real_castNat_f64_eq_roundAt`), and the gain is computed from the rounded values.
 pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
     let n = buf.len();
     if n == 0 {
@@ -75,34 +74,33 @@ pub fn ramp_f64(start: f64, end: f64, buf: &mut [f64]) {
 /// by adding `step` repeatedly, so each gain carries the same few roundings (subtract, divide,
 /// cast, multiply, add) wherever it is in the block.
 ///
-/// What else is proved in Lean (`proofs/ConjureDSPLib/Gain.lean`; `S` and `E` stand for `start`
-/// and `end`, `u = 2^-24`, `η = 2^-150`):
+/// Proved in Lean (`proofs/ConjureDSPLib/Gain/`), with `S`, `E` the values of `start`, `end`,
+/// `s` the exact value of the computed `step`, `u = 2^-24` and `η = 2^-150`:
 ///
-/// - **First sample.** When `end - start` is finite (both ends finite and no overflow), the
-///   first gain is exactly `start`, bit for bit, except that a `start` of `-0.0` may give `+0.0`
+/// - **First sample.** When `end - start` is finite (both ends finite, no overflow), the first
+///   gain is exactly `start`, bit for bit, except that a `start` of `-0.0` may give `+0.0`
 ///   (`gain.rampGain_f32_zero`, `gain.rampGain_f32_zero_negZero`).
-/// - **Last sample.** The last gain is `start + step * (n - 1)`. The straight line
-///   `S + (E - S)·i/n` that the bounds below measure against is `S` at the first sample,
-///   `E - (E - S)/n` at the last, and reaches `E` at `i = n`, one sample after the block
-///   (`gain.ramp_line_zero`, `gain.ramp_line_last`, `gain.ramp_line_end`).
 /// - **Accuracy.** When both ends are finite and at most `2^124` in size and `n <= 2^24`, every
 ///   gain is finite and within `u·|S| + 5u·|E - S| + (2n + 4)·η` of the straight line
-///   `S + (E - S)·i/n` (`gain.rampGain_f32_error`). So the last gain is within
-///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `end - step` (`gain.rampGain_f32_last_error`), and
-///   each step inside the block differs from `step` by at most
-///   `2u·|S| + 13u·|E - S| + (4n + 11)·η` (`gain.rampGain_f32_succ_sub`).
-/// - **Next block.** A following block from `end` to any target, of any length, starts exactly
-///   at `end` (when its own `target - end` is finite and `end` is not `-0.0`). Under the accuracy
-///   conditions above, the step from this block's last gain to that `end` differs from `step` by
-///   at most `u·|S| + 8u·|E - S| + (2n + 7)·η` (`gain.rampGain_f32_next_block`).
+///   `S + (E - S)·i/n` (`gain.rampGain_f32_error`). That line is `S` at `i = 0`,
+///   `E - (E - S)/n` at the last sample and `E` at `i = n`, one sample after the block
+///   (`gain.ramp_line_zero`, `gain.ramp_line_last`, `gain.ramp_line_end`).
+/// - **Steps.** Under the same conditions the last gain, `start + step * (n - 1)`, is within
+///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `E - s` (`gain.rampGain_f32_last_error`), and each
+///   step inside the block is within `2u·|S| + 13u·|E - S| + (4n + 11)·η` of `s`
+///   (`gain.rampGain_f32_succ_sub`).
+/// - **Next block.** A following block from `end`, of any length and to any target, starts at
+///   exactly `end` when its own `target - end` is finite and `end` is not `-0.0`
+///   (`gain.rampGain_f32_zero` applied to that block). With this block under the accuracy
+///   conditions, the step from this block's last gain to that `end` is within
+///   `u·|S| + 8u·|E - S| + (2n + 7)·η` of `s` (`gain.rampGain_f32_next_block`).
 /// - **Direction.** Finite gains never go the wrong way: along the block they do not decrease
 ///   when `start <= end`, and do not increase when `end <= start` (`gain.rampGain_f32_mono`).
 /// - **Infinity and NaN.** If either end is not finite, or `end - start` overflows, every gain is
-///   infinite or NaN, the first sample's included (`gain.rampGain_f32_not_finite`).
-/// - **Index conversion.** `i as f32` and `n as f32` are exact for every value up to `2^24`
-///   (16,777,216) (`gain.real_castNat_f32`). Above that they are rounded to the nearest `f32`,
-///   ties to even (`gain.real_castNat_f32_eq_roundAt`), and the gain is computed from the
-///   rounded values.
+///   infinite or NaN, the first included (`gain.rampGain_f32_not_finite`).
+/// - **Index conversion.** `i as f32` and `n as f32` are exact up to `2^24` (16,777,216)
+///   (`gain.real_castNat_f32`). Above that they are rounded to the nearest `f32`, ties to even
+///   (`gain.real_castNat_f32_eq_roundAt`), and the gain is computed from the rounded values.
 pub fn ramp_f32(start: f32, end: f32, buf: &mut [f32]) {
     let n = buf.len();
     if n == 0 {

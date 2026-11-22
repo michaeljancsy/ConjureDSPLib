@@ -19,3 +19,4 @@ pub mod delay;
 pub mod gain;
 pub mod one_pole;
 pub mod smoother;
+pub mod svf;

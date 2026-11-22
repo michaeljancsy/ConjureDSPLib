@@ -23,3 +23,5 @@ public import ConjureDSPLib.Biquad.Contraction
 public import ConjureDSPLib.Delay.Basic
 public import ConjureDSPLib.Delay.SpecF64
 public import ConjureDSPLib.Delay.SpecF32
+public import ConjureDSPLib.Svf.SpecF64
+public import ConjureDSPLib.Svf.SpecF32

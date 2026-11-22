@@ -878,4 +878,554 @@ def smoother.process_f32
   smoother.process_f32_loop state buf (Float32.sub (Float32.ofBits 1065353216)
     a) 0#usize
 
+/-- [conjure_dsp_lib::svf::CoeffsF64]
+    Source: 'src/svf.rs', lines 32:0-45:1
+    Visibility: public -/
+structure svf.CoeffsF64 where
+  g : Float
+  k : Float
+  d : Float
+  m_hp : Float
+  m_bp : Float
+  m_lp : Float
+
+/-- [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::CoeffsF64}::clone]:
+    Source: 'src/svf.rs', lines 31:9-31:14
+    Visibility: public -/
+def svf.CoeffsF64.Insts.CoreCloneClone.clone
+  (self : svf.CoeffsF64) : Result svf.CoeffsF64 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::CoeffsF64}]
+    Source: 'src/svf.rs', lines 31:9-31:14 -/
+@[reducible]
+def svf.CoeffsF64.Insts.CoreCloneClone : core.clone.Clone svf.CoeffsF64 := {
+  clone := svf.CoeffsF64.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::Copy for conjure_dsp_lib::svf::CoeffsF64}]
+    Source: 'src/svf.rs', lines 31:16-31:20 -/
+@[reducible]
+def svf.CoeffsF64.Insts.CoreMarkerCopy : core.marker.Copy svf.CoeffsF64 := {
+  cloneInst := svf.CoeffsF64.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::svf::CoeffsF64}]
+    Source: 'src/svf.rs', lines 31:29-31:38 -/
+@[reducible]
+def svf.CoeffsF64.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq svf.CoeffsF64 := {
+}
+
+/-- [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::CoeffsF64> for conjure_dsp_lib::svf::CoeffsF64}::eq]:
+    Source: 'src/svf.rs', lines 31:29-31:38
+    Visibility: public -/
+def svf.CoeffsF64.Insts.CoreCmpPartialEqCoeffsF64.eq
+  (self : svf.CoeffsF64) (other : svf.CoeffsF64) : Result Bool := do
+  if self.g == other.g
+  then
+    if self.k == other.k
+    then
+      if self.d == other.d
+      then
+        if self.m_hp == other.m_hp
+        then
+          if self.m_bp == other.m_bp
+          then ok (self.m_lp == other.m_lp)
+          else ok false
+        else ok false
+      else ok false
+    else ok false
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::CoeffsF64> for conjure_dsp_lib::svf::CoeffsF64}]
+    Source: 'src/svf.rs', lines 31:29-31:38 -/
+@[reducible]
+def svf.CoeffsF64.Insts.CoreCmpPartialEqCoeffsF64 : core.cmp.PartialEq
+  svf.CoeffsF64 svf.CoeffsF64 := {
+  eq := svf.CoeffsF64.Insts.CoreCmpPartialEqCoeffsF64.eq
+}
+
+/-- [conjure_dsp_lib::svf::{conjure_dsp_lib::svf::CoeffsF64}::new]:
+    Source: 'src/svf.rs', lines 53:4-62:5
+    Visibility: public -/
+def svf.CoeffsF64.new
+  (g : Float) (k : Float) (m_hp : Float) (m_bp : Float) (m_lp : Float) :
+  Result svf.CoeffsF64
+  := do
+  ok
+    {
+      g,
+      k,
+      d :=
+        (Float.div
+          (Float.ofBits 4607182418800017408)
+          (Float.add
+          (Float.ofBits 4607182418800017408)
+          (Float.mul
+          g
+          (Float.add
+          g
+          k)))),
+      m_hp,
+      m_bp,
+      m_lp
+    }
+
+/-- [conjure_dsp_lib::svf::StateF64]
+    Source: 'src/svf.rs', lines 68:0-73:1
+    Visibility: public -/
+structure svf.StateF64 where
+  s1 : Float
+  s2 : Float
+
+/-- [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::StateF64}::clone]:
+    Source: 'src/svf.rs', lines 67:9-67:14
+    Visibility: public -/
+def svf.StateF64.Insts.CoreCloneClone.clone
+  (self : svf.StateF64) : Result svf.StateF64 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::StateF64}]
+    Source: 'src/svf.rs', lines 67:9-67:14 -/
+@[reducible]
+def svf.StateF64.Insts.CoreCloneClone : core.clone.Clone svf.StateF64 := {
+  clone := svf.StateF64.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::Copy for conjure_dsp_lib::svf::StateF64}]
+    Source: 'src/svf.rs', lines 67:16-67:20 -/
+@[reducible]
+def svf.StateF64.Insts.CoreMarkerCopy : core.marker.Copy svf.StateF64 := {
+  cloneInst := svf.StateF64.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::svf::StateF64}]
+    Source: 'src/svf.rs', lines 67:38-67:47 -/
+@[reducible]
+def svf.StateF64.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq svf.StateF64 := {
+}
+
+/-- [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::StateF64> for conjure_dsp_lib::svf::StateF64}::eq]:
+    Source: 'src/svf.rs', lines 67:38-67:47
+    Visibility: public -/
+def svf.StateF64.Insts.CoreCmpPartialEqStateF64.eq
+  (self : svf.StateF64) (other : svf.StateF64) : Result Bool := do
+  if self.s1 == other.s1
+  then ok (self.s2 == other.s2)
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::StateF64> for conjure_dsp_lib::svf::StateF64}]
+    Source: 'src/svf.rs', lines 67:38-67:47 -/
+@[reducible]
+def svf.StateF64.Insts.CoreCmpPartialEqStateF64 : core.cmp.PartialEq
+  svf.StateF64 svf.StateF64 := {
+  eq := svf.StateF64.Insts.CoreCmpPartialEqStateF64.eq
+}
+
+/-- [conjure_dsp_lib::svf::step_f64]:
+    Source: 'src/svf.rs', lines 78:0-85:1
+    Visibility: public -/
+def svf.step_f64
+  (c : svf.CoeffsF64) (state : svf.StateF64) (x : Float) :
+  Result (Float × svf.StateF64)
+  := do
+  ok (Float.add (Float.add (Float.mul c.m_hp (Float.mul (Float.sub (Float.sub x
+    (Float.mul (Float.add c.k c.g) state.s1)) state.s2) c.d)) (Float.mul 
+    c.m_bp (Float.add (Float.mul c.g (Float.mul (Float.sub (Float.sub x
+    (Float.mul (Float.add c.k c.g) state.s1)) state.s2) c.d)) state.s1)))
+    (Float.mul c.m_lp (Float.add (Float.mul c.g (Float.add (Float.mul 
+    c.g (Float.mul (Float.sub (Float.sub x (Float.mul (Float.add c.k 
+    c.g) state.s1)) state.s2) c.d)) state.s1)) state.s2)),
+    {
+      s1 :=
+        (Float.add
+          (Float.mul
+          c.g
+          (Float.mul
+          (Float.sub
+          (Float.sub
+          x
+          (Float.mul
+          (Float.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          (Float.add
+          (Float.mul
+          c.g
+          (Float.mul
+          (Float.sub
+          (Float.sub
+          x
+          (Float.mul
+          (Float.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          state.s1)),
+      s2 :=
+        (Float.add
+          (Float.mul
+          c.g
+          (Float.add
+          (Float.mul
+          c.g
+          (Float.mul
+          (Float.sub
+          (Float.sub
+          x
+          (Float.mul
+          (Float.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          state.s1))
+          (Float.add
+          (Float.mul
+          c.g
+          (Float.add
+          (Float.mul
+          c.g
+          (Float.mul
+          (Float.sub
+          (Float.sub
+          x
+          (Float.mul
+          (Float.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          state.s1))
+          state.s2))
+    })
+
+/-- [conjure_dsp_lib::svf::process_f64]: loop body 0:
+    Source: 'src/svf.rs', lines 92:4-95:5
+    Visibility: public -/
+@[rust_loop_body]
+def svf.process_f64_loop.body
+  (c : svf.CoeffsF64) (state : svf.StateF64) (buf : Slice Float)
+  (i : Std.Usize) :
+  Result (ControlFlow (svf.StateF64 × (Slice Float) × Std.Usize)
+    (svf.StateF64 × (Slice Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← svf.step_f64 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::svf::process_f64]: loop 0:
+    Source: 'src/svf.rs', lines 92:4-95:5
+    Visibility: public -/
+@[rust_loop]
+def svf.process_f64_loop
+  (c : svf.CoeffsF64) (state : svf.StateF64) (buf : Slice Float)
+  (i : Std.Usize) :
+  Result (svf.StateF64 × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => svf.process_f64_loop.body c state1 buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::svf::process_f64]:
+    Source: 'src/svf.rs', lines 89:0-96:1
+    Visibility: public -/
+@[reducible]
+def svf.process_f64
+  (c : svf.CoeffsF64) (state : svf.StateF64) (buf : Slice Float) :
+  Result (svf.StateF64 × (Slice Float))
+  := do
+  svf.process_f64_loop c state buf 0#usize
+
+/-- [conjure_dsp_lib::svf::CoeffsF32]
+    Source: 'src/svf.rs', lines 100:0-113:1
+    Visibility: public -/
+structure svf.CoeffsF32 where
+  g : Float32
+  k : Float32
+  d : Float32
+  m_hp : Float32
+  m_bp : Float32
+  m_lp : Float32
+
+/-- [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::CoeffsF32}::clone]:
+    Source: 'src/svf.rs', lines 99:9-99:14
+    Visibility: public -/
+def svf.CoeffsF32.Insts.CoreCloneClone.clone
+  (self : svf.CoeffsF32) : Result svf.CoeffsF32 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::CoeffsF32}]
+    Source: 'src/svf.rs', lines 99:9-99:14 -/
+@[reducible]
+def svf.CoeffsF32.Insts.CoreCloneClone : core.clone.Clone svf.CoeffsF32 := {
+  clone := svf.CoeffsF32.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::Copy for conjure_dsp_lib::svf::CoeffsF32}]
+    Source: 'src/svf.rs', lines 99:16-99:20 -/
+@[reducible]
+def svf.CoeffsF32.Insts.CoreMarkerCopy : core.marker.Copy svf.CoeffsF32 := {
+  cloneInst := svf.CoeffsF32.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::svf::CoeffsF32}]
+    Source: 'src/svf.rs', lines 99:29-99:38 -/
+@[reducible]
+def svf.CoeffsF32.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq svf.CoeffsF32 := {
+}
+
+/-- [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::CoeffsF32> for conjure_dsp_lib::svf::CoeffsF32}::eq]:
+    Source: 'src/svf.rs', lines 99:29-99:38
+    Visibility: public -/
+def svf.CoeffsF32.Insts.CoreCmpPartialEqCoeffsF32.eq
+  (self : svf.CoeffsF32) (other : svf.CoeffsF32) : Result Bool := do
+  if self.g == other.g
+  then
+    if self.k == other.k
+    then
+      if self.d == other.d
+      then
+        if self.m_hp == other.m_hp
+        then
+          if self.m_bp == other.m_bp
+          then ok (self.m_lp == other.m_lp)
+          else ok false
+        else ok false
+      else ok false
+    else ok false
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::CoeffsF32> for conjure_dsp_lib::svf::CoeffsF32}]
+    Source: 'src/svf.rs', lines 99:29-99:38 -/
+@[reducible]
+def svf.CoeffsF32.Insts.CoreCmpPartialEqCoeffsF32 : core.cmp.PartialEq
+  svf.CoeffsF32 svf.CoeffsF32 := {
+  eq := svf.CoeffsF32.Insts.CoreCmpPartialEqCoeffsF32.eq
+}
+
+/-- [conjure_dsp_lib::svf::{conjure_dsp_lib::svf::CoeffsF32}::new]:
+    Source: 'src/svf.rs', lines 121:4-130:5
+    Visibility: public -/
+def svf.CoeffsF32.new
+  (g : Float32) (k : Float32) (m_hp : Float32) (m_bp : Float32)
+  (m_lp : Float32) :
+  Result svf.CoeffsF32
+  := do
+  ok
+    {
+      g,
+      k,
+      d :=
+        (Float32.div
+          (Float32.ofBits 1065353216)
+          (Float32.add
+          (Float32.ofBits 1065353216)
+          (Float32.mul
+          g
+          (Float32.add
+          g
+          k)))),
+      m_hp,
+      m_bp,
+      m_lp
+    }
+
+/-- [conjure_dsp_lib::svf::StateF32]
+    Source: 'src/svf.rs', lines 136:0-141:1
+    Visibility: public -/
+structure svf.StateF32 where
+  s1 : Float32
+  s2 : Float32
+
+/-- [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::StateF32}::clone]:
+    Source: 'src/svf.rs', lines 135:9-135:14
+    Visibility: public -/
+def svf.StateF32.Insts.CoreCloneClone.clone
+  (self : svf.StateF32) : Result svf.StateF32 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::StateF32}]
+    Source: 'src/svf.rs', lines 135:9-135:14 -/
+@[reducible]
+def svf.StateF32.Insts.CoreCloneClone : core.clone.Clone svf.StateF32 := {
+  clone := svf.StateF32.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::Copy for conjure_dsp_lib::svf::StateF32}]
+    Source: 'src/svf.rs', lines 135:16-135:20 -/
+@[reducible]
+def svf.StateF32.Insts.CoreMarkerCopy : core.marker.Copy svf.StateF32 := {
+  cloneInst := svf.StateF32.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::svf::StateF32}]
+    Source: 'src/svf.rs', lines 135:38-135:47 -/
+@[reducible]
+def svf.StateF32.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq svf.StateF32 := {
+}
+
+/-- [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::StateF32> for conjure_dsp_lib::svf::StateF32}::eq]:
+    Source: 'src/svf.rs', lines 135:38-135:47
+    Visibility: public -/
+def svf.StateF32.Insts.CoreCmpPartialEqStateF32.eq
+  (self : svf.StateF32) (other : svf.StateF32) : Result Bool := do
+  if self.s1 == other.s1
+  then ok (self.s2 == other.s2)
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::svf::{impl core::cmp::PartialEq<conjure_dsp_lib::svf::StateF32> for conjure_dsp_lib::svf::StateF32}]
+    Source: 'src/svf.rs', lines 135:38-135:47 -/
+@[reducible]
+def svf.StateF32.Insts.CoreCmpPartialEqStateF32 : core.cmp.PartialEq
+  svf.StateF32 svf.StateF32 := {
+  eq := svf.StateF32.Insts.CoreCmpPartialEqStateF32.eq
+}
+
+/-- [conjure_dsp_lib::svf::step_f32]:
+    Source: 'src/svf.rs', lines 146:0-153:1
+    Visibility: public -/
+def svf.step_f32
+  (c : svf.CoeffsF32) (state : svf.StateF32) (x : Float32) :
+  Result (Float32 × svf.StateF32)
+  := do
+  ok (Float32.add (Float32.add (Float32.mul c.m_hp (Float32.mul (Float32.sub
+    (Float32.sub x (Float32.mul (Float32.add c.k c.g) state.s1)) state.s2)
+    c.d)) (Float32.mul c.m_bp (Float32.add (Float32.mul c.g (Float32.mul
+    (Float32.sub (Float32.sub x (Float32.mul (Float32.add c.k c.g) state.s1))
+    state.s2) c.d)) state.s1))) (Float32.mul c.m_lp (Float32.add (Float32.mul
+    c.g (Float32.add (Float32.mul c.g (Float32.mul (Float32.sub (Float32.sub x
+    (Float32.mul (Float32.add c.k c.g) state.s1)) state.s2) c.d)) state.s1))
+    state.s2)),
+    {
+      s1 :=
+        (Float32.add
+          (Float32.mul
+          c.g
+          (Float32.mul
+          (Float32.sub
+          (Float32.sub
+          x
+          (Float32.mul
+          (Float32.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          (Float32.add
+          (Float32.mul
+          c.g
+          (Float32.mul
+          (Float32.sub
+          (Float32.sub
+          x
+          (Float32.mul
+          (Float32.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          state.s1)),
+      s2 :=
+        (Float32.add
+          (Float32.mul
+          c.g
+          (Float32.add
+          (Float32.mul
+          c.g
+          (Float32.mul
+          (Float32.sub
+          (Float32.sub
+          x
+          (Float32.mul
+          (Float32.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          state.s1))
+          (Float32.add
+          (Float32.mul
+          c.g
+          (Float32.add
+          (Float32.mul
+          c.g
+          (Float32.mul
+          (Float32.sub
+          (Float32.sub
+          x
+          (Float32.mul
+          (Float32.add
+          c.k
+          c.g)
+          state.s1))
+          state.s2)
+          c.d))
+          state.s1))
+          state.s2))
+    })
+
+/-- [conjure_dsp_lib::svf::process_f32]: loop body 0:
+    Source: 'src/svf.rs', lines 160:4-163:5
+    Visibility: public -/
+@[rust_loop_body]
+def svf.process_f32_loop.body
+  (c : svf.CoeffsF32) (state : svf.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (ControlFlow (svf.StateF32 × (Slice Float32) × Std.Usize)
+    (svf.StateF32 × (Slice Float32)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← svf.step_f32 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::svf::process_f32]: loop 0:
+    Source: 'src/svf.rs', lines 160:4-163:5
+    Visibility: public -/
+@[rust_loop]
+def svf.process_f32_loop
+  (c : svf.CoeffsF32) (state : svf.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (svf.StateF32 × (Slice Float32))
+  := do
+  loop
+    (fun (state1, buf1, i1) => svf.process_f32_loop.body c state1 buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::svf::process_f32]:
+    Source: 'src/svf.rs', lines 157:0-164:1
+    Visibility: public -/
+@[reducible]
+def svf.process_f32
+  (c : svf.CoeffsF32) (state : svf.StateF32) (buf : Slice Float32) :
+  Result (svf.StateF32 × (Slice Float32))
+  := do
+  svf.process_f32_loop c state buf 0#usize
+
 end conjure_dsp_lib

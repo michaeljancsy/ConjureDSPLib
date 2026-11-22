@@ -4,8 +4,8 @@
 //! The caller owns the storage: a `buffer` of any length `L`, chosen at run time (for example
 //! two seconds at the current sample rate), and a write `position`. Both carry the delay line's
 //! state from block to block, so pass the same ones every time. Each channel needs its own
-//! buffer and position. This module never allocates memory (the build rules it out; see the crate
-//! documentation; not proved in Lean).
+//! buffer and position. This module never allocates memory (see the crate documentation; not
+//! proved in Lean).
 //!
 //! Write `L` for the length of `buffer`, `d = min(delay_samples, L - 1)` for the delay used and
 //! `p = position mod L` for the write index. For each sample `x` of `audio`, in order, `process`

@@ -424,8 +424,7 @@ least 17, is the SVF's bound itself proved smaller. Nothing here compares the fi
 errors, or proves that they have the same frequency response. One reason for the difference: with
 `svf.complexPolesContraction`, `cInf` and `K` are about 3.41 and 2.41 at every cutoff (worked out
 outside Lean, not proved), while the biquad's `cInf` grows like `1/ω` as the cutoff falls (worked
-out outside Lean, not proved). There is
-no biquad row at 20 Hz (see "Observations").
+out outside Lean, not proved). There is no biquad row at 20 Hz (see "Observations").
 
 ## Observations (not proofs)
 
@@ -441,17 +440,17 @@ What is listed here is observed or expected behaviour, not proved.
   (worked out outside Lean, not proved; it is proved to fail at 82 Hz,
   `biquad.lowPass82Hz_smallness_fails_f32`). That the SVF's actual errors are smaller than the
   biquad's at low cutoffs is expected, not proved.
-- For RBJ-cookbook low-pass and high-pass biquads (which have the same poles), binary32
-  coefficients can put a pole on or outside the unit circle at very low cutoffs (computed in
-  Python, not proved; `Q` = 0.5, 0.7071, 2 and 10, cutoffs in 0.01 Hz steps up to 200 Hz and
-  1 Hz steps up to half the sample rate, testing `a2 < 1` and `|a1| < 1 + a2`). With the
-  coefficients computed in binary64 and then rounded to binary32, this happens at some cutoffs
-  below about 2.1 Hz at 44.1 kHz, 2.2 Hz at 48 kHz and 4.4 Hz at 96 kHz. With them computed in
-  binary32 throughout, it happens at some cutoffs up to about 2.8 Hz at 44.1 kHz, 3 Hz at 48 kHz and 6 Hz at
-  96 kHz, the worst case being `Q = 0.5`. It also happens at some cutoffs within 6 Hz of half the
-  sample rate. One case is proved for specific stored values: the binary32 coefficients in
-  `lowPass1Hz_f32`, which are those of a 1 Hz Butterworth low-pass at 48 kHz (worked out outside
-  Lean, not proved), have a pole at exactly 1 (`biquad.lowPass1Hz_pole_one_f32`).
+- For RBJ-cookbook low-pass and high-pass biquads (which have the same poles), binary32 coefficients
+  can put a pole on or outside the unit circle at very low cutoffs (worked out outside Lean, in
+  Python, not proved; `Q` = 0.5, 0.7071, 2 and 10, cutoffs in 0.01 Hz steps up to 200 Hz and 1 Hz
+  steps up to half the sample rate, testing `a2 < 1` and `|a1| < 1 + a2`). With the coefficients
+  computed in binary64 and then rounded to binary32, this happens at some cutoffs below about 2.1 Hz
+  at 44.1 kHz, 2.2 Hz at 48 kHz and 4.4 Hz at 96 kHz. With them computed in binary32 throughout, it
+  happens at some cutoffs up to about 2.8 Hz at 44.1 kHz, 3 Hz at 48 kHz and 6 Hz at 96 kHz, the
+  worst case being `Q = 0.5`. It also happens at some cutoffs within 6 Hz of half the sample rate.
+  One case is proved for specific stored values: the binary32 coefficients in `lowPass1Hz_f32`,
+  which are those of a 1 Hz Butterworth low-pass at 48 kHz (worked out outside Lean, not proved),
+  have a pole at exactly 1 (`biquad.lowPass1Hz_pole_one_f32`).
 
 ## What is assumed, not proved
 
@@ -477,7 +476,7 @@ What is listed here is observed or expected behaviour, not proved.
   results kept (no flush-to-zero) and subnormal inputs read as they are (no denormals-are-zero),
   and in IEEE single and double precision (not x87 extended precision, as 32-bit x86 without SSE2
   can). Hosts and plug-ins often turn on flush-to-zero; with it on, results near zero can differ
-  from the model by more than `η`, and the error bounds do not cover that.
+  from the model by more than `η`, and the error bounds are not proved for that mode.
 - Rust's `f32`/`f64` operations and Lean's `Float32`/`Float` operations are the same IEEE 754
   round-to-nearest operations. FloatLib relates Lean's floats to real numbers; nothing here
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
@@ -506,8 +505,9 @@ What is listed here is observed or expected behaviour, not proved.
   complex poles (`svf.complexPolesContraction`: `d > 0`, `g·k > 0` and `k² < 4·(1/d − g·(g + k))`),
   and any biquad `Contraction` of `svf.poleBiquad` gives one (`svf.ofBiquad`, when `g·d ≠ 0`), whose
   `cInf` is the biquad's `cInf` times `1 + (1 + |A₂₂|)/|A₁₂|`, a factor that grows like `1/(g·d)`
-  as `g` shrinks (the growth worked out outside Lean, not proved). Worked examples are proved only for the low-pass values in
-  the SVF table above, whose stored coefficients are worked out outside Lean, not proved.
+  as `g` shrinks (the growth worked out outside Lean, not proved). Worked examples are proved only
+  for the low-pass values in the SVF table above, whose stored coefficients are worked out outside
+  Lean, not proved.
 - Not proved for the state-variable filter: its frequency response, or that it equals any biquad's;
   stability for all coefficients, including that the coefficients the design functions compute meet
   the conditions above at every cutoff (they depend on libm's `tan`, outside the model); and that

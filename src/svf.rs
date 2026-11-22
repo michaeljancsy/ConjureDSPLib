@@ -58,7 +58,7 @@
 //! the others, under that assumption; see `proofs/README.md`).
 //!
 //! Flushing subnormal numbers to zero is the caller's job (if the caller turns on the processor's
-//! flush-to-zero mode, the error bounds no longer apply near zero; see `proofs/README.md`).
+//! flush-to-zero mode, the error bounds are not proved for that mode; see `proofs/README.md`).
 //!
 //! Call these through the module, as `svf::process_f32`.
 

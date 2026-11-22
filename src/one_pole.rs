@@ -19,7 +19,7 @@
 //! **Subnormals.** A decaying output drifts into subnormal numbers, which are slow on some
 //! processors (the drift worked out outside Lean, not proved; the slowness a hardware fact). This
 //! module does nothing about that: flushing subnormals to zero is the caller's job (if the caller
-//! turns on the processor's flush-to-zero mode, the error bounds no longer apply near zero; see
+//! turns on the processor's flush-to-zero mode, the error bounds are not proved for that mode; see
 //! `proofs/README.md`).
 //!
 //! Call these through the module, as `one_pole::process_f32`.

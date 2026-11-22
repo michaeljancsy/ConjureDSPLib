@@ -3,7 +3,7 @@
 # Only KEY=value lines: the script reads this file as shell.
 AENEAS_REPO=https://github.com/michaeljancsy/aeneas.git
 AENEAS_BRANCH=conjure
-AENEAS_COMMIT=92fb2e46b14cd2e683cb5f9fe5128879150ee782
+AENEAS_COMMIT=bb72619bac75881a772ead7a83dc3c02e3be4f51
 CHARON_COMMIT=de8736f7c995ac54dc490345cef9ea5143c06c62
 LEAN=v4.35.0
 MATHLIB=v4.35.0

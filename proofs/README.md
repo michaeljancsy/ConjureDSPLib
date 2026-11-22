@@ -64,6 +64,14 @@ The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 
 ## What is assumed, not proved
 
 - Charon and Aeneas translate the Rust code into Lean faithfully.
+- Aeneas's float model (from the pinned `conjure` commit) has a single NaN: any operation that
+  produces a NaN drops its sign and payload. So anything that reads a NaN's sign or bit pattern
+  (`to_bits`, `is_sign_*`, `copysign`, `recip`, casts, and `from_bits` of a NaN bit pattern) can
+  differ from compiled Rust. `min`/`max` of +0 and −0 may return either; Rust leaves this open
+  too, and the model does not let a proof depend on which. No proof here relies on NaN bit
+  patterns, NaN signs, or which zero `min`/`max` returns.
+- Not modelled: `sin`, `exp` and other transcendental functions, and the `NAN` constant. This
+  crate uses none of them.
 - Rust's `f32`/`f64` operations and Lean's `Float32`/`Float` operations are the same IEEE 754
   round-to-nearest operations. FloatLib relates Lean's floats to real numbers; nothing here
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a

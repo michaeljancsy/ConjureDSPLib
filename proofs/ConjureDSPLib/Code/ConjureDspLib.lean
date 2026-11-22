@@ -444,6 +444,138 @@ def biquad.process_f32
   := do
   biquad.process_f32_loop c state buf 0#usize
 
+/-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
+    Source: 'src/delay.rs', lines 51:4-63:5
+    Visibility: public -/
+@[rust_loop_body]
+def delay.process_f64_loop.body
+  (len : Std.Usize) (buffer : Slice Float) (audio : Slice Float)
+  (w : Std.Usize) (r : Std.Usize) (i : Std.Usize) :
+  Result (ControlFlow ((Slice Float) × (Slice Float) × Std.Usize × Std.Usize
+    × Std.Usize) ((Slice Float) × Std.Usize × (Slice Float)))
+  := do
+  let i1 := Slice.len audio
+  if i < i1
+  then
+    let fl ← Slice.index_usize audio i
+    let buffer1 ← Slice.update buffer w fl
+    let fl1 ← Slice.index_usize buffer1 r
+    let s ← Slice.update audio i fl1
+    let w1 ← w + 1#usize
+    let w2 ← if w1 = len
+               then ok 0#usize
+               else ok w1
+    let r1 ← r + 1#usize
+    let r2 ← if r1 = len
+               then ok 0#usize
+               else ok r1
+    let i2 ← i + 1#usize
+    ok (cont (buffer1, s, w2, r2, i2))
+  else ok (done (buffer, w, audio))
+
+/-- [conjure_dsp_lib::delay::process_f64]: loop 0:
+    Source: 'src/delay.rs', lines 51:4-63:5
+    Visibility: public -/
+@[rust_loop]
+def delay.process_f64_loop
+  (buffer : Slice Float) (audio : Slice Float) (len : Std.Usize)
+  (w : Std.Usize) (r : Std.Usize) (i : Std.Usize) :
+  Result ((Slice Float) × Std.Usize × (Slice Float))
+  := do
+  loop
+    (fun (buffer1, audio1, w1, r1, i1) => delay.process_f64_loop.body len
+      buffer1 audio1 w1 r1 i1)
+    (buffer, audio, w, r, i)
+
+/-- [conjure_dsp_lib::delay::process_f64]:
+    Source: 'src/delay.rs', lines 30:0-65:1
+    Visibility: public -/
+def delay.process_f64
+  (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize)
+  (audio : Slice Float) :
+  Result ((Slice Float) × Std.Usize × (Slice Float))
+  := do
+  let len := Slice.len buffer
+  if len = 0#usize
+  then ok (buffer, position, audio)
+  else
+    let d ← if delay_samples < len
+              then ok delay_samples
+              else len - 1#usize
+    let w ← position % len
+    let r ← if d <= w
+              then w - d
+              else do
+                   let i ← len - d
+                   w + i
+    delay.process_f64_loop buffer audio len w r 0#usize
+
+/-- [conjure_dsp_lib::delay::process_f32]: loop body 0:
+    Source: 'src/delay.rs', lines 90:4-102:5
+    Visibility: public -/
+@[rust_loop_body]
+def delay.process_f32_loop.body
+  (len : Std.Usize) (buffer : Slice Float32) (audio : Slice Float32)
+  (w : Std.Usize) (r : Std.Usize) (i : Std.Usize) :
+  Result (ControlFlow ((Slice Float32) × (Slice Float32) × Std.Usize ×
+    Std.Usize × Std.Usize) ((Slice Float32) × Std.Usize × (Slice Float32)))
+  := do
+  let i1 := Slice.len audio
+  if i < i1
+  then
+    let fl ← Slice.index_usize audio i
+    let buffer1 ← Slice.update buffer w fl
+    let fl1 ← Slice.index_usize buffer1 r
+    let s ← Slice.update audio i fl1
+    let w1 ← w + 1#usize
+    let w2 ← if w1 = len
+               then ok 0#usize
+               else ok w1
+    let r1 ← r + 1#usize
+    let r2 ← if r1 = len
+               then ok 0#usize
+               else ok r1
+    let i2 ← i + 1#usize
+    ok (cont (buffer1, s, w2, r2, i2))
+  else ok (done (buffer, w, audio))
+
+/-- [conjure_dsp_lib::delay::process_f32]: loop 0:
+    Source: 'src/delay.rs', lines 90:4-102:5
+    Visibility: public -/
+@[rust_loop]
+def delay.process_f32_loop
+  (buffer : Slice Float32) (audio : Slice Float32) (len : Std.Usize)
+  (w : Std.Usize) (r : Std.Usize) (i : Std.Usize) :
+  Result ((Slice Float32) × Std.Usize × (Slice Float32))
+  := do
+  loop
+    (fun (buffer1, audio1, w1, r1, i1) => delay.process_f32_loop.body len
+      buffer1 audio1 w1 r1 i1)
+    (buffer, audio, w, r, i)
+
+/-- [conjure_dsp_lib::delay::process_f32]:
+    Source: 'src/delay.rs', lines 69:0-104:1
+    Visibility: public -/
+def delay.process_f32
+  (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize)
+  (audio : Slice Float32) :
+  Result ((Slice Float32) × Std.Usize × (Slice Float32))
+  := do
+  let len := Slice.len buffer
+  if len = 0#usize
+  then ok (buffer, position, audio)
+  else
+    let d ← if delay_samples < len
+              then ok delay_samples
+              else len - 1#usize
+    let w ← position % len
+    let r ← if d <= w
+              then w - d
+              else do
+                   let i ← len - d
+                   w + i
+    delay.process_f32_loop buffer audio len w r 0#usize
+
 /-- [conjure_dsp_lib::gain::apply_f64]:
     Source: 'src/gain.rs', lines 6:0-8:1
     Visibility: public -/

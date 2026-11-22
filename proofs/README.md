@@ -22,7 +22,7 @@ index, no arithmetic overflow on indices, and it terminates.
 | `biquad::step_f64` | `biquad.step_f64_eq` | `Biquad/SpecF64.lean` | Exactly the transposed-direct-form-II step `tdf2_f64` (output `b0·x + s1`, new state `b1·x - a1·y + s2` and `b2·x - a2·y`) in binary64, in the Rust code's order; never fails. |
 | `biquad::process_f64` | `biquad.process_f64_spec` | `Biquad/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `tdf2_f64` to each sample in turn (Lean's `filt_f64`). |
 | `biquad::step_f32`, `process_f32` | `biquad.step_f32_eq`, `biquad.process_f32_spec` | `Biquad/SpecF32.lean` | The same two facts in binary32. |
-| (the biquad's form) | `biquad.tdf2_real_eq_df1_real_zero`, `biquad.tdf2_real_eq_df1_real` | `Biquad/Textbook.lean` | In exact arithmetic, the transposed form from a zero state gives exactly the textbook recurrence `y[n] = b0·x[n] + b1·x[n-1] + b2·x[n-2] - a1·y[n-1] - a2·y[n-2]` with zero history (and, in general, from the state that matches a given history). |
+| (the biquad's form) | `biquad.filt_real_eq_df1_real_zero`, `biquad.filt_real_eq_df1_real` | `Biquad/Textbook.lean` | In exact arithmetic, the transposed form from a zero state gives exactly the textbook recurrence `y[n] = b0·x[n] + b1·x[n-1] + b2·x[n-2] - a1·y[n-1] - a2·y[n-2]` with zero history (and, in general, from the state that matches a given history). |
 
 The `toReal` and error theorems are stated about the expression `x + a * y`; the `step_*_eq`
 theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
@@ -67,8 +67,9 @@ The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 
 - Rust's `f32`/`f64` operations and Lean's `Float32`/`Float` operations are the same IEEE 754
   round-to-nearest operations. FloatLib relates Lean's floats to real numbers; nothing here
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a
-  separate multiply and add: Rust does not fuse `x + a * y` into one multiply-add instruction
-  unless the code asks for `mul_add`, and this code does not.
+  separate multiply and add: Rust does not fuse `x + a * y` (or the biquad's `b0 * x + s1` and
+  `b1 * x - a1 * y + s2`) into one multiply-add instruction unless the code asks for `mul_add`,
+  and this code does not.
 - The biquad's floating-point error bound is not proved yet (issue #5, second part). The
   textbook equivalence is in exact arithmetic: in floating point the transposed form and the
   textbook form round differently.
@@ -85,7 +86,8 @@ The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 
   (`OnePole/`). Inside a folder: `SpecF64.lean`/`SpecF32.lean` say what the translated code
   computes; `BridgeF64.lean`/`BridgeF32.lean` relate one step to real numbers; `Block.lean` holds
   the whole-block argument on real numbers only, shared by both precisions, and
-  `BlockF64.lean`/`BlockF32.lean` apply it to the Rust functions.
+  `BlockF64.lean`/`BlockF32.lean` apply it to the Rust functions; `Textbook.lean` (real numbers
+  only) shows the code's form of a filter equals the textbook formula.
 - Names: Lean names about one precision end in `_f64` or `_f32`, like the Rust names
   (`filt_f64`, `real_f32`, `NoOverflow_f64`), and the filter functions keep the `filt_` prefix
   (`filt_real`). Otherwise Lean names follow Mathlib: definitions that are statements start with

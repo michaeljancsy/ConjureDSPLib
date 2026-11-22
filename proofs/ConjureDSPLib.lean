@@ -11,5 +11,5 @@ public import ConjureDSPLib.OnePole.Block
 public import ConjureDSPLib.OnePole.BlockF64
 public import ConjureDSPLib.OnePole.BlockF32
 public import ConjureDSPLib.Biquad.SpecF64
-public import ConjureDSPLib.Biquad.Textbook
 public import ConjureDSPLib.Biquad.SpecF32
+public import ConjureDSPLib.Biquad.Textbook

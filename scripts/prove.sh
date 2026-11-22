@@ -113,8 +113,9 @@ fi
 
 step "1. Charon"
 mkdir -p target
-# Derived `Debug` and `Default` implementations are not DSP code, and translating them would bring
-# in Aeneas axioms for formatting and defaults of floats, so they are left out.
+# All `Debug` and `Default` implementations are left out: they are not DSP code, and translating
+# them would bring in Aeneas axioms for formatting and default values of floats. So proved code
+# cannot call them (for example `StateF64::default()`).
 "$CHARON_BIN" cargo --preset=aeneas \
   --exclude '{impl core::fmt::Debug for _}' --exclude '{impl core::default::Default for _}' \
   --dest-file target/conjure_dsp_lib.llbc

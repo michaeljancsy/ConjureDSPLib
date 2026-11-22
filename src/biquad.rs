@@ -13,8 +13,12 @@
 //! ```
 //!
 //! In exact arithmetic the two forms give the same output; in floating point they round
-//! differently. This module computes exactly the steps above, in that order (the same order as
-//! a reference transposed-form biquad, so code can move onto it with bit-identical output).
+//! differently. This module computes exactly the steps above, in that order and grouping
+//! (`s1 = (b1·x - a1·y) + s2`), with no fused multiply-add, so code that uses the same order
+//! gets bit-identical output.
+//!
+//! One set of coefficients can be shared by several channels, each with its own state. The
+//! coefficients can change between calls; the state is kept.
 //!
 //! Designing coefficients (low-pass, shelf, ...) is not part of this module. The filter is stable
 //! when both poles are inside the unit circle: `|a2| < 1` and `|a1| < 1 + a2`. Flushing
@@ -37,12 +41,24 @@ pub struct CoeffsF64 {
     pub a2: f64,
 }
 
-/// The two state values of one biquad channel, in `f64`. Start from zero.
+impl CoeffsF64 {
+    /// Coefficients that pass the input through unchanged (`b0 = 1`, all others 0).
+    pub const IDENTITY: Self = Self {
+        b0: 1.0,
+        b1: 0.0,
+        b2: 0.0,
+        a1: 0.0,
+        a2: 0.0,
+    };
+}
+
+/// The two state values of one biquad channel, in `f64`. `StateF64::default()` is the zero
+/// state, for a filter that has seen only silence.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct StateF64 {
-    /// First state value.
+    /// Carried into the next output: `y = b0·x + s1`.
     pub s1: f64,
-    /// Second state value.
+    /// Carried into the next `s1`: `s1 = b1·x - a1·y + s2`.
     pub s2: f64,
 }
 
@@ -81,12 +97,24 @@ pub struct CoeffsF32 {
     pub a2: f32,
 }
 
-/// The two state values of one biquad channel, in `f32`. Start from zero.
+impl CoeffsF32 {
+    /// Coefficients that pass the input through unchanged (`b0 = 1`, all others 0).
+    pub const IDENTITY: Self = Self {
+        b0: 1.0,
+        b1: 0.0,
+        b2: 0.0,
+        a1: 0.0,
+        a2: 0.0,
+    };
+}
+
+/// The two state values of one biquad channel, in `f32`. `StateF32::default()` is the zero
+/// state, for a filter that has seen only silence.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct StateF32 {
-    /// First state value.
+    /// Carried into the next output: `y = b0·x + s1`.
     pub s1: f32,
-    /// Second state value.
+    /// Carried into the next `s1`: `s1 = b1·x - a1·y + s2`.
     pub s2: f32,
 }
 
@@ -130,7 +158,7 @@ mod tests {
                 };
 
                 /// The textbook direct form I recurrence, for comparison.
-                fn direct_form_1(c: &$coeffs, xs: &[$t]) -> [$t; 6] {
+                fn direct_form_1(c: &$coeffs, xs: &[$t; 6]) -> [$t; 6] {
                     let mut out = [0.0; 6];
                     let (mut x1, mut x2, mut y1, mut y2): ($t, $t, $t, $t) = (0.0, 0.0, 0.0, 0.0);
                     for (o, &x) in out.iter_mut().zip(xs) {
@@ -189,6 +217,52 @@ mod tests {
 
                     assert_eq!(whole, split);
                     assert_eq!(s1, s2);
+                }
+
+                /// The step written out the usual way: `z` holds `[s1, s2]`, `y = b0·x + z0`,
+                /// `z0 = b1·x - a1·y + z1`, `z1 = b2·x - a2·y`.
+                fn reference_step(c: &$coeffs, z: &mut [$t; 2], x: $t) -> $t {
+                    let y = c.b0 * x + z[0];
+                    z[0] = c.b1 * x - c.a1 * y + z[1];
+                    z[1] = c.b2 * x - c.a2 * y;
+                    y
+                }
+
+                #[test]
+                fn same_bits_as_the_reference_order() {
+                    // Coefficients and inputs that are not exact in binary, so a different
+                    // operation order would round differently (checked below).
+                    let c = $coeffs {
+                        b0: 0.3,
+                        b1: -0.7,
+                        b2: 0.11,
+                        a1: -1.3,
+                        a2: 0.47,
+                    };
+                    // 64 varied inputs in [-0.5, 0.5).
+                    let mut input: [$t; 64] = [0.0; 64];
+                    for (k, x) in input.iter_mut().enumerate() {
+                        *x = ((k * 37 % 101) as $t) / 101.0 - 0.5;
+                    }
+                    let mut buf = input;
+                    let mut state = $state::default();
+                    $process(&c, &mut state, &mut buf);
+
+                    let mut z: [$t; 2] = [0.0, 0.0];
+                    let mut reordered: [$t; 2] = [0.0, 0.0];
+                    let mut differs = false;
+                    for (out, x) in buf.iter().zip(input) {
+                        let y = reference_step(&c, &mut z, x);
+                        assert_eq!(out.to_bits(), y.to_bits());
+                        // The same maths in another order: s1 = (b1·x + s2) - a1·y.
+                        let y2 = c.b0 * x + reordered[0];
+                        reordered[0] = c.b1 * x + reordered[1] - c.a1 * y2;
+                        reordered[1] = c.b2 * x - c.a2 * y2;
+                        differs |= y2.to_bits() != y.to_bits();
+                    }
+                    assert_eq!(state, $state { s1: z[0], s2: z[1] });
+                    // This test can tell the orders apart.
+                    assert!(differs);
                 }
 
                 #[test]

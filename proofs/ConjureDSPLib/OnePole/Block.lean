@@ -48,6 +48,47 @@ def WithinStepErr (A u η : ℝ) : ℝ → List ℝ → ℝ → List ℝ → Pro
     |y' - (x + A * y)| ≤ stepErr A u η y x ∧ WithinStepErr A u η y' xs f ys
   | _, _, _, _ => False
 
+/-- One step keeps both bounds: if the computed state `y` is within `E` of the exact state `r`,
+`|r| ≤ B`, the input is at most `M`, and the step's rounding is within `stepErr`, then the new
+computed state `y'` is within `E` of the new exact state, which is at most `B`. -/
+theorem block_step (A u η M B E x y r y' : ℝ) (hu : 0 ≤ u) (hB : M + |A| * B ≤ B)
+    (hE : u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E)
+    (hx : |x| ≤ M) (hyr : |y - r| ≤ E) (hr : |r| ≤ B)
+    (hstep : |y' - (x + A * y)| ≤ stepErr A u η y x) :
+    |y' - (x + A * r)| ≤ E ∧ |x + A * r| ≤ B := by
+  have hA := abs_nonneg A
+  have hy : |y| ≤ B + E := by
+    calc |y| = |(y - r) + r| := by ring_nf
+      _ ≤ |y - r| + |r| := abs_add_le _ _
+      _ ≤ B + E := by linarith
+  -- One step's rounding error, bounded using |x| ≤ M and |y| ≤ B + E.
+  have hs : stepErr A u η y x ≤ u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) := by
+    unfold stepErr
+    have h1 : |x + A * y| ≤ M + |A| * (B + E) := by
+      calc |x + A * y| ≤ |x| + |A * y| := abs_add_le _ _
+        _ = |x| + |A| * |y| := by rw [abs_mul]
+        _ ≤ M + |A| * (B + E) := add_le_add hx (mul_le_mul_of_nonneg_left hy hA)
+    have h2 : |A * y| ≤ |A| * (B + E) := by
+      rw [abs_mul]; exact mul_le_mul_of_nonneg_left hy hA
+    have k1 := mul_le_mul_of_nonneg_right h1 hu
+    have k2 := mul_le_mul_of_nonneg_right h2 (by positivity : 0 ≤ u * (1 + u))
+    nlinarith [k1, k2]
+  constructor
+  · -- The new error: this step's rounding plus the old error, shrunk by |A|.
+    have e : y' - (x + A * r) = (y' - (x + A * y)) + A * (y - r) := by ring
+    rw [e]
+    calc |(y' - (x + A * y)) + A * (y - r)|
+        ≤ |y' - (x + A * y)| + |A * (y - r)| := abs_add_le _ _
+      _ = |y' - (x + A * y)| + |A| * |y - r| := by rw [abs_mul]
+      _ ≤ (u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E)) + |A| * E :=
+        add_le_add (hstep.trans hs) (mul_le_mul_of_nonneg_left hyr hA)
+      _ ≤ E := hE
+  · -- The exact filter stays within B (stability).
+    calc |x + A * r| ≤ |x| + |A * r| := abs_add_le _ _
+      _ = |x| + |A| * |r| := by rw [abs_mul]
+      _ ≤ M + |A| * B := add_le_add hx (mul_le_mul_of_nonneg_left hr hA)
+      _ ≤ B := hB
+
 /-- The induction behind `block_error_real` (its auxiliary lemma), with the bounds `B` (on the
 exact filter) and `E` (on the error) as parameters satisfying the two inequalities that make
 them invariant. -/
@@ -74,43 +115,44 @@ theorem block_error_core (A u η M B E : ℝ) (hu : 0 ≤ u) (hB : M + |A| * B �
     | cons y' ys =>
       simp only [WithinStepErr] at hw
       obtain ⟨hstep, hrest⟩ := hw
-      have hx : |x| ≤ M := hM x (by simp)
-      have hA := abs_nonneg A
-      have hy : |y| ≤ B + E := by
-        calc |y| = |(y - r) + r| := by ring_nf
-          _ ≤ |y - r| + |r| := abs_add_le _ _
-          _ ≤ B + E := by linarith
-      -- One step's rounding error, bounded using |x| ≤ M and |y| ≤ B + E.
-      have hs : stepErr A u η y x ≤ u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) := by
-        unfold stepErr
-        have h1 : |x + A * y| ≤ M + |A| * (B + E) := by
-          calc |x + A * y| ≤ |x| + |A * y| := abs_add_le _ _
-            _ = |x| + |A| * |y| := by rw [abs_mul]
-            _ ≤ M + |A| * (B + E) := add_le_add hx (mul_le_mul_of_nonneg_left hy hA)
-        have h2 : |A * y| ≤ |A| * (B + E) := by
-          rw [abs_mul]; exact mul_le_mul_of_nonneg_left hy hA
-        have k1 := mul_le_mul_of_nonneg_right h1 hu
-        have k2 := mul_le_mul_of_nonneg_right h2 (by positivity : 0 ≤ u * (1 + u))
-        nlinarith [k1, k2]
-      -- The new error: this step's rounding plus the old error, shrunk by |A|.
-      have herr : |y' - (x + A * r)| ≤ E := by
-        have e : y' - (x + A * r) = (y' - (x + A * y)) + A * (y - r) := by ring
-        rw [e]
-        calc |(y' - (x + A * y)) + A * (y - r)|
-            ≤ |y' - (x + A * y)| + |A * (y - r)| := abs_add_le _ _
-          _ = |y' - (x + A * y)| + |A| * |y - r| := by rw [abs_mul]
-          _ ≤ (u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E)) + |A| * E :=
-            add_le_add (hstep.trans hs) (mul_le_mul_of_nonneg_left hyr hA)
-          _ ≤ E := hE
-      -- The exact filter stays within B (stability).
-      have hr' : |x + A * r| ≤ B := by
-        calc |x + A * r| ≤ |x| + |A * r| := abs_add_le _ _
-          _ = |x| + |A| * |r| := by rw [abs_mul]
-          _ ≤ M + |A| * B := add_le_add hx (mul_le_mul_of_nonneg_left hr hA)
-          _ ≤ B := hB
+      obtain ⟨herr, hr'⟩ :=
+        block_step A u η M B E x y r y' hu hB hE (hM x (by simp)) hyr hr hstep
       obtain ⟨h1, h2⟩ :=
         ih y' (x + A * r) f ys (fun z hz => hM z (List.mem_cons_of_mem _ hz)) herr hr' hrest
       exact ⟨List.Forall₂.cons herr h1, h2⟩
+
+/-- `B` of `block_error_real`: a bound on the exact filter's outputs from state `S` with inputs
+at most `M`. -/
+noncomputable def outBound (A M S : ℝ) : ℝ := |S| + M / (1 - |A|)
+
+/-- `E` of `block_error_real`: the whole-block error bound. -/
+noncomputable def errBound (A u η M S : ℝ) : ℝ :=
+  (u * M + η * (2 + u) + |A| * u * (2 + u) * outBound A M S) / (1 - |A| - |A| * u * (2 + u))
+
+/-- The constants of `block_error_real` work: `E ≥ 0`, `|S| ≤ B`, and the two inequalities that
+`block_step` needs. -/
+theorem block_constants (A u η M S : ℝ) (hu : 0 ≤ u) (hη : 0 ≤ η) (hM0 : 0 ≤ M)
+    (hstab : |A| + |A| * u * (2 + u) < 1) :
+    let B := |S| + M / (1 - |A|)
+    let E := (u * M + η * (2 + u) + |A| * u * (2 + u) * B) / (1 - |A| - |A| * u * (2 + u))
+    0 ≤ E ∧ |S| ≤ B ∧ M + |A| * B ≤ B ∧
+      u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E := by
+  intro B E
+  have hA := abs_nonneg A
+  have hκ : 0 ≤ |A| * u * (2 + u) := by positivity
+  have hα : 0 < 1 - |A| := by linarith
+  have hden : 0 < 1 - |A| - |A| * u * (2 + u) := by linarith
+  have hB0 : 0 ≤ M / (1 - |A|) := div_nonneg hM0 hα.le
+  have hBnn : 0 ≤ B := by positivity
+  have hE0 : 0 ≤ E := div_nonneg (by positivity) hden.le
+  have hB : M + |A| * B ≤ B := by
+    have : M = (1 - |A|) * (M / (1 - |A|)) := by field_simp
+    nlinarith [abs_nonneg S]
+  have hEeq : E * (1 - |A| - |A| * u * (2 + u)) =
+      u * M + η * (2 + u) + |A| * u * (2 + u) * B := div_mul_cancel₀ _ hden.ne'
+  have hE : u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E := by
+    nlinarith [hEeq]
+  exact ⟨hE0, by simp only [B]; linarith, hB, hE⟩
 
 /-- **Whole-block error, on real numbers.** Suppose the inputs are bounded by `M`, the filter
 starts from state `S`, and each computed step is within the per-step rounding error of the exact
@@ -129,22 +171,8 @@ theorem block_error_real (A u η M S : ℝ) (hu : 0 ≤ u) (hη : 0 ≤ η) (hM0
     List.Forall₂ (fun c e => |c - e| ≤ E) ys (filt_real A S xs).2 ∧
       |f - (filt_real A S xs).1| ≤ E := by
   intro B E
-  have hA := abs_nonneg A
-  have hκ : 0 ≤ |A| * u * (2 + u) := by positivity
-  have hα : 0 < 1 - |A| := by linarith
-  have hden : 0 < 1 - |A| - |A| * u * (2 + u) := by linarith
-  have hB0 : 0 ≤ M / (1 - |A|) := div_nonneg hM0 hα.le
-  have hBnn : 0 ≤ B := by positivity
-  have hE0 : 0 ≤ E := div_nonneg (by positivity) hden.le
-  have hB : M + |A| * B ≤ B := by
-    have : M = (1 - |A|) * (M / (1 - |A|)) := by field_simp
-    nlinarith [abs_nonneg S]
-  have hEeq : E * (1 - |A| - |A| * u * (2 + u)) =
-      u * M + η * (2 + u) + |A| * u * (2 + u) * B := div_mul_cancel₀ _ hden.ne'
-  have hE : u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E := by
-    nlinarith [hEeq]
-  exact block_error_core A u η M B E hu hB hE xs S S f ys hM (by simpa using hE0)
-    (by simp [B]; linarith) hw
+  obtain ⟨hE0, hSB, hB, hE⟩ := block_constants A u η M S hu hη hM0 hstab
+  exact block_error_core A u η M B E hu hB hE xs S S f ys hM (by simpa using hE0) hSB hw
 
 end conjure_dsp_lib.one_pole
 

@@ -123,36 +123,35 @@ bound can be slightly weaker than the formula's value.
 
 | Precision | `a` | Size of `A` at most | `B` | `E` | `E / B` | `E` relative to `B` | Theorem |
 |---|---|---|---|---|---|---|---|
-| f32 | 0.5 | 0.5 | ≤ 2 | ≤ 3.6 × 10⁻⁷ | ≤ 1.79 × 10⁻⁷ | ≤ −134.9 dB | `block_constants_le_of_abs_le_half_f32` |
-| f32 | 0.99 | 0.990001 | ≤ 100.02 | ≤ 1.19 × 10⁻³ | ≤ 1.187 × 10⁻⁵ | ≤ −98.5 dB | `block_constants_le_of_abs_le_099_f32` |
-| f32 | 0.999 | 0.999001 | ≤ 1001.01 | ≤ 0.12 | ≤ 1.193 × 10⁻⁴ | ≤ −78.4 dB | `block_constants_le_of_abs_le_0999_f32` |
-| f64 | 0.99 | 0.99 | ≤ 100 | ≤ 2.21 × 10⁻¹² | ≤ 2.21 × 10⁻¹⁴ | ≤ −273.1 dB | `block_constants_le_of_abs_le_099_f64` |
-| f64 | 0.999 | 0.999 | ≤ 1000 | ≤ 2.22 × 10⁻¹⁰ | ≤ 2.22 × 10⁻¹³ | ≤ −253.0 dB | `block_constants_le_of_abs_le_0999_f64` |
+| f32 | 0.5 | 0.5 | ≤ 2 | ≤ 3.6 × 10⁻⁷ | ≤ 1.79 × 10⁻⁷ | ≤ −134.9 dB | `table_row_le_of_abs_le_05_f32` |
+| f32 | 0.99 | 0.990001 | ≤ 100.02 | ≤ 1.19 × 10⁻³ | ≤ 1.187 × 10⁻⁵ | ≤ −98.5 dB | `table_row_le_of_abs_le_099_f32` |
+| f32 | 0.999 | 0.999001 | ≤ 1001.01 | ≤ 0.12 | ≤ 1.193 × 10⁻⁴ | ≤ −78.4 dB | `table_row_le_of_abs_le_0999_f32` |
+| f64 | 0.99 | 0.99 | ≤ 100 | ≤ 2.21 × 10⁻¹² | ≤ 2.21 × 10⁻¹⁴ | ≤ −273.1 dB | `table_row_le_of_abs_le_099_f64` |
+| f64 | 0.999 | 0.999 | ≤ 1000 | ≤ 2.22 × 10⁻¹⁰ | ≤ 2.22 × 10⁻¹³ | ≤ −253.0 dB | `table_row_le_of_abs_le_0999_f64` |
 
 Each bound in the third column covers the value the precision stores for `a`: f32 stores 0.5
 exactly, 0.99 as 0.9900000095 and 0.999 as 0.9990000129, and f64 stores 0.99 as
 0.98999999999999999112 and 0.999 as 0.99899999999999999911, just below the decimal values. These
-stored values are worked out outside Lean, not proved: turning a decimal into a float is outside
-the Lean model. The theorems are about every real `A` within the bound, so they hold whatever
-value is stored, as long as it is within the bound.
+stored values are worked out outside Lean, not proved. The theorems are about every real `A` within
+the bound, so they hold whatever value is stored, as long as it is within the bound. The table
+rests on `table_row_le_of_abs_le` in `OnePole/Block.lean`, which uses
+`outBound_errBound_le_of_abs_le`: when `0 ≤ u`, `0 ≤ η`, `|A| ≤ a` and `a + a·u·(2 + u) < 1`, each
+of `B`, `E` and `E / B` (with `M = 1`, `S = 0`) is at most its value at `|A| = a`.
 
 How `E` grows as the size of `A` approaches 1: for inputs at most 1 and a start from 0, if
 `1/2 ≤ |A| ≤ 1 - 2⁻²⁰` in f32 (`errBound_between_of_abs_le_f32`) or `1/2 ≤ |A| ≤ 1 - 2⁻⁴⁹` in f64
 (`errBound_between_of_abs_le_f64`), then `u / (1 - |A|)² ≤ E ≤ 3·u / (1 - |A|)²`, where `u` is
 `2⁻²⁴` in f32 and `2⁻⁵³` in f64 (`unitRoundoff_f32_eq`, `unitRoundoff_f64_eq`). So, within a factor
 of 3, `E` grows like `1 / (1 - |A|)²`. Both rest on `errBound_between_of_abs_le` in
-`OnePole/Block.lean`. The table rests on `block_constants_le_of_abs_le` there, which uses
-`outBound_errBound_le_of_abs_le`: when `0 ≤ u`, `0 ≤ η`, `|A| ≤ a` and `a + a·u·(2 + u) < 1`, each
-of `B`, `E` and `E / B` is at most its value at `|A| = a`.
+`OnePole/Block.lean`.
 
 The size limit of the one-pole `process_f32_block_error_of_inputs` is proved to hold for slow
-smoothers in f32: for every
+smoothers in f32 (the third row of the table above): for every
 real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a starting state of value
 `S = 0`, the stability condition holds, `B ≤ 1001.01`, `E ≤ 0.12`, and `M + (1 + u)·(B + E) + η`
 is at most the largest finite binary32 value (`block_constants_le_of_abs_le_f32`). That value is
 exactly `(2²⁴ - 1)·2¹⁰⁴` (`maxFinite_f32_eq`), and in f32 `u = 2⁻²⁴` and `η = 2⁻¹⁵⁰`
-(`unitRoundoff_f32_eq`, `underflowErr_f32_eq`). The bound 0.999001 leaves room for 0.999
-itself, which f32 stores as 0.9990000129 (worked out by hand, not proved).
+(`unitRoundoff_f32_eq`, `underflowErr_f32_eq`).
 
 For the biquad, the theorems below take an RBJ-cookbook Butterworth low-pass (`Q = 0.7071`) at
 48 kHz, inputs at most 1.0 in size and a start from zero (`realState_f64 s = (0, 0)` /

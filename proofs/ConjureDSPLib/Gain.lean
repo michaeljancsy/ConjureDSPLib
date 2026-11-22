@@ -29,7 +29,8 @@ theorem apply_f32_eq (gain x : Float32) : apply_f32 gain x = ok (gain * x) := rf
 
 /-! ## The ramp in f64 -/
 
-/-- A natural number rounded to the nearest binary64 value (ties to even), in Lean's float model.
+/-- A natural number converted to a binary64 value by Lean's own conversion `Float.Model.ofNat`
+(which Lean core documents as rounding to nearest, ties to even; not proved here).
 `usize_toFloat_eq_castNat_f64` shows it is the translated Rust `i as f64`. -/
 def castNat_f64 (n : ℕ) : Float := Float.ofModel (Float.Model.ofNat n)
 
@@ -128,7 +129,8 @@ theorem ramp_f64_spec (start «end» : Float) (buf : Slice Float) :
 
 /-! ## The ramp in f32 -/
 
-/-- A natural number rounded to the nearest binary32 value (ties to even), in Lean's float model.
+/-- A natural number converted to a binary32 value by Lean's own conversion `Float32.Model.ofNat`
+(which Lean core documents as rounding to nearest, ties to even; not proved here).
 `usize_toFloat32_eq_castNat_f32` shows it is the translated Rust `i as f32`. -/
 def castNat_f32 (n : ℕ) : Float32 := Float32.ofModel (Float32.Model.ofNat n)
 

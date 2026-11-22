@@ -8,7 +8,20 @@
 //! **Settling.** In exact arithmetic a steady input settles on itself (unlike
 //! `one_pole::process_*`, which settles at `x / (1 - a)`). In floating point the state comes to
 //! rest close to the input but not always exactly on it, because with `a` near 1 the last steps
-//! round away; no floating-point bound is proved, so do not test `state == target`.
+//! round away, so do not test `state == target`.
+//!
+//! How far off it can be is proved in Lean (`smoother.process_f64_settle_of_inputs`,
+//! `smoother.process_f32_settle_of_inputs`), under the assumptions in `proofs/README.md`. Let
+//! `c = 1.0 - a` as computed (exactly `1 - a` when `0.5 <= a <= 2`) and `A = 1 - c`. If `a`, the
+//! starting state `start` and `x` are finite, `|a| <= 1`, `A` passes the stability condition
+//! `|A| + errGrowth A u < 1` (in `proofs/README.md`), which implies `|A| < 1`, and, for a bound
+//! `M >= |x|`, an explicit size condition on `M`, the start and `E` (given in `proofs/README.md`)
+//! holds, then after `n` samples of `x` the state is within `|A|^n * |start - x| + E` of `x`,
+//! where `E` is a rounding bound given there. For example, with `a = 0.999`, `|x| <= 1` and
+//! `start = 0`, `E <= 1.12e-13` in `f64` and `E <= 6e-5` in `f32`, and the stability and size
+//! conditions hold (`smoother.table_row_le_of_le_0999_f64`, `sizeCondition_of_le_0999_f64` and
+//! their `f32` versions; this uses the value each precision stores for 0.999, worked out outside
+//! Lean, not proved).
 //!
 //! **Stability.** In exact arithmetic it is stable for `|a| < 1`, and `0 <= a < 1` gives a glide
 //! with no overshoot (`a < 0` makes it alternate around the target).

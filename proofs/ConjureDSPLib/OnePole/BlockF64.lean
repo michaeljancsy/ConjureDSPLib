@@ -226,12 +226,6 @@ theorem stability_of_abs_le_f64 (A : ℝ) (hA : |A| ≤ 1 - 2 ^ (-51 : ℤ)) :
   norm_num at hA ⊢
   nlinarith [abs_nonneg A]
 
-/-- binary64's underflow error is at most `2⁻²⁰⁰`. -/
--- A crude bound, used instead of the exact `2⁻¹⁰⁷⁵`: it keeps the numbers `norm_num` works with
--- small.
-theorem underflowErr_f64_le : underflowErr_f64 ≤ 2 ^ (-200 : ℤ) := by
-  rw [underflowErr_f64_eq]; exact zpow_le_zpow_right₀ (by norm_num) (by norm_num)
-
 -- The dB step checks a power of 10 with up to 1800 digits; norm_num needs a higher limit for that.
 set_option exponentiation.threshold 4000 in
 /-- **Row `a = 0.99` of the one-pole table in `proofs/README.md`, f64.** For every real `A` with

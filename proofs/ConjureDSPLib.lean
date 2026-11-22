@@ -16,6 +16,11 @@ public import ConjureDSPLib.OnePole.BlockF32
 public import ConjureDSPLib.Smoother.SpecF64
 public import ConjureDSPLib.Smoother.SpecF32
 public import ConjureDSPLib.Smoother.Exact
+public import ConjureDSPLib.Smoother.Block
+public import ConjureDSPLib.Smoother.BridgeF64
+public import ConjureDSPLib.Smoother.BridgeF32
+public import ConjureDSPLib.Smoother.BlockF64
+public import ConjureDSPLib.Smoother.BlockF32
 public import ConjureDSPLib.Biquad.SpecF64
 public import ConjureDSPLib.Biquad.SpecF32
 public import ConjureDSPLib.Biquad.Textbook

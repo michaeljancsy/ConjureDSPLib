@@ -10,10 +10,10 @@ public import Mathlib.Tactic.Ring
 # The one-pole filter over a whole block: the real-number argument
 
 Each floating-point step of the filter `y = x + a * y_prev` is close to the exact step (the
-per-step bounds in `BridgeF64.lean` and `BridgeF32.lean`, not imported here). This file shows, on real numbers only,
-that with a stable coefficient (`|A| < 1`, with a little room to spare) those per-step errors do
-not pile up: over a block of any length, every computed output stays within one fixed distance
-`E` of the exact real-number filter's output.
+per-step bounds in `BridgeF64.lean` and `BridgeF32.lean`, not imported here). This file shows,
+on real numbers only, that with a stable coefficient (`|A| < 1`, with a little room to spare)
+those per-step errors do not pile up: over a block of any length, every computed output stays
+within one fixed distance `E` of the exact real-number filter's output.
 
 It uses real numbers only, so it serves both precisions: `BlockF64.lean` and `BlockF32.lean`
 apply it to the Rust functions.
@@ -49,8 +49,9 @@ def WithinStepErr (A u η : ℝ) : ℝ → List ℝ → ℝ → List ℝ → Pro
   | _, _, _, _ => False
 
 /-- One step keeps both bounds: if the computed state `y` is within `E` of the exact state `r`,
-`|r| ≤ B`, the input is at most `M`, and the step's rounding is within `stepErr`, then the new
-computed state `y'` is within `E` of the new exact state, which is at most `B`. -/
+`|r| ≤ B`, the input is at most `M` in size, and the step's rounding is within `stepErr`, then the
+new
+computed state `y'` is within `E` of the new exact state, which is at most `B` in size. -/
 theorem block_step (A u η M B E x y r y' : ℝ) (hu : 0 ≤ u) (hB : M + |A| * B ≤ B)
     (hE : u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E)
     (hx : |x| ≤ M) (hyr : |y - r| ≤ E) (hr : |r| ≤ B)
@@ -121,38 +122,45 @@ theorem block_error_core (A u η M B E : ℝ) (hu : 0 ≤ u) (hB : M + |A| * B �
         ih y' (x + A * r) f ys (fun z hz => hM z (List.mem_cons_of_mem _ hz)) herr hr' hrest
       exact ⟨List.Forall₂.cons herr h1, h2⟩
 
-/-- `B` of `block_error_real`: a bound on the exact filter's outputs from state `S` with inputs
-at most `M`. -/
+/-- `B` of `block_error_real` (and of `filt_f64_block_error`, `process_f64_block_error` and the
+f32 versions): when `|A| < 1`, a bound on the exact filter's outputs from state `S` with inputs at
+most `M` in size. -/
 noncomputable def outBound (A M S : ℝ) : ℝ := |S| + M / (1 - |A|)
 
-/-- `E` of `block_error_real`: the whole-block error bound. -/
+/-- `E` of `block_error_real` (and of `filt_f64_block_error`, `process_f64_block_error` and the
+f32 versions): the whole-block error bound. -/
 noncomputable def errBound (A u η M S : ℝ) : ℝ :=
   (u * M + η * (2 + u) + |A| * u * (2 + u) * outBound A M S) / (1 - |A| - |A| * u * (2 + u))
 
-/-- The constants of `block_error_real` work: `E ≥ 0`, `|S| ≤ B`, and the two inequalities that
-`block_step` needs. -/
+/-- `B = outBound` and `E = errBound` satisfy what `block_step` needs: `E ≥ 0`, `|S| ≤ B`, and
+the two inequalities. -/
 theorem block_constants (A u η M S : ℝ) (hu : 0 ≤ u) (hη : 0 ≤ η) (hM0 : 0 ≤ M)
     (hstab : |A| + |A| * u * (2 + u) < 1) :
-    let B := |S| + M / (1 - |A|)
-    let E := (u * M + η * (2 + u) + |A| * u * (2 + u) * B) / (1 - |A| - |A| * u * (2 + u))
+    let B := outBound A M S
+    let E := errBound A u η M S
     0 ≤ E ∧ |S| ≤ B ∧ M + |A| * B ≤ B ∧
       u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E := by
   intro B E
+  have hBdef : B = |S| + M / (1 - |A|) := rfl
+  have hEdef : E = (u * M + η * (2 + u) + |A| * u * (2 + u) * B) /
+      (1 - |A| - |A| * u * (2 + u)) := rfl
   have hA := abs_nonneg A
   have hκ : 0 ≤ |A| * u * (2 + u) := by positivity
   have hα : 0 < 1 - |A| := by linarith
   have hden : 0 < 1 - |A| - |A| * u * (2 + u) := by linarith
   have hB0 : 0 ≤ M / (1 - |A|) := div_nonneg hM0 hα.le
-  have hBnn : 0 ≤ B := by positivity
-  have hE0 : 0 ≤ E := div_nonneg (by positivity) hden.le
+  have hBnn : 0 ≤ B := by rw [hBdef]; positivity
+  have hE0 : 0 ≤ E := by rw [hEdef]; exact div_nonneg (by positivity) hden.le
   have hB : M + |A| * B ≤ B := by
     have : M = (1 - |A|) * (M / (1 - |A|)) := by field_simp
+    rw [hBdef]
     nlinarith [abs_nonneg S]
   have hEeq : E * (1 - |A| - |A| * u * (2 + u)) =
-      u * M + η * (2 + u) + |A| * u * (2 + u) * B := div_mul_cancel₀ _ hden.ne'
+      u * M + η * (2 + u) + |A| * u * (2 + u) * B := by
+    rw [hEdef]; exact div_mul_cancel₀ _ hden.ne'
   have hE : u * M + η * (2 + u) + |A| * u * (2 + u) * (B + E) + |A| * E ≤ E := by
     nlinarith [hEeq]
-  exact ⟨hE0, by simp only [B]; linarith, hB, hE⟩
+  exact ⟨hE0, by rw [hBdef]; linarith, hB, hE⟩
 
 /-- **Whole-block error, on real numbers.** Suppose the inputs are bounded by `M`, the filter
 starts from state `S`, and each computed step is within the per-step rounding error of the exact
@@ -162,17 +170,17 @@ every computed output, and the final state, is within
 `E = (u·M + η·(2 + u) + |A|·u·(2 + u)·B) / (1 - |A| - |A|·u·(2 + u))`
 
 of the exact real-number filter's, however long the block, where `B = |S| + M / (1 - |A|)`
-bounds the exact filter's outputs. -/
+bounds the exact filter's outputs. (`B` and `E` are `outBound` and `errBound`.) -/
 theorem block_error_real (A u η M S : ℝ) (hu : 0 ≤ u) (hη : 0 ≤ η) (hM0 : 0 ≤ M)
     (hstab : |A| + |A| * u * (2 + u) < 1) (xs : List ℝ) (f : ℝ) (ys : List ℝ)
     (hM : ∀ x ∈ xs, |x| ≤ M) (hw : WithinStepErr A u η S xs f ys) :
-    let B := |S| + M / (1 - |A|)
-    let E := (u * M + η * (2 + u) + |A| * u * (2 + u) * B) / (1 - |A| - |A| * u * (2 + u))
+    let E := errBound A u η M S
     List.Forall₂ (fun c e => |c - e| ≤ E) ys (filt_real A S xs).2 ∧
       |f - (filt_real A S xs).1| ≤ E := by
-  intro B E
+  intro E
   obtain ⟨hE0, hSB, hB, hE⟩ := block_constants A u η M S hu hη hM0 hstab
-  exact block_error_core A u η M B E hu hB hE xs S S f ys hM (by simpa using hE0) hSB hw
+  have h0 : |S - S| ≤ E := by rw [sub_self, abs_zero]; exact hE0
+  exact block_error_core A u η M (outBound A M S) E hu hB hE xs S S f ys hM h0 hSB hw
 
 end conjure_dsp_lib.one_pole
 

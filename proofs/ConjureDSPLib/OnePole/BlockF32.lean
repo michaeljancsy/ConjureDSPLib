@@ -11,6 +11,9 @@ coefficient (with a little room for rounding) and no step overflows, every outpu
 final state are within a fixed distance `E` of the exact real-number filter, for a block of any
 length. `E` depends only on the input bound `M`, the coefficient, the starting state and
 binary32's rounding constants.
+
+`process_f32_block_error_of_inputs` gives the same bound with the no-overflow condition proved
+from the inputs instead of assumed.
 -/
 
 @[expose] public section
@@ -72,7 +75,8 @@ theorem filt_f32_block_error (a s : Float32) (xs : List Float32) (M : ℝ)
 
 /-- **Whole-block error of the Rust `process_f32`.** Under the conditions of
 `filt_f32_block_error`, `process_f32` never fails, and every sample it writes into the buffer,
-and the state it leaves, are within `E` of the exact real-number filter. -/
+and the state it leaves, are within `E` of the exact real-number filter. See
+`process_f32_block_error_of_inputs` for a version whose conditions are on the inputs only. -/
 theorem process_f32_block_error (a state : Float32) (buf : Slice Float32) (M : ℝ)
     (ha : a.isFinite = true) (hs : state.isFinite = true) (hno : NoOverflow_f32 a state buf.val)
     (hM0 : 0 ≤ M) (hM : ∀ x ∈ buf.val, |real_f32 x| ≤ M)
@@ -95,20 +99,19 @@ theorem process_f32_block_error (a state : Float32) (buf : Slice Float32) (M : �
   rw [hbuf, hst]
   exact hblock
 
-/-- **No overflow, from the inputs alone.** Suppose `a`, the starting state and every input are
-finite, every input is at most `M` in size, `|A| ≤ 1`, and the bounds `B` and `E` satisfy the two
-inequalities of `block_step`. If `M + (1 + u)·(B + E) + η` is at most the largest finite binary32
+/-- **No overflow, from the inputs alone.** Let `A` be the value of `a`, and `u`, `η` binary32's
+rounding constants. Suppose `a` and every input are finite, every input is at most `M` in size,
+`|A| ≤ 1`, and the bounds `B` and `E` satisfy the two inequalities of `block_step`. Start from
+any finite state `s` within `E` of a real state `r` with `|r| ≤ B` (for the filter's own start,
+`r` is the state's value). If `M + (1 + u)·(B + E) + η` is at most the largest finite binary32
 value, then no step of the filter overflows. -/
 theorem noOverflow_f32_of_inputs (a : Float32) (ha : a.isFinite = true) (M B E : ℝ)
     (hB : M + |real_f32 a| * B ≤ B)
-    (hE : Model.unitRoundoffAt FloatFormat.binary32 * M +
-        Model.underflowErrorAt FloatFormat.binary32 *
-          (2 + Model.unitRoundoffAt FloatFormat.binary32) +
-        |real_f32 a| * Model.unitRoundoffAt FloatFormat.binary32 *
-          (2 + Model.unitRoundoffAt FloatFormat.binary32) * (B + E) + |real_f32 a| * E ≤ E)
+    (hE : unitRoundoff_f32 * M + underflowErr_f32 * (2 + unitRoundoff_f32) +
+        |real_f32 a| * unitRoundoff_f32 * (2 + unitRoundoff_f32) * (B + E) +
+        |real_f32 a| * E ≤ E)
     (hA1 : |real_f32 a| ≤ 1)
-    (hcap : M + (1 + Model.unitRoundoffAt FloatFormat.binary32) * (B + E) +
-      Model.underflowErrorAt FloatFormat.binary32 ≤ maxFinite_f32) :
+    (hcap : M + (1 + unitRoundoff_f32) * (B + E) + underflowErr_f32 ≤ maxFinite_f32) :
     ∀ (xs : List Float32) (s : Float32) (r : ℝ), s.isFinite = true →
       (∀ x ∈ xs, x.isFinite = true ∧ |real_f32 x| ≤ M) →
       |real_f32 s - r| ≤ E → |r| ≤ B → NoOverflow_f32 a s xs := by
@@ -173,31 +176,30 @@ theorem noOverflow_f32_of_inputs (a : Float32) (ha : a.isFinite = true) (M B E :
     exact ⟨hx, hp, hsum, ih (x + a * s) _ hsum
       (fun z hz => hin z (List.mem_cons_of_mem _ hz)) herr hr'⟩
 
-/-- **Whole-block error of `process_f32`, with conditions on the inputs only.** If `a`, the
-starting state and every sample in the buffer are finite, every sample is at most `M` in size,
-`|A| + |A|·u·(2 + u) < 1`, and `M + (1 + u)·(B + E) + η` is at most the largest finite binary32
-value (about 3.4 × 10³⁸), then `process_f32` never fails, no step overflows, and every sample it
-writes and the state it leaves are within `E` of the exact real-number filter. `B` and `E` are
-`outBound` and `errBound`, the same as in `process_f32_block_error`. -/
+/-- **Whole-block error of `process_f32`, with conditions on the inputs only.** Let `A` and `S`
+be the values of `a` and the starting state, and `u`, `η` binary32's rounding constants (as in
+`filt_f32_block_error`). If `a`, the starting state and every sample in the buffer are finite,
+every sample is at most `M` in size, `|A| + |A|·u·(2 + u) < 1`, and `M + (1 + u)·(B + E) + η` is
+at most the largest finite binary32 value (about 3.4 × 10³⁸), then no step overflows,
+`process_f32` never fails, and every sample it writes and the state it leaves are within `E` of
+the exact real-number filter. `B` and `E` are `outBound` and `errBound`, the same as in
+`process_f32_block_error`. -/
 theorem process_f32_block_error_of_inputs (a state : Float32) (buf : Slice Float32) (M : ℝ)
     (ha : a.isFinite = true) (hs : state.isFinite = true)
     (hin : ∀ x ∈ buf.val, x.isFinite = true ∧ |real_f32 x| ≤ M) (hM0 : 0 ≤ M)
-    (hstab : |real_f32 a| + |real_f32 a| * Model.unitRoundoffAt FloatFormat.binary32 *
-      (2 + Model.unitRoundoffAt FloatFormat.binary32) < 1)
-    (hcap : M + (1 + Model.unitRoundoffAt FloatFormat.binary32) *
+    (hstab : |real_f32 a| + |real_f32 a| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1)
+    (hcap : M + (1 + unitRoundoff_f32) *
         (outBound (real_f32 a) M (real_f32 state) +
-          errBound (real_f32 a) (Model.unitRoundoffAt FloatFormat.binary32)
-            (Model.underflowErrorAt FloatFormat.binary32) M (real_f32 state)) +
-      Model.underflowErrorAt FloatFormat.binary32 ≤ maxFinite_f32) :
+          errBound (real_f32 a) unitRoundoff_f32 underflowErr_f32 M (real_f32 state)) +
+      underflowErr_f32 ≤ maxFinite_f32) :
+    let E := errBound (real_f32 a) unitRoundoff_f32 underflowErr_f32 M (real_f32 state)
     NoOverflow_f32 a state buf.val ∧
       process_f32 a state buf ⦃ fun r =>
-        List.Forall₂ (fun c e => |real_f32 c - e|
-            ≤ errBound (real_f32 a) (Model.unitRoundoffAt FloatFormat.binary32)
-                (Model.underflowErrorAt FloatFormat.binary32) M (real_f32 state)) r.2.val
+        List.Forall₂ (fun c e => |real_f32 c - e| ≤ E) r.2.val
           (filt_real (real_f32 a) (real_f32 state) (buf.val.map real_f32)).2 ∧
         |real_f32 r.1 - (filt_real (real_f32 a) (real_f32 state) (buf.val.map real_f32)).1|
-          ≤ errBound (real_f32 a) (Model.unitRoundoffAt FloatFormat.binary32)
-              (Model.underflowErrorAt FloatFormat.binary32) M (real_f32 state) ⦄ := by
+          ≤ E ⦄ := by
+  intro E
   obtain ⟨hE0, hSB, hB, hE⟩ := block_constants (real_f32 a)
     (Model.unitRoundoffAt FloatFormat.binary32) (Model.underflowErrorAt FloatFormat.binary32)
     M (real_f32 state) (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hM0 hstab

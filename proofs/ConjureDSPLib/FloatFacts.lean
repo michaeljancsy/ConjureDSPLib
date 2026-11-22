@@ -48,7 +48,8 @@ theorem isFinite_ofFloat_iff (v : Float) :
   refine ⟨fun h => ?_, isFinite_ofFloat v⟩
   unfold isFinite at h
   simp only [toModel_ofFloat] at h
-  have e := Model.isFinite_toModel (fmt := FloatFormat.binary64) (by decide) (Model.ofFloatModel v.toModel)
+  have e := Model.isFinite_toModel (fmt := FloatFormat.binary64) (by decide)
+    (Model.ofFloatModel v.toModel)
   rw [Model.toModel_ofFloatModel] at e
   have h' : Model.isFinite (Model.ofFloatModel v.toModel) = true := h
   rw [← e] at h'
@@ -60,11 +61,25 @@ theorem isFinite_ofFloat32_iff (v : Float32) :
   refine ⟨fun h => ?_, isFinite_ofFloat32 v⟩
   unfold isFinite at h
   simp only [toModel_ofFloat32] at h
-  have e := Model.isFinite_toModel (fmt := FloatFormat.binary32) (by decide) (Model.ofFloat32Model v.toModel)
+  have e := Model.isFinite_toModel (fmt := FloatFormat.binary32) (by decide)
+    (Model.ofFloat32Model v.toModel)
   rw [Model.toModel_ofFloat32Model] at e
   have h' : Model.isFinite (Model.ofFloat32Model v.toModel) = true := h
   rw [← e] at h'
   simpa only [Float32.isFinite, Float32.Model.isFinite] using h'
+
+/-- Binary64's unit roundoff `u = 2⁻⁵³`: the largest relative error of one rounding. -/
+noncomputable abbrev unitRoundoff_f64 : ℝ := Model.unitRoundoffAt FloatFormat.binary64
+
+/-- Binary64's underflow error `η`: half the smallest subnormal spacing, the largest absolute
+error of one rounding near zero. -/
+noncomputable abbrev underflowErr_f64 : ℝ := Model.underflowErrorAt FloatFormat.binary64
+
+/-- Binary32's unit roundoff `u = 2⁻²⁴`. -/
+noncomputable abbrev unitRoundoff_f32 : ℝ := Model.unitRoundoffAt FloatFormat.binary32
+
+/-- Binary32's underflow error `η`. -/
+noncomputable abbrev underflowErr_f32 : ℝ := Model.underflowErrorAt FloatFormat.binary32
 
 /-- The largest finite binary64 value, as a real number (about 1.8 × 10³⁰⁸). -/
 noncomputable abbrev maxFinite_f64 : ℝ :=

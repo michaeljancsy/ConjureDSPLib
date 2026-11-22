@@ -38,8 +38,9 @@ covered: 0.99 is stored in f32 as 0.9900000095.) Their conditions:
 
 - `a`, the starting state and every input are finite, and no step overflows (`NoOverflow_f64` /
   `NoOverflow_f32`: every rounded product `a * state` and every output is finite). The
-  `_of_inputs` theorems prove that no step overflows when `M + (1 + u)·(B + E) + η` is at most
-  the largest finite value, so they need only finite inputs;
+  `_of_inputs` theorems need no no-overflow condition: they prove it, given the other conditions
+  here and that `M + (1 + u)·(B + E) + η` (with `B` and `E` below) is at most the largest finite
+  value;
 - every input is at most `M` in size;
 - `|A| + |A|·u·(2 + u) < 1`, which is `|A|·(1 + u)² < 1`: stable, with a little room for
   rounding. Any `|A| ≤ 1 - 2⁻⁵¹` (f64) or `|A| ≤ 1 - 2⁻²²` (f32) satisfies it (simple
@@ -64,6 +65,9 @@ for inputs at most 1.0 in size and a starting state of 0, so the exact output st
 | f64 | 0.999 | 1000 | 2.2 × 10⁻¹⁰ | −253.1 dB |
 
 The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 lose the most.
+It is a worst case: typical rounding errors partly cancel and are much smaller. The size limit of
+the `_of_inputs` theorems is far from binding: with `a = 0.999`, inputs at most 1 and a start of
+0, `B + E` is about 1000, against a largest finite value of about 3.4 × 10³⁸ in f32.
 
 ## What is assumed, not proved
 
@@ -85,8 +89,6 @@ The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 
 - The biquad's floating-point error bound is not proved yet (issue #5, second part). The
   textbook equivalence is in exact arithmetic: in floating point the transposed form and the
   textbook form round differently.
-- The whole-block bound is a worst case: typical rounding errors partly cancel and are much
-  smaller.
 
 ## Layout
 
@@ -101,6 +103,7 @@ The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 
   (`filt_f64`, `real_f32`, `NoOverflow_f64`), and the filter functions keep the `filt_` prefix
   (`filt_real`). Otherwise Lean names follow Mathlib: definitions that are statements start with
   a capital (`WithinStepErr`), other definitions are lowerCamelCase (`stepErr`), and theorems are
-  snake case, keeping the casing of any definition they mention (`filt_f64_withinStepErr`).
+  snake case, keeping the casing of any definition they mention, except that a capitalized one
+  starts lowercase (`filt_f64_withinStepErr`, `noOverflow_f64_of_inputs`).
 - `FloatFacts.lean` holds facts about floats shared by every module's proofs, including
   `real_f64` / `real_f32` (the exact real value of a float).

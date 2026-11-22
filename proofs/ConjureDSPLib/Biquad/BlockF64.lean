@@ -7,16 +7,19 @@ public import ConjureDSPLib.FloatFacts
 /-!
 # The biquad filter in f64 over a whole block
 
-`process_f64_block_error`: when the Rust `process_f64` filters a block and no step overflows,
-every output sample and the final state are within fixed distances of the exact real-number
-filter `filt_real`, for a block of any length. The bound is parametric in a `Contraction` for
-the filter's coefficients (see `Block.lean`): one for typical filters is in
+`process_f64_block_error`: when the Rust `process_f64` filters a block, given a `Contraction`
+for the real values of the stored coefficients (see `Block.lean`), finite coefficients and
+starting state, inputs at most `M`, no overflow and `cInf·K·κ·β < 1 − ρ`, every output and the
+final state are within distances of the exact real-number filter `filt_real` that depend on the
+coefficients, the `Contraction`, `M` and the starting state but not on the block length. A
+`Contraction` for biquads with complex poles inside the unit circle is in
 `Biquad/Contraction.lean`.
 
 Each step rounds nine times (`tdf2_f64`); `tdf2_f64_localErr` bounds the effect of those
 roundings on the step's output and new state by `α + β·Sb` when the state is at most `Sb` in
-size, with `α = localErrBase_f64` and `β = localErrSlope_f64`. `block_error_real` in
-`Block.lean` turns that into the whole-block bound.
+size and the input at most `M`, and no intermediate result overflows, with
+`α = localErrBase_f64` and `β = localErrSlope_f64`. `block_error_real` in `Block.lean` turns that
+into the whole-block bound.
 -/
 
 @[expose] public section
@@ -68,6 +71,20 @@ noncomputable abbrev localErrBase_f64 (c : CoeffsF64) (M : ℝ) : ℝ :=
 noncomputable abbrev localErrSlope_f64 (c : CoeffsF64) : ℝ :=
   localErrSlope (realCoeffs_f64 c) unitRoundoff_f64
 
+/-- `L` for binary64: `localErrBound` with `α = localErrBase_f64 c M`, `β = localErrSlope_f64 c`,
+the real values of the stored coefficients and the real value of the stored starting state `s`. -/
+noncomputable abbrev localErrBound_f64 (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
+    (M : ℝ) (s : StateF64) : ℝ :=
+  localErrBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
+    (realState_f64 s)
+
+/-- `Ê` for binary64: `stateErrBound` with `α = localErrBase_f64 c M`, `β = localErrSlope_f64 c`,
+the real values of the stored coefficients and the real value of the stored starting state `s`. -/
+noncomputable abbrev stateErrBound_f64 (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
+    (M : ℝ) (s : StateF64) : ℝ :=
+  stateErrBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
+    (realState_f64 s)
+
 /-- **One step's roundings in binary64.** If the coefficients and state are finite, the step
 does not overflow, both state values are at most `Sb` in size and the input at most `M`, then
 the output and the two new state values of `tdf2_f64` are each within
@@ -78,12 +95,12 @@ theorem tdf2_f64_localErr (c : CoeffsF64) (s : StateF64) (x : Float) (Sb M : ℝ
     (hc : CoeffsFinite_f64 c) (hs1 : s.s1.isFinite = true) (hs2 : s.s2.isFinite = true)
     (hstep : StepFinite_f64 c s x) (hS1 : |real_f64 s.s1| ≤ Sb) (hS2 : |real_f64 s.s2| ≤ Sb)
     (hX : |real_f64 x| ≤ M) :
-    let C := realCoeffs_f64 c
+    let cr := realCoeffs_f64 c
     let L := localErrBase_f64 c M + localErrSlope_f64 c * Sb
     let Y := real_f64 (tdf2_f64 c s x).1
-    |Y - (C.b0 * real_f64 x + real_f64 s.s1)| ≤ L ∧
-      |real_f64 (tdf2_f64 c s x).2.s1 - (C.b1 * real_f64 x - C.a1 * Y + real_f64 s.s2)| ≤ L ∧
-      |real_f64 (tdf2_f64 c s x).2.s2 - (C.b2 * real_f64 x - C.a2 * Y)| ≤ L := by
+    |Y - (cr.b0 * real_f64 x + real_f64 s.s1)| ≤ L ∧
+      |real_f64 (tdf2_f64 c s x).2.s1 - (cr.b1 * real_f64 x - cr.a1 * Y + real_f64 s.s2)| ≤ L ∧
+      |real_f64 (tdf2_f64 c s x).2.s2 - (cr.b2 * real_f64 x - cr.a2 * Y)| ≤ L := by
   obtain ⟨hb0, hb1, hb2, ha1, ha2⟩ := hc
   obtain ⟨hx, hp0, hy, hp1, hq1, hd1, ht1, hp2, hq2, ht2⟩ := hstep
   exact step_localErr (realCoeffs_f64 c) (Model.unitRoundoffAt_pos _).le
@@ -98,42 +115,43 @@ theorem tdf2_f64_localErr (c : CoeffsF64) (s : StateF64) (x : Float) (Sb M : ℝ
     (abs_real_mul_sub_le_f64 _ _ ha2 hy hq2)
     (abs_real_sub_sub_le_f64 _ _ hp2 hq2 ht2)
 
-/-- Without overflow, every step of `filt_f64` (as real values) rounds within `α + β·Sb` while
-its state is within `Sb`: the trajectory satisfies `LocalErrOK`, for every `Sb`. -/
-theorem filt_f64_localErrOK (c : CoeffsF64) (hc : CoeffsFinite_f64 c) (Sb M : ℝ) :
+/-- If the coefficients and starting state are finite and no step overflows (`NoOverflow_f64`),
+then for every `Sb` and `M`, the run of `filt_f64` (as real values) satisfies `WithinLocalErr`
+with `L = α + β·Sb` (`localErrBase_f64 c M`, `localErrSlope_f64 c`): every step whose state is
+within `Sb` and its input within `M` rounds within `L`. -/
+theorem filt_f64_withinLocalErr (c : CoeffsF64) (hc : CoeffsFinite_f64 c) (Sb M : ℝ) :
     ∀ (xs : List Float) (s : StateF64), s.s1.isFinite = true → s.s2.isFinite = true →
       NoOverflow_f64 c s xs →
-      LocalErrOK (realCoeffs_f64 c) Sb M (localErrBase_f64 c M + localErrSlope_f64 c * Sb)
+      WithinLocalErr (realCoeffs_f64 c) Sb M (localErrBase_f64 c M + localErrSlope_f64 c * Sb)
         (realState_f64 s) (xs.map real_f64) (realState_f64 (filt_f64 c s xs).1)
         ((filt_f64 c s xs).2.map real_f64) := by
   intro xs
   induction xs with
-  | nil => intro s _ _ _; simp [filt_f64, LocalErrOK, realState_f64]
+  | nil => intro s _ _ _; simp [filt_f64, WithinLocalErr, realState_f64]
   | cons x xs ih =>
     intro s hs1 hs2 hno
     obtain ⟨hstep, hrest⟩ := hno
     have ht1 : (tdf2_f64 c s x).2.s1.isFinite = true := hstep.2.2.2.2.2.2.1
     have ht2 : (tdf2_f64 c s x).2.s2.isFinite = true := hstep.2.2.2.2.2.2.2.2.2
-    simp only [filt_f64, List.map_cons, realState_f64, LocalErrOK]
+    simp only [filt_f64, List.map_cons, realState_f64, WithinLocalErr]
     exact ⟨_, _, fun h1 h2 hX => tdf2_f64_localErr c s x Sb M hc hs1 hs2 hstep h1 h2 hX,
       ih _ ht1 ht2 hrest⟩
 
-/-- **Whole-block error of the f64 biquad.** Let `C` be a `Contraction` for the exact
-coefficients, `S` the exact starting state and every input at most `M` in size, with
-`α = localErrBase_f64 c M` and `β = localErrSlope_f64 c`. If the coefficients and the starting
-state are finite, no step overflows, and `cInf·K·(2 + |A1| + |A2|)·β < 1 - ρ`, then every
-output of `filt_f64` is within `cInf·Ê + L` of the exact filter `filt_real`'s output, and each
-final state value within `cInf·Ê`, where `Ê = stateErrBound` and `L = stepRoundBound` (see
-`Block.lean`). -/
+/-- **Whole-block error of the f64 biquad.** Let `C` be a `Contraction` for the real values of the
+stored coefficients (`realCoeffs_f64 c`), `0 ≤ M`, every input's real value at most `M`, with
+`β = localErrSlope_f64 c` and `κ = roundGain (realCoeffs_f64 c)`. If the coefficients and the
+starting state are finite, no step overflows (`NoOverflow_f64`), and `cInf·K·κ·β < 1 − ρ`, then
+the outputs of `filt_f64` and of `filt_real` (run on the real values of the inputs from
+`realState_f64 s`) have the same length, every output's real value is within `cInf·Ê + L` of the
+corresponding exact output, and each final state value's real value within `cInf·Ê` of the
+exact one, where `Ê = stateErrBound_f64 c C M s` and `L = localErrBound_f64 c C M s`. -/
 theorem filt_f64_block_error (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c)) (s : StateF64)
     (xs : List Float) (M : ℝ) (hc : CoeffsFinite_f64 c) (hs1 : s.s1.isFinite = true)
     (hs2 : s.s2.isFinite = true) (hno : NoOverflow_f64 c s xs)
     (hM0 : 0 ≤ M) (hM : ∀ x ∈ xs, |real_f64 x| ≤ M)
     (hsmall : C.cInf * C.K * roundGain (realCoeffs_f64 c) * localErrSlope_f64 c < 1 - C.ρ) :
-    let Ê := stateErrBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
-      (realState_f64 s)
-    let L := stepRoundBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
-      (realState_f64 s)
+    let Ê := stateErrBound_f64 c C M s
+    let L := localErrBound_f64 c C M s
     let F := filt_real (realCoeffs_f64 c) (realState_f64 s) (xs.map real_f64)
     List.Forall₂ (fun y e => |real_f64 y - e| ≤ C.cInf * Ê + L) (filt_f64 c s xs).2 F.2 ∧
       |real_f64 (filt_f64 c s xs).1.s1 - F.1.1| ≤ C.cInf * Ê ∧
@@ -143,23 +161,24 @@ theorem filt_f64_block_error (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c)
     (localErrBase_nonneg _ (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hM0)
     (localErrSlope_nonneg _ (Model.unitRoundoffAt_pos _).le) hsmall (xs.map real_f64)
     (realState_f64 s) _ _ (by simpa using hM)
-    (filt_f64_localErrOK c hc _ M xs s hs1 hs2 hno)
+    (filt_f64_withinLocalErr c hc _ M xs s hs1 hs2 hno)
   exact ⟨List.forall₂_map_left_iff.mp h.1, h.2⟩
 
 /-- **Whole-block error of the Rust biquad `process_f64`.** Under the conditions of
-`filt_f64_block_error`, `process_f64` never fails, every sample it writes into the buffer is
-within `cInf·Ê + L` of the exact real-number filter's output, and each value of the state it
-leaves within `cInf·Ê`. -/
+`filt_f64_block_error` (with `state` as the starting state and the buffer as the inputs),
+`process_f64` never fails, the buffer it returns has one sample per exact output, each sample's
+real value is within `cInf·Ê + L` of the corresponding output of `filt_real` (run on the real
+values of the inputs from `realState_f64 state`), and each value of the state it leaves is within
+`cInf·Ê` of the exact final state's, where `Ê = stateErrBound_f64 c C M state` and
+`L = localErrBound_f64 c C M state`. -/
 theorem process_f64_block_error (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
     (state : StateF64) (buf : Slice Float) (M : ℝ) (hc : CoeffsFinite_f64 c)
     (hs1 : state.s1.isFinite = true) (hs2 : state.s2.isFinite = true)
     (hno : NoOverflow_f64 c state buf.val)
     (hM0 : 0 ≤ M) (hM : ∀ x ∈ buf.val, |real_f64 x| ≤ M)
     (hsmall : C.cInf * C.K * roundGain (realCoeffs_f64 c) * localErrSlope_f64 c < 1 - C.ρ) :
-    let Ê := stateErrBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
-      (realState_f64 state)
-    let L := stepRoundBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
-      (realState_f64 state)
+    let Ê := stateErrBound_f64 c C M state
+    let L := localErrBound_f64 c C M state
     let F := filt_real (realCoeffs_f64 c) (realState_f64 state) (buf.val.map real_f64)
     process_f64 c state buf ⦃ fun r =>
       List.Forall₂ (fun y e => |real_f64 y - e| ≤ C.cInf * Ê + L) r.2.val F.2 ∧

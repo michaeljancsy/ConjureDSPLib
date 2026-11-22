@@ -10,28 +10,33 @@ public import Mathlib.Tactic.LinearCombination
 # The biquad over a whole block: the real-number argument
 
 The transposed-direct-form-II biquad keeps two state values. If the computed state differs from
-the exact state by `e = (e₁, e₂)`, one step changes that difference to `M·e + w`, where
+the exact state by `e = (e₁, e₂)`, one step changes that difference to `T(e) + w`, where
 
-`M·(v₁, v₂) = (-a1·v₁ + v₂, -a2·v₁)`
+`T(v₁, v₂) = (-a1·v₁ + v₂, -a2·v₁)`
 
-(the filter's own state-update map, whose eigenvalues are its poles) and `w` comes from this
-step's rounding. Whether such errors pile up depends on `M`. This file is parametric in a
-`Contraction`: any way `N` of measuring a pair of numbers under which `M` shrinks every pair by a
-factor `ρ < 1`. `Biquad/Contraction.lean` gives one for typical filters.
+is the state-update map (the filter's own, whose eigenvalues are its poles) and `w` comes from
+this step's rounding. Whether such errors pile up depends on the state-update map. This file is
+parametric in a `Contraction`: any way `N` of measuring a pair of numbers under which the
+state-update map takes every pair to one whose measure is at most `ρ` times the original's, with
+`0 ≤ ρ < 1`. `Biquad/Contraction.lean` gives one for biquads with complex poles inside the unit
+circle.
 
 With it, `block_error_real` shows that over a block of any length the computed outputs and state
-stay within fixed distances of the exact filter's, provided each step's rounding stays within a
-bound `L` while the state stays within a bound `Sb`. This file uses real numbers only; the
-floating-point and Rust layers are in `BlockF64.lean` and `BlockF32.lean`.
+stay within fixed distances of the exact filter's, provided the inputs are at most `M`, each
+step's rounding is at most `α + β·Sb` while the state is within `Sb`, and `cInf·K·κ·β < 1 − ρ`
+(κ = `roundGain` = `2 + |a1| + |a2|`). This file uses real numbers only; the floating-point and
+Rust layers are in `BlockF64.lean` and `BlockF32.lean`.
 -/
 
 @[expose] public section
 
 namespace conjure_dsp_lib.biquad
 
-/-- A way `N` of measuring pairs `(v₁, v₂)` under which the biquad's state-update map shrinks every
-pair by at least the factor `ρ < 1`. `cInf` and `K` compare `N` with the plain sizes `|v₁|`,
-`|v₂|`. -/
+/-- A way `N` of measuring pairs `(v₁, v₂)`, with `N` nonnegative and `N(u + v) ≤ N(u) + N(v)`,
+under which the biquad's state-update map `(v₁, v₂) ↦ (-a1·v₁ + v₂, -a2·v₁)` takes every pair to
+one whose measure is at most `ρ` times the original's, with `0 ≤ ρ < 1`. `cInf ≥ 0` is the
+constant comparing each entry with `N`: `|v₁| ≤ cInf·N(v₁, v₂)` and `|v₂| ≤ cInf·N(v₁, v₂)`.
+`K ≥ 0` compares `N` with the entries' sizes: `N(v₁, v₂) ≤ K·(|v₁| + |v₂|)`. -/
 structure Contraction (c : CoeffsReal) where
   /-- The measure of a pair. -/
   N : ℝ → ℝ → ℝ
@@ -52,20 +57,28 @@ structure Contraction (c : CoeffsReal) where
   le_snd : ∀ v₁ v₂, |v₂| ≤ cInf * N v₁ v₂
   le_sum : ∀ v₁ v₂, N v₁ v₂ ≤ K * (|v₁| + |v₂|)
 
-/-- `LocalErrOK c Sb M L s xs f ys`: the computed outputs `ys` and final state `f` come from
-inputs `xs` starting from computed state `s`, and at every step where both state values are at
-most `Sb` in size and the input is at most `M` in size, the step's three roundings (in the
-output, and in each new state value) are each at most `L` in size. Each rounding is measured
-against the exact step taken from the computed state and the computed output. -/
-def LocalErrOK (c : CoeffsReal) (Sb M L : ℝ) : ℝ × ℝ → List ℝ → ℝ × ℝ → List ℝ → Prop
+/-- `WithinLocalErr c Sb M L s xs f ys`: `ys` has one entry per input, and there are intermediate
+states starting at `s` and ending at `f` such that, at every step where both state values are at
+most `Sb` and the input at most `M`, the output and the two next state values each differ by at
+most `L` from the exact step taken from that state and that output (`b0·x + s₁`,
+`b1·x − a1·y + s₂`, `b2·x − a2·y`). -/
+def WithinLocalErr (c : CoeffsReal) (Sb M L : ℝ) : ℝ × ℝ → List ℝ → ℝ × ℝ → List ℝ → Prop
   | s, [], f, [] => f = s
   | (s₁, s₂), x :: xs, f, y :: ys =>
     ∃ t₁ t₂ : ℝ,
       (|s₁| ≤ Sb → |s₂| ≤ Sb → |x| ≤ M →
         |y - (c.b0 * x + s₁)| ≤ L ∧ |t₁ - (c.b1 * x - c.a1 * y + s₂)| ≤ L ∧
           |t₂ - (c.b2 * x - c.a2 * y)| ≤ L) ∧
-      LocalErrOK c Sb M L (t₁, t₂) xs f ys
+      WithinLocalErr c Sb M L (t₁, t₂) xs f ys
   | _, _, _, _ => False
+
+/-- The size of one input's direct contribution to the next state, per unit of input:
+`|b1 − a1·b0| + |b2 − a2·b0|`. -/
+def inputGain (c : CoeffsReal) : ℝ := |c.b1 - c.a1 * c.b0| + |c.b2 - c.a2 * c.b0|
+
+/-- `κ = 2 + |a1| + |a2|`: one step's roundings, each at most `L`, add at most `roundGain·L` to
+`|w₁| + |w₂|`, where `w` is that step's contribution to the state error. -/
+def roundGain (c : CoeffsReal) : ℝ := 2 + |c.a1| + |c.a2|
 
 /-- The induction behind `block_error_real`. Two bounds hold at every step: the exact state
 `r` measures at most `R`, and the error `s - r` (computed minus exact state) measures at most
@@ -73,12 +86,12 @@ def LocalErrOK (c : CoeffsReal) (Sb M L : ℝ) : ℝ × ℝ → List ℝ → ℝ
 (stability), the second keeps the error bounded, and the third keeps the computed state within
 `Sb`, where each step's rounding is at most `L`. -/
 theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ)
-    (hR : C.ρ * R + C.K * (|c.b1 - c.a1 * c.b0| + |c.b2 - c.a2 * c.b0|) * M ≤ R)
-    (hE : C.ρ * Ê + C.K * (L * (2 + |c.a1| + |c.a2|)) ≤ Ê)
+    (hR : C.ρ * R + C.K * inputGain c * M ≤ R)
+    (hE : C.ρ * Ê + C.K * (L * roundGain c) ≤ Ê)
     (hS : C.cInf * (R + Ê) ≤ Sb) :
     ∀ (xs : List ℝ) (s r f : ℝ × ℝ) (ys : List ℝ),
       (∀ x ∈ xs, |x| ≤ M) → C.N r.1 r.2 ≤ R → C.N (s.1 - r.1) (s.2 - r.2) ≤ Ê →
-      LocalErrOK c Sb M L s xs f ys →
+      WithinLocalErr c Sb M L s xs f ys →
       List.Forall₂ (fun y e => |y - e| ≤ C.cInf * Ê + L) ys (filt_real c r xs).2 ∧
         |f.1 - (filt_real c r xs).1.1| ≤ C.cInf * Ê ∧
         |f.2 - (filt_real c r xs).1.2| ≤ C.cInf * Ê := by
@@ -89,20 +102,20 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ
     cases ys with
     | nil =>
       obtain ⟨s₁, s₂⟩ := s
-      simp only [LocalErrOK] at hw
+      simp only [WithinLocalErr] at hw
       subst hw
       refine ⟨List.Forall₂.nil, ?_, ?_⟩
       · exact (C.le_fst _ _).trans (mul_le_mul_of_nonneg_left he C.cInf_nonneg)
       · exact (C.le_snd _ _).trans (mul_le_mul_of_nonneg_left he C.cInf_nonneg)
-    | cons => obtain ⟨s₁, s₂⟩ := s; simp [LocalErrOK] at hw
+    | cons => obtain ⟨s₁, s₂⟩ := s; simp [WithinLocalErr] at hw
   | cons x xs ih =>
     intro s r f ys hM hr he hw
     obtain ⟨s₁, s₂⟩ := s
     obtain ⟨r₁, r₂⟩ := r
     cases ys with
-    | nil => simp [LocalErrOK] at hw
+    | nil => simp [WithinLocalErr] at hw
     | cons y ys =>
-      simp only [LocalErrOK] at hw
+      simp only [WithinLocalErr] at hw
       obtain ⟨t₁, t₂, hloc, hrest⟩ := hw
       simp only at hr he
       have hx : |x| ≤ M := hM x (by simp)
@@ -132,7 +145,8 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ
       set d₂ := t₂ - (c.b2 * x - c.a2 * y) with hd₂_def
       set e₁ := s₁ - r₁
       set e₂ := s₂ - r₂
-      -- The new error is `M` applied to the old error, plus this step's rounding `w`.
+      -- The new error is the state-update map applied to the old error, plus this step's
+      -- rounding `w`.
       have hw₁ : |d₁ - c.a1 * dy| ≤ L + |c.a1| * L := by
         calc |d₁ - c.a1 * dy| ≤ |d₁| + |c.a1 * dy| := abs_sub _ _
           _ = |d₁| + |c.a1| * |dy| := by rw [abs_mul]
@@ -153,10 +167,11 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ
         calc C.N ((-c.a1 * e₁ + e₂) + (d₁ - c.a1 * dy)) ((-c.a2 * e₁) + (d₂ - c.a2 * dy))
             ≤ C.N (-c.a1 * e₁ + e₂) (-c.a2 * e₁) + C.N (d₁ - c.a1 * dy) (d₂ - c.a2 * dy) :=
               C.add_le _ _ _ _
-          _ ≤ C.ρ * Ê + C.K * (L * (2 + |c.a1| + |c.a2|)) := by
+          _ ≤ C.ρ * Ê + C.K * (L * roundGain c) := by
               refine add_le_add ((C.contract _ _).trans
                 (mul_le_mul_of_nonneg_left he C.ρ_nonneg)) ?_
               refine (C.le_sum _ _).trans (mul_le_mul_of_nonneg_left ?_ C.K_nonneg)
+              unfold roundGain
               linarith
           _ ≤ Ê := hE
       -- The exact state stays within `R`.
@@ -171,10 +186,11 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ
               ((-c.a2 * r₁) + (c.b2 - c.a2 * c.b0) * x)
             ≤ C.N (-c.a1 * r₁ + r₂) (-c.a2 * r₁) +
                 C.N ((c.b1 - c.a1 * c.b0) * x) ((c.b2 - c.a2 * c.b0) * x) := C.add_le _ _ _ _
-          _ ≤ C.ρ * R + C.K * (|c.b1 - c.a1 * c.b0| + |c.b2 - c.a2 * c.b0|) * M := by
+          _ ≤ C.ρ * R + C.K * inputGain c * M := by
               refine add_le_add ((C.contract _ _).trans
                 (mul_le_mul_of_nonneg_left hr C.ρ_nonneg)) ?_
               refine (C.le_sum _ _).trans ?_
+              unfold inputGain
               rw [abs_mul, abs_mul, ← add_mul, mul_assoc]
               exact mul_le_mul_of_nonneg_left
                 (mul_le_mul_of_nonneg_left hx (by positivity)) C.K_nonneg
@@ -190,47 +206,49 @@ theorem block_error_core (c : CoeffsReal) (C : Contraction c) (Sb M L R Ê : ℝ
         (fun z hz => hM z (List.mem_cons_of_mem _ hz)) hr' he' hrest
       exact ⟨List.Forall₂.cons hy h1, h2, h3⟩
 
-/-- How much the filter can amplify its input into its state: `|b1 - a1·b0| + |b2 - a2·b0|`. -/
-def inputGain (c : CoeffsReal) : ℝ := |c.b1 - c.a1 * c.b0| + |c.b2 - c.a2 * c.b0|
-
-/-- How much one step's three roundings can add to the state error: `2 + |a1| + |a2|`. -/
-def roundGain (c : CoeffsReal) : ℝ := 2 + |c.a1| + |c.a2|
-
-/-- `R`: a bound on the measure of the exact filter's state, from start `s` with inputs at most
-`M` in size. -/
+/-- `R = N(s) + K·inputGain·M/(1 − ρ)`: a bound on the measure `N` of the exact filter's state,
+from start `s` with inputs at most `M` (an invariant of the proof's induction; not part of
+`block_error_real`'s conclusion). -/
 noncomputable def exactStateBound (c : CoeffsReal) (C : Contraction c) (M : ℝ) (s : ℝ × ℝ) : ℝ :=
   C.N s.1 s.2 + C.K * inputGain c * M / (1 - C.ρ)
 
-/-- `Sb`: a bound on each computed state value, when one step's roundings are at most
-`α + β·Sb`. -/
+/-- `Sb = cInf·(R·(1 − ρ) + K·κ·α)/(1 − ρ − cInf·K·κ·β)`, with `R = exactStateBound` and
+`κ = roundGain`: a bound on each computed state value, when one step's roundings are at most
+`α + β·Sb` (an invariant of the proof's induction; not part of `block_error_real`'s
+conclusion). -/
 noncomputable def computedStateBound (c : CoeffsReal) (C : Contraction c) (M α β : ℝ)
     (s : ℝ × ℝ) : ℝ :=
   C.cInf * (exactStateBound c C M s * (1 - C.ρ) + C.K * roundGain c * α) /
     (1 - C.ρ - C.cInf * C.K * roundGain c * β)
 
-/-- `L`: the bound on one step's roundings, `α + β·Sb`. -/
-noncomputable def stepRoundBound (c : CoeffsReal) (C : Contraction c) (M α β : ℝ)
+/-- `L = α + β·Sb`, with `Sb = computedStateBound`: the bound on one step's roundings. -/
+noncomputable def localErrBound (c : CoeffsReal) (C : Contraction c) (M α β : ℝ)
     (s : ℝ × ℝ) : ℝ :=
   α + β * computedStateBound c C M α β s
 
-/-- `Ê`: a bound on the measure of the state error (computed minus exact). -/
+/-- `Ê = K·L·κ/(1 − ρ)`, with `L = localErrBound` and `κ = roundGain`: a bound on the measure
+`N` of the state error, computed minus exact (an invariant of the proof's induction; not part of
+`block_error_real`'s conclusion, which bounds each state value by `cInf·Ê`). -/
 noncomputable def stateErrBound (c : CoeffsReal) (C : Contraction c) (M α β : ℝ)
     (s : ℝ × ℝ) : ℝ :=
-  C.K * (stepRoundBound c C M α β s * roundGain c) / (1 - C.ρ)
+  C.K * (localErrBound c C M α β s * roundGain c) / (1 - C.ρ)
 
-/-- **Whole-block error of the biquad, on real numbers.** Start the computed filter and the exact
-filter from the same state `s`, with inputs at most `M` in size. Suppose each step's roundings are
-at most `α + β·Sb` whenever the state is within `Sb` (`LocalErrOK`, with `Sb` and `L` as
-defined above), and `cInf·K·(2 + |a1| + |a2|)·β < 1 - ρ` (the rounding feedback is small). Then
-over a block of any length, every computed output is within `cInf·Ê + L` of the exact output,
-and each computed state value ends within `cInf·Ê` of the exact one. -/
+/-- **Whole-block error of the biquad, on real numbers.** Let `C` be a `Contraction`, and
+suppose `0 ≤ M`, `0 ≤ α`, `0 ≤ β`, every input in `xs` is at most `M`,
+`WithinLocalErr c Sb M L s xs f ys` holds with `Sb = computedStateBound c C M α β s` and
+`L = localErrBound c C M α β s`, and `cInf·K·κ·β < 1 − ρ` with `κ = roundGain c`. Then, with
+`Ê = stateErrBound c C M α β s`, for a list `xs` of any length, `ys` and the outputs of
+`filt_real c s xs` have the same length and each `y` in `ys` is within `cInf·Ê + L` of the
+corresponding exact output, and each of `f`'s two values is within `cInf·Ê` of the
+corresponding value of `filt_real c s xs`'s final state. -/
 theorem block_error_real (c : CoeffsReal) (C : Contraction c) (M α β : ℝ) (hM0 : 0 ≤ M)
     (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hsmall : C.cInf * C.K * roundGain c * β < 1 - C.ρ)
     (xs : List ℝ) (s f : ℝ × ℝ) (ys : List ℝ) (hM : ∀ x ∈ xs, |x| ≤ M)
-    (hw : LocalErrOK c (computedStateBound c C M α β s) M (stepRoundBound c C M α β s) s xs f ys) :
+    (hw : WithinLocalErr c (computedStateBound c C M α β s) M (localErrBound c C M α β s)
+      s xs f ys) :
     let Ê := stateErrBound c C M α β s
-    let L := stepRoundBound c C M α β s
+    let L := localErrBound c C M α β s
     List.Forall₂ (fun y e => |y - e| ≤ C.cInf * Ê + L) ys (filt_real c s xs).2 ∧
       |f.1 - (filt_real c s xs).1.1| ≤ C.cInf * Ê ∧
       |f.2 - (filt_real c s xs).1.2| ≤ C.cInf * Ê := by
@@ -250,17 +268,15 @@ theorem block_error_real (c : CoeffsReal) (C : Contraction c) (M α β : ℝ) (h
     have : 0 ≤ C.K * inputGain c * M / (1 - C.ρ) := by positivity
     linarith
   -- The three invariance conditions of `block_error_core`.
-  have hR : C.ρ * R + C.K * (|c.b1 - c.a1 * c.b0| + |c.b2 - c.a2 * c.b0|) * M ≤ R := by
+  have hR : C.ρ * R + C.K * inputGain c * M ≤ R := by
     have e : C.K * inputGain c * M = (1 - C.ρ) * (C.K * inputGain c * M / (1 - C.ρ)) := by
       field_simp
     have : R = C.N s.1 s.2 + C.K * inputGain c * M / (1 - C.ρ) := rfl
-    unfold inputGain at e this
     nlinarith [C.ρ_nonneg]
   have hLdef : L = α + β * Sb := rfl
   have hEdef : Ê * (1 - C.ρ) = C.K * (L * roundGain c) := by
     simp only [Ê, L, stateErrBound]; field_simp
-  have hE : C.ρ * Ê + C.K * (L * (2 + |c.a1| + |c.a2|)) ≤ Ê := by
-    have : C.K * (L * (2 + |c.a1| + |c.a2|)) = C.K * (L * roundGain c) := rfl
+  have hE : C.ρ * Ê + C.K * (L * roundGain c) ≤ Ê := by
     nlinarith [hEdef]
   have hSbeq : Sb * (1 - C.ρ - C.cInf * C.K * roundGain c * β) =
       C.cInf * (R * (1 - C.ρ) + C.K * roundGain c * α) := by
@@ -317,7 +333,7 @@ theorem localErrSlope_nonneg (c : CoeffsReal) {u : ℝ} (hu : 0 ≤ u) :
   unfold localErrSlope; positivity
 
 /-- One rounding `r` of an exact value `e` with `|e| ≤ E`, within `u·|e| + η` of `e`, is within
-`u·E + η` of `e` and at most `2·E + η` in size (when `u ≤ 1`). -/
+`u·E + η` of `e` and at most `2·E + η` in size (when `0 ≤ u ≤ 1`). -/
 theorem round_bounds {r e E u η : ℝ} (hu0 : 0 ≤ u) (hu1 : u ≤ 1)
     (h : |r - e| ≤ u * |e| + η) (hE : |e| ≤ E) :
     |r - e| ≤ u * E + η ∧ |r| ≤ 2 * E + η := by

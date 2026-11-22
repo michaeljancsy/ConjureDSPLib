@@ -12,19 +12,38 @@
 //! s2 = b2·x - a2·y
 //! ```
 //!
-//! In exact arithmetic the two forms give the same output; in floating point they round
-//! differently. This module computes exactly the steps above, in that order and grouping
-//! (`s1 = (b1·x - a1·y) + s2`), with no fused multiply-add, so code that uses the same order
-//! gets bit-identical output.
+//! In exact arithmetic the two forms give the same output when the starting state matches the
+//! textbook form's history, in particular from zero state and zero history
+//! (`biquad.filt_real_eq_df1_real`, `biquad.filt_real_eq_df1_real_zero`). In floating point they
+//! can round differently (worked out outside Lean, not proved). This module computes exactly the
+//! steps above, in that order and grouping (`s1 = (b1·x - a1·y) + s2`), with no fused
+//! multiply-add (`biquad.step_f64_eq`, `biquad.step_f32_eq`, under the assumptions in
+//! `proofs/README.md`). Other code doing the same operations in the same order, also without
+//! fused multiply-add, given the same rounding mode and subnormal handling, gets the same output,
+//! NaN bit patterns aside (follows from IEEE 754 rounding, not proved).
 //!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.
 //!
 //! Designing coefficients (low-pass, shelf, ...) is not part of this module. The filter is stable
-//! when both poles are inside the unit circle: `|a2| < 1` and `|a1| < 1 + a2`. For very low
-//! cutoffs (a few hertz), `f32` coefficients can put a pole on or outside the unit circle (see
-//! "Observations" in `proofs/README.md`), so use the `f64` filter there. Flushing subnormal
-//! numbers to zero is the caller's job.
+//! when both poles are inside the unit circle, that is when `|a2| < 1` and `|a1| < 1 + a2` (a
+//! standard result, not proved in Lean). Proved in Lean: for distinct real poles, these two
+//! inequalities hold exactly when both poles are inside the unit circle
+//! (`biquad.realPoles_lt_one_iff`); and for poles inside the unit circle, the proofs supply the
+//! `Contraction` the error-bound theorems need (`biquad.complexPolesContraction`,
+//! `biquad.realPolesContraction`, `biquad.repeatedPoleContraction`, in
+//! `Biquad/Contraction.lean`).
+//!
+//! For RBJ-cookbook low-pass and high-pass coefficients at very low cutoffs (a few hertz), `f32`
+//! coefficients can put a pole on or outside the unit circle (worked out outside Lean, not proved;
+//! see "Observations" in `proofs/README.md`). One case is proved for specific stored values: the
+//! binary32 coefficients in `lowPass1Hz_f32`, which are those of a 1 Hz Butterworth low-pass at
+//! 48 kHz (worked out outside Lean, not proved), have a pole at exactly 1
+//! (`biquad.lowPass1Hz_pole_one_f32`). Consider the `f64` filter there; that its coefficients
+//! avoid the problem is not proved.
+//!
+//! Flushing subnormal numbers to zero is the caller's job (if the caller turns on the processor's
+//! flush-to-zero mode, the error bounds are not proved for that mode; see `proofs/README.md`).
 //!
 //! Call these through the module, as `biquad::process_f32`.
 
@@ -44,7 +63,10 @@ pub struct CoeffsF64 {
 }
 
 impl CoeffsF64 {
-    /// Coefficients that pass the input through unchanged (`b0 = 1`, all others 0).
+    /// Coefficients `b0 = 1`, all others 0. From the zero state, every finite nonzero input and
+    /// `+0.0` pass through unchanged, bit for bit. `-0.0` comes out as `+0.0` or `-0.0`,
+    /// depending on the inputs before it. An infinite or NaN input makes the state NaN from then
+    /// on (worked out outside Lean, not proved).
     pub const IDENTITY: Self = Self {
         b0: 1.0,
         b1: 0.0,
@@ -74,7 +96,7 @@ pub fn step_f64(c: &CoeffsF64, state: &mut StateF64, x: f64) -> f64 {
 }
 
 /// Filters `buf` in place, in `f64`, carrying `state` from block to block. An empty block leaves
-/// `state` unchanged.
+/// `state` unchanged (`biquad.process_f64_spec`).
 pub fn process_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
     // An index loop rather than an iterator, so that Aeneas can translate it.
     let mut i = 0;
@@ -100,7 +122,10 @@ pub struct CoeffsF32 {
 }
 
 impl CoeffsF32 {
-    /// Coefficients that pass the input through unchanged (`b0 = 1`, all others 0).
+    /// Coefficients `b0 = 1`, all others 0. From the zero state, every finite nonzero input and
+    /// `+0.0` pass through unchanged, bit for bit. `-0.0` comes out as `+0.0` or `-0.0`,
+    /// depending on the inputs before it. An infinite or NaN input makes the state NaN from then
+    /// on (worked out outside Lean, not proved).
     pub const IDENTITY: Self = Self {
         b0: 1.0,
         b1: 0.0,
@@ -130,7 +155,7 @@ pub fn step_f32(c: &CoeffsF32, state: &mut StateF32, x: f32) -> f32 {
 }
 
 /// Filters `buf` in place, in `f32`, carrying `state` from block to block. An empty block leaves
-/// `state` unchanged.
+/// `state` unchanged (`biquad.process_f32_spec`).
 pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
     // An index loop rather than an iterator, so that Aeneas can translate it.
     let mut i = 0;

@@ -3,9 +3,15 @@
 The shared DSP maths used by every ConjureDSP plug-in, in Rust, with Lean proofs about the code.
 
 It takes numbers and buffers and returns numbers or fills buffers. Per-sample code does no
-memory allocation, takes no locks and makes no system calls. It knows nothing about plug-in
-formats, hosts, threads, parameters, saved state or the user interface: those live in
-the plug-in framework. ConjureDSPLib never depends on the plug-in framework.
+memory allocation, takes no locks and makes no system calls. The build, together with one
+property of the code, rules out allocation and system calls (the crate is `no_std`, has no
+`extern crate alloc` or `extern crate std`, which the compiler does not forbid, and forbids
+`unsafe` code; `libm` is relied on to do the same). That it takes no locks is a property of the
+code (it uses no atomics or other synchronization), not enforced by the compiler. A panic would
+run the plug-in's panic handler, which can allocate, lock and make system calls; that the
+functions never panic is proved of the translated code. None of this is otherwise proved in Lean.
+It knows nothing about plug-in formats, hosts, threads, parameters, saved state or the user
+interface: those live in the plug-in framework. ConjureDSPLib never depends on the plug-in framework.
 
 ## Proofs
 
@@ -16,11 +22,14 @@ Mathlib versions are pinned.
 
 For each function, a proof can establish:
 - that it never panics;
-- that it computes exactly the textbook algorithm;
+- that it computes exactly a stated sequence of floating-point operations, in a stated order, and,
+  for some functions, that in exact arithmetic this equals the textbook algorithm (for example the
+  biquad, `biquad.filt_real_eq_df1_real_zero`);
 - how far its floating-point result can be from the exact real-number answer.
 
-Each release lists which functions are proved, and under which stated assumptions (for example,
-that `sin` is accurate to within one unit in the last place).
+`proofs/README.md` lists which functions are proved, and what is assumed but not proved (for
+example, that Charon and Aeneas translate the Rust faithfully, and that `libm`'s `tan`, `pow` and
+`sqrt` always return; their accuracy is not assumed or proved).
 
 ## Building and checking
 

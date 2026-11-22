@@ -1,9 +1,17 @@
 //! Shared DSP maths for ConjureDSP plug-ins.
 //!
 //! Functions here take numbers and buffers and return numbers or fill buffers. Per-sample code
-//! does no memory allocation, takes no locks and makes no system calls. The crate is `no_std`
-//! and does not use `alloc`, so it cannot allocate memory at all. Its one dependency is `libm`
-//! (pinned exactly, default features off), for `tan`, `pow` and `sqrt` in filter design.
+//! does no memory allocation, takes no locks and makes no system calls. Allocation and system
+//! calls are ruled out by the build together with one property of the code: the crate is `no_std`
+//! and has no `extern crate alloc` or `extern crate std` (the compiler does not forbid adding
+//! them), so it links no allocator and no operating-system interface; and it forbids `unsafe` code
+//! (`unsafe_code = "forbid"` in `Cargo.toml`), so it cannot call foreign code or use inline
+//! assembly; `libm` is relied on to do the same. That it takes no locks is a property of the code
+//! (it uses no atomics or other synchronization); the compiler does not enforce it. A panic would
+//! run the plug-in's panic handler, which can allocate, lock and make system calls; that the
+//! functions never panic is proved of the translated code (`proofs/README.md`). None of this is
+//! otherwise proved in Lean. The crate's one dependency is `libm` (pinned exactly, default
+//! features off), for `tan`, `pow` and `sqrt` in filter design.
 //!
 //! The code is written so that Aeneas can translate it to Lean (see `proofs/`): plain loops with
 //! an index rather than iterators, and no trait objects or closures in proved functions.

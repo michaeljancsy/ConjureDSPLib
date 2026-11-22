@@ -1,16 +1,26 @@
 //! One-pole feedback filter: `y[n] = x[n] + a * y[n-1]`.
 //!
 //! The previous output `y[n-1]` is the filter's state, kept by the caller and carried from block
-//! to block. The filter is stable when `|a| < 1`.
+//! to block.
 //!
-//! **Gain.** This is the unnormalized form: a constant input `x` settles at `x / (1 - a)`, not at
-//! `x`. With `a = 0.99` a constant 1.0 settles at 100. To smooth toward a target value, use
-//! `smoother::process_f32` / `smoother::process_f64`, which in exact arithmetic settle on the
-//! target itself.
+//! **Stability.** In exact arithmetic the filter is stable when `|a| < 1`: with every input at
+//! most `M` in size, every output is at most `|state| + M / (1 - |a|)` in size, where `state` is
+//! the starting state (`one_pole.filt_real_abs_le_outBound`). The whole-block floating-point
+//! error theorems assume the stronger `|a| + |a| * u * (2 + u) < 1`, where `u` is the unit
+//! roundoff; see `proofs/README.md`.
+//!
+//! **Gain.** This is the unnormalized form: in exact arithmetic, with `|a| < 1`, a constant input
+//! `x` settles at `x / (1 - a)`, not at `x` (`one_pole.filt_real_replicate`,
+//! `one_pole.tendsto_filt_real_replicate`). With `a = 0.99` a constant 1.0 settles at about 100.
+//! To smooth toward a target value, use `smoother::process_f32` / `smoother::process_f64`, which
+//! in exact arithmetic, with `|a| < 1`, settle on the target itself
+//! (`smoother.tendsto_filt_real_replicate`).
 //!
 //! **Subnormals.** A decaying output drifts into subnormal numbers, which are slow on some
-//! processors. This module does nothing about that: flushing subnormals to zero is the caller's
-//! job.
+//! processors (the drift worked out outside Lean, not proved; the slowness a hardware fact). This
+//! module does nothing about that: flushing subnormals to zero is the caller's job (if the caller
+//! turns on the processor's flush-to-zero mode, the error bounds are not proved for that mode; see
+//! `proofs/README.md`).
 //!
 //! Call these through the module, as `one_pole::process_f32`.
 
@@ -22,7 +32,7 @@ pub fn step_f64(a: f64, state: f64, x: f64) -> f64 {
 }
 
 /// Filters `buf` in place, in `f64`, starting from `state` (the previous output) and leaving the
-/// last output in `state`. An empty block leaves `state` unchanged.
+/// last output in `state`. An empty block leaves `state` unchanged (`one_pole.process_f64_spec`).
 pub fn process_f64(a: f64, state: &mut f64, buf: &mut [f64]) {
     // An index loop rather than an iterator, so that Aeneas can translate it.
     let mut i = 0;
@@ -42,7 +52,7 @@ pub fn step_f32(a: f32, state: f32, x: f32) -> f32 {
 }
 
 /// Filters `buf` in place, in `f32`, starting from `state` (the previous output) and leaving the
-/// last output in `state`. An empty block leaves `state` unchanged.
+/// last output in `state`. An empty block leaves `state` unchanged (`one_pole.process_f32_spec`).
 pub fn process_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
     // An index loop rather than an iterator, so that Aeneas can translate it.
     let mut i = 0;

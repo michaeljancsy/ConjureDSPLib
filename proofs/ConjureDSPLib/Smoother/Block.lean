@@ -166,6 +166,15 @@ theorem block_error_core (A u η M B E : ℝ) (hu : 0 ≤ u) (hη : 0 ≤ η)
 When `0 ≤ A < 1` it is `|S| + M` (`outBound_eq_of_nonneg`). -/
 noncomputable def outBound (A M S : ℝ) : ℝ := |S| + |1 - A| * M / (1 - |A|)
 
+/-- **Stability in exact arithmetic**, `filt_real_abs_le` stated with `outBound`: when `|A| < 1`,
+from state `S` with every input at most `M ≥ 0` in size, every output of the exact smoother, and
+its final state, is at most `outBound A M S` in size. -/
+theorem filt_real_abs_le_outBound (A M S : ℝ) (hA : |A| < 1) (hM0 : 0 ≤ M) (xs : List ℝ)
+    (hM : ∀ x ∈ xs, |x| ≤ M) :
+    (∀ y ∈ (filt_real A S xs).2, |y| ≤ outBound A M S) ∧
+      |(filt_real A S xs).1| ≤ outBound A M S :=
+  filt_real_abs_le A M S hA hM0 xs hM
+
 /-- `E` of `block_error_real` (and of `process_f64_block_error` and the f32 version): the
 whole-block error bound. -/
 noncomputable def errBound (A u η M S : ℝ) : ℝ :=

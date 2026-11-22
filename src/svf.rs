@@ -57,7 +57,8 @@
 //! `pow` and `sqrt` never panic (proved of the translated code as `svf.CoeffsF64.low_pass_eq` and
 //! the others, under that assumption; see `proofs/README.md`).
 //!
-//! Flushing subnormal numbers to zero is the caller's job.
+//! Flushing subnormal numbers to zero is the caller's job (if the caller turns on the processor's
+//! flush-to-zero mode, the error bounds are not proved for that mode; see `proofs/README.md`).
 //!
 //! Call these through the module, as `svf::process_f32`.
 
@@ -197,7 +198,7 @@ pub fn step_f64(c: &CoeffsF64, state: &mut StateF64, x: f64) -> f64 {
 }
 
 /// Filters `buf` in place, in `f64`, carrying `state` from block to block. An empty block leaves
-/// `state` unchanged.
+/// `state` unchanged (`svf.process_f64_spec`).
 pub fn process_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
     // An index loop rather than an iterator, so that Aeneas can translate it.
     let mut i = 0;
@@ -340,7 +341,7 @@ pub fn step_f32(c: &CoeffsF32, state: &mut StateF32, x: f32) -> f32 {
 }
 
 /// Filters `buf` in place, in `f32`, carrying `state` from block to block. An empty block leaves
-/// `state` unchanged.
+/// `state` unchanged (`svf.process_f32_spec`).
 pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
     // An index loop rather than an iterator, so that Aeneas can translate it.
     let mut i = 0;

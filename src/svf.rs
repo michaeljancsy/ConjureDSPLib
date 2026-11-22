@@ -15,9 +15,20 @@
 //! where `d = 1 / (1 + g·(g + k))` is computed once, by `CoeffsF64::new` / `CoeffsF32::new`.
 //! This module computes exactly these steps, in this order and grouping (the brackets above),
 //! with no fused multiply-add (proved of the translated code as `svf.step_f64_eq` /
-//! `svf.step_f32_eq`, under the assumptions in `proofs/README.md`). In exact arithmetic these are the equations of the trapezoidal ("topology-preserving") SVF in
-//! V. Zavalishin, *The Art of VA Filter Design* (with `k = 2R`); that correspondence is not proved
-//! in `proofs/`.
+//! `svf.step_f32_eq`, under the assumptions in `proofs/README.md`). In exact arithmetic these are
+//! the equations of the trapezoidal ("topology-preserving") SVF in V. Zavalishin, *The Art of VA
+//! Filter Design* (with `k = 2R`); that correspondence is not proved in `proofs/`.
+//!
+//! The Lean proofs bound the floating-point error of each output and of the final state of a
+//! block, of any length, against the same filter in exact arithmetic
+//! (`svf.process_f64_block_error`, `svf.process_f32_block_error`), under the assumptions in
+//! `proofs/README.md`. Their conditions are on the stored coefficients, the starting state, the
+//! inputs and a chosen state bound `Sb ≥ 0`: a `Contraction` for the coefficients (for example
+//! `svf.complexPolesContraction`, when they have complex poles), finite coefficients and starting
+//! state, every input at most `M` in size (with `M ≥ 0`), no overflow in any step (or, in the
+//! `_of_inputs` versions, finite inputs and a cap on `V`), and `cInf·(R + Ê) ≤ Sb`. For the
+//! low-pass examples in `proofs/README.md`, the proofs check the `Contraction`, the `Sb` condition
+//! and the cap on `V`, for inputs at most 1 in size and a start from zero.
 //!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.
@@ -33,11 +44,12 @@
 //!
 //! The formulas follow A. Simper (Cytomic), *Solving the continuous SVF equations using
 //! trapezoidal integration and equivalent currents*, rewritten in this module's `hp`/`bp`/`lp`
-//! mix basis using `x = hp + k·bp + lp` (true in exact arithmetic; worked out by hand, not
+//! mix basis using `x = hp + k·bp + lp` (true in exact arithmetic; worked out outside Lean, not
 //! proved). For example Simper's bell output `x + k·(A² - 1)·bp` is `hp + k·A²·bp + lp` (worked
-//! out by hand, not proved). The names describe the responses Simper intends; that the
-//! coefficients give those responses (or any frequency response, stability or accuracy) is **not
-//! proved**.
+//! out outside Lean, not proved). The names describe the responses Simper intends; that
+//! the coefficients give those responses (or any frequency response), and that they are stable
+//! and meet the conditions of the error bound for every shape and argument, are **not proved**
+//! (only the low-pass examples in `proofs/README.md` are checked).
 //!
 //! Intended arguments: `0 < cutoff_hz < sample_rate_hz / 2`, `q > 0` and a finite `gain_db`.
 //! Nothing is checked, and nothing is claimed outside these ranges (the results may be infinite

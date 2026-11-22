@@ -557,6 +557,35 @@ theorem step_values_le (c : CoeffsReal) {u η M Sb X S1 S2 P0 Y P1 Q1 D1 P2 Q2 :
     have := abs_sub P2 Q2
     linarith
 
+/-- **The invariant inequalities force `cInf·K·κ·β < 1 − ρ`.** If numbers `Sb`, `R`, `Ê` and
+states `r`, `s` satisfy `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and
+`N(s − r) ≤ Ê` (hypotheses of `noOverflow_f64_of_inputs` / `_f32`), with `α > 0` and
+`cInf·K·κ > 0` (`κ = roundGain c`), then `cInf·K·κ·β < 1 − ρ`. So where that condition fails,
+those hypotheses cannot all hold. -/
+theorem smallness_of_invariant (c : CoeffsReal) (C : Contraction c)
+    {Sb R Ê α β r₁ r₂ s₁ s₂ : ℝ}
+    (hE : C.ρ * Ê + C.K * ((α + β * Sb) * roundGain c) ≤ Ê)
+    (hS : C.cInf * (R + Ê) ≤ Sb) (hr : C.N r₁ r₂ ≤ R) (he : C.N (s₁ - r₁) (s₂ - r₂) ≤ Ê)
+    (hα : 0 < α) (hpos : 0 < C.cInf * C.K * roundGain c) :
+    C.cInf * C.K * roundGain c * β < 1 - C.ρ := by
+  have hR0 : 0 ≤ R := le_trans (C.nonneg _ _) hr
+  have hE0 : 0 ≤ Ê := le_trans (C.nonneg _ _) he
+  by_contra! hnot
+  have hρ := C.ρ_lt_one
+  have hci := C.cInf_nonneg
+  have hSb0 : 0 ≤ Sb := le_trans (by positivity) hS
+  have hSE : C.cInf * Ê ≤ Sb := by nlinarith
+  -- cInf·(1 - ρ)·Ê ≥ cInf·K·κ·(α + β·Sb), multiplying `hE` by `cInf ≥ 0`.
+  have h1 : C.cInf * (C.K * ((α + β * Sb) * roundGain c)) ≤ C.cInf * ((1 - C.ρ) * Ê) :=
+    mul_le_mul_of_nonneg_left (by linarith) hci
+  -- cInf·K·κ·β·Sb ≥ (1 - ρ)·Sb ≥ (1 - ρ)·cInf·Ê.
+  have h2 : (1 - C.ρ) * Sb ≤ C.cInf * C.K * roundGain c * β * Sb :=
+    mul_le_mul_of_nonneg_right hnot hSb0
+  have h3 : (1 - C.ρ) * (C.cInf * Ê) ≤ (1 - C.ρ) * Sb :=
+    mul_le_mul_of_nonneg_left hSE (by linarith)
+  have h4 : 0 < C.cInf * C.K * roundGain c * α := mul_pos hpos hα
+  nlinarith [h1, h2, h3, h4]
+
 end conjure_dsp_lib.biquad
 
 end

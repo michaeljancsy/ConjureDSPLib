@@ -214,6 +214,14 @@ theorem process_f64_block_error_of_inputs (a state : Float) (buf : Slice Float) 
   exact ⟨hno, process_f64_block_error a state buf M ha hs hno hM0
     (fun x hx => (hin x hx).2) hstab⟩
 
+/-- **A simple sufficient condition for the stability condition, f64.** Every real `A` with
+`|A| ≤ 1 - 2⁻⁵¹` satisfies `|A| + |A|·u·(2 + u) < 1`, where `u` is binary64's unit roundoff. -/
+theorem stability_of_abs_le_f64 (A : ℝ) (hA : |A| ≤ 1 - 2 ^ (-51 : ℤ)) :
+    |A| + |A| * unitRoundoff_f64 * (2 + unitRoundoff_f64) < 1 := by
+  rw [unitRoundoff_f64_eq]
+  norm_num at hA ⊢
+  nlinarith [abs_nonneg A]
+
 end conjure_dsp_lib.one_pole
 
 end

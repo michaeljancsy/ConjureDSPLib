@@ -15,6 +15,7 @@
 #![no_std]
 
 pub mod biquad;
+pub mod delay;
 pub mod gain;
 pub mod one_pole;
 pub mod smoother;

@@ -10,8 +10,12 @@
 //! rest close to the input but not always exactly on it, because with `a` near 1 the last steps
 //! round away; no floating-point bound is proved, so do not test `state == target`.
 //!
-//! **Stability.** In exact arithmetic it is stable for `|a| < 1`; use `0 <= a < 1` for a glide
+//! **Stability.** In exact arithmetic it is stable for `|a| < 1`, and `0 <= a < 1` gives a glide
 //! with no overshoot (`a < 0` makes it alternate around the target).
+//!
+//! **Subnormals.** A state decaying toward 0 drifts into subnormal numbers, which are slow on
+//! some processors. This module does nothing about that: flushing subnormals to zero is the
+//! caller's job.
 //!
 //! **Relation to the one-pole filter.** In exact arithmetic it is the same filter as
 //! `one_pole::step_*` fed `(1 - a) * target`; in floating point the results can differ

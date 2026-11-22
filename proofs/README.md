@@ -25,8 +25,8 @@ index, no arithmetic overflow on indices, and it terminates.
 | `one_pole::process_f64` | `one_pole.process_f64_block_error_of_inputs` (and `noOverflow_f64_of_inputs`) | `OnePole/BlockF64.lean` | **The same, with conditions on the inputs only:** no step overflows, proved from the inputs rather than assumed, when `M + (1 + u)·(B + E) + η` is at most the largest finite binary64 value (about 1.8 × 10³⁰⁸). |
 | `one_pole::process_f32` | `one_pole.process_f32_block_error_of_inputs` (and `noOverflow_f32_of_inputs`) | `OnePole/BlockF32.lean` | The same in binary32 (largest finite value about 3.4 × 10³⁸). |
 | `smoother::step_f64` | `smoother.step_f64_eq` | `Smoother/SpecF64.lean` | Exactly `state + (1 - a) * (target - state)` in binary64, in that order (`1` is the binary64 number 1); never fails. |
-| `smoother::process_f64` | `smoother.process_f64_spec` | `Smoother/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `state + c * (x - state)` in binary64 to each sample in turn, with `c = 1 - a` computed once in binary64 before the first sample (Lean's `filt_f64 (1 - a)`). |
-| `smoother::step_f32`, `process_f32` | `smoother.step_f32_eq`, `smoother.process_f32_spec` | `Smoother/SpecF32.lean` | The same two facts in binary32 (Lean's `filt_f32`). |
+| `smoother::process_f64` | `smoother.process_f64_spec` | `Smoother/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `state + c * (x - state)` in binary64 to each sample in turn, with `c = 1 - a` computed once in binary64 before the first sample (Lean's `smoother.filt_f64 (1 - a)`). |
+| `smoother::step_f32`, `process_f32` | `smoother.step_f32_eq`, `smoother.process_f32_spec` | `Smoother/SpecF32.lean` | The same two facts in binary32 (Lean's `smoother.filt_f32`). |
 | (the smoother, exact arithmetic) | `smoother.filt_real_eq_one_pole_filt_real` | `Smoother/Exact.lean` | In exact arithmetic, for any `A`, starting state `r` and list of inputs: the smoother `y = y_prev + (1 - A)·(x - y_prev)` (`smoother.filt_real`) gives exactly the same outputs and final state as the one-pole `y = x' + A·y_prev` (`one_pole.filt_real`) run from the same state on the inputs `x' = (1 - A)·x`. |
 | (the smoother, exact arithmetic) | `smoother.filt_real_replicate` | `Smoother/Exact.lean` | In exact arithmetic, for any `A`, starting state `r`, input `X` and number of samples `n`: the input `X` held for `n` samples gives the outputs `X + A^(k+1)·(r - X)` for `k = 0, …, n - 1` and the final state `X + A^n·(r - X)`. |
 | (the smoother, exact arithmetic) | `smoother.tendsto_filt_real_replicate` | `Smoother/Exact.lean` | In exact arithmetic, when `\|A\| < 1`: for any starting state `r` and input `X`, the final state after `X` is held for `n` samples tends to `X` as `n` grows. |
@@ -190,7 +190,7 @@ hand, not proved).
   computes; `BridgeF64.lean`/`BridgeF32.lean` relate one step to real numbers; `Block.lean` holds
   the whole-block argument on real numbers only, shared by both precisions, and
   `BlockF64.lean`/`BlockF32.lean` apply it to the Rust functions; `Exact.lean` (real numbers
-  only) proves what a filter does in exact arithmetic (`Smoother/`); `Textbook.lean` (real
+  only, `Smoother/`) proves what the filter does in exact arithmetic; `Textbook.lean` (real
   numbers only) shows the code's form of a filter equals the textbook formula;
   `Contraction.lean` (real numbers only) builds a `Contraction` for biquads with complex poles
   inside the unit circle.

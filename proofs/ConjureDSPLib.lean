@@ -4,7 +4,11 @@ public import ConjureDSPLib.Code.Types
 public import ConjureDSPLib.Code.FunsExternal
 public import ConjureDSPLib.Code.Funs
 public import ConjureDSPLib.FloatFacts
-public import ConjureDSPLib.Gain
+public import ConjureDSPLib.Gain.SpecF64
+public import ConjureDSPLib.Gain.SpecF32
+public import ConjureDSPLib.Gain.Line
+public import ConjureDSPLib.Gain.BridgeF64
+public import ConjureDSPLib.Gain.BridgeF32
 public import ConjureDSPLib.TwoState
 public import ConjureDSPLib.OnePole.SpecF64
 public import ConjureDSPLib.OnePole.BridgeF64

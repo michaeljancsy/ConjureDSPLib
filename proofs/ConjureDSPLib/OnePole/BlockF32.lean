@@ -242,7 +242,7 @@ theorem table_row_le_of_abs_le_05_f32 (A : ℝ) (hA : |A| ≤ 0.5) :
       20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0) ≤
         -134.9 := by
   have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
-  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := underflowErr_f32_nonneg
   obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.5 _ _ (2 ^ (-150 : ℤ)) 2
     (3.6 * 10 ^ (-7 : ℤ)) 179 9 200 1349 hu hη underflowErr_f32_eq.le hA
     (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num) (by norm_num)
@@ -266,7 +266,7 @@ theorem table_row_le_of_abs_le_099_f32 (A : ℝ) (hA : |A| ≤ 0.990001) :
       20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0) ≤
         -98.5 := by
   have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
-  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := underflowErr_f32_nonneg
   obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.990001 _ _ (2 ^ (-150 : ℤ)) 100.02
     (1.19 * 10 ^ (-3 : ℤ)) 1187 8 40 197 hu hη underflowErr_f32_eq.le hA
     (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num) (by norm_num)
@@ -290,7 +290,7 @@ theorem table_row_le_of_abs_le_0999_f32 (A : ℝ) (hA : |A| ≤ 0.999001) :
       20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0 / outBound A 1 0) ≤
         -78.4 := by
   have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
-  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := underflowErr_f32_nonneg
   obtain ⟨hB, hE, hr, hdB⟩ := table_row_le_of_abs_le A 0.999001 _ _ (2 ^ (-150 : ℤ)) 1001.01
     0.12 1193 7 25 98 hu hη underflowErr_f32_eq.le hA
     (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num) (by norm_num)
@@ -333,7 +333,7 @@ theorem errBound_between_of_abs_le_f32 (A : ℝ) (hA1 : 1 / 2 ≤ |A|)
       errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤
         3 * unitRoundoff_f32 / (1 - |A|) ^ 2 :=
   errBound_between_of_abs_le A _ _ _ (by rw [unitRoundoff_f32_eq]; positivity)
-    (by rw [unitRoundoff_f32_eq]; norm_num) (by rw [underflowErr_f32_eq]; positivity)
+    (by rw [unitRoundoff_f32_eq]; norm_num) underflowErr_f32_nonneg
     (by rw [unitRoundoff_f32_eq, underflowErr_f32_eq]; norm_num)
     (by rw [unitRoundoff_f32_eq]; norm_num) hA1 hA2
 

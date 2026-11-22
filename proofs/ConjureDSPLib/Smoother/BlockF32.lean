@@ -285,7 +285,7 @@ theorem table_row_le_of_le_099_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.99000
       errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 6.2 * 10 ^ (-6 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0) ≤ -104.1 := by
   have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
-  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := underflowErr_f32_nonneg
   obtain ⟨h1, h2, h3, h4⟩ := table_row_le_of_le A 0.990001 _ _ (2 ^ (-150 : ℤ)) 62 7 200 1041
     hu (by rw [unitRoundoff_f32_eq]; norm_num) hη underflowErr_f32_eq.le hA0 hA
     (by
@@ -309,7 +309,7 @@ theorem table_row_le_of_le_0999_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.9990
       errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 6 * 10 ^ (-5 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0) ≤ -84.4 := by
   have hu : 0 < unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; positivity
-  have hη : 0 ≤ underflowErr_f32 := by rw [underflowErr_f32_eq]; positivity
+  have hη : 0 ≤ underflowErr_f32 := underflowErr_f32_nonneg
   obtain ⟨h1, h2, h3, h4⟩ := table_row_le_of_le A 0.999001 _ _ (2 ^ (-150 : ℤ)) 6 5 50 211
     hu (by rw [unitRoundoff_f32_eq]; norm_num) hη underflowErr_f32_eq.le hA0 hA
     (by

@@ -284,7 +284,7 @@ theorem table_row_le_of_le_099_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.99) :
       errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤ 1.16 * 10 ^ (-14 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0) ≤ -278.7 := by
   have hu : 0 < unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
-  have hη : 0 ≤ underflowErr_f64 := by rw [underflowErr_f64_eq]; positivity
+  have hη : 0 ≤ underflowErr_f64 := underflowErr_f64_nonneg
   obtain ⟨h1, h2, h3, h4⟩ := table_row_le_of_le A 0.99 _ _ (2 ^ (-200 : ℤ)) 116 16 200 2787 hu
     (by rw [unitRoundoff_f64_eq]; norm_num) hη underflowErr_f64_le hA0 hA
     (by
@@ -307,7 +307,7 @@ theorem table_row_le_of_le_0999_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999)
       errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤ 1.12 * 10 ^ (-13 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0) ≤ -259 := by
   have hu : 0 < unitRoundoff_f64 := by rw [unitRoundoff_f64_eq]; positivity
-  have hη : 0 ≤ underflowErr_f64 := by rw [underflowErr_f64_eq]; positivity
+  have hη : 0 ≤ underflowErr_f64 := underflowErr_f64_nonneg
   obtain ⟨h1, h2, h3, h4⟩ := table_row_le_of_le A 0.999 _ _ (2 ^ (-200 : ℤ)) 112 15 20 259 hu
     (by rw [unitRoundoff_f64_eq]; norm_num) hη underflowErr_f64_le hA0 hA
     (by

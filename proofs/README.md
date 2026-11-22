@@ -10,10 +10,16 @@ index, no arithmetic overflow on indices, and it terminates.
 
 | Rust function | Theorem | File | Says |
 |---|---|---|---|
-| `gain::apply_f64`, `apply_f32` | `gain.apply_f64_eq`, `gain.apply_f32_eq` | `Gain.lean` | Exactly `gain * x` (Lean's `Float.mul` / `Float32.mul`); never fails. |
-| `gain::ramp_f64` | `gain.ramp_f64_spec` | `Gain.lean` | Never fails, and the output samples are exactly `rampList_f64 start end` of the input samples: with `n` the block's length, sample `i` (`x`) becomes `x * (start + ((end - start) / castNat_f64 n) * castNat_f64 i)` (`rampGain_f64`), each operation in binary64 (Lean's `Float`) in that order. For an empty block, `rampList_f64` is the empty list. |
-| (`i as f64` for a `usize` `i`) | `gain.usize_toFloat_eq_castNat_f64` | `Gain.lean` | Aeneas's translation of the cast, `UScalar.toFloat i`, equals `castNat_f64` of the value of `i`: Lean's own conversion of that natural number to binary64 (`Float.Model.ofNat`). How that conversion rounds is Lean core's definition and is not proved here. |
-| `gain::ramp_f32` | `gain.ramp_f32_spec`, `gain.usize_toFloat32_eq_castNat_f32` | `Gain.lean` | The same two facts in binary32 (`rampList_f32`, `rampGain_f32`, `castNat_f32`, Lean's `Float32`). |
+| `gain::apply_f64`, `apply_f32` | `gain.apply_f64_eq`, `gain.apply_f32_eq` | `Gain/SpecF64.lean`, `Gain/SpecF32.lean` | Exactly `gain * x` (Lean's `Float.mul` / `Float32.mul`); never fails. |
+| `gain::ramp_f64` | `gain.ramp_f64_spec` | `Gain/SpecF64.lean` | Never fails, and the output samples are exactly `rampList_f64 start end` of the input samples: with `n` the block's length, sample `i` (`x`) becomes `x * (start + ((end - start) / castNat_f64 n) * castNat_f64 i)` (`rampGain_f64`), each operation in binary64 (Lean's `Float`) in that order. For an empty block, `rampList_f64` is the empty list. |
+| (`i as f64` for a `usize` `i`) | `gain.usize_toFloat_eq_castNat_f64` (`Gain/SpecF64.lean`), `gain.real_castNat_f64_eq_roundAt`, `gain.real_castNat_f64`, `gain.isFinite_castNat_f64` | `Gain/BridgeF64.lean` | Aeneas's translation of the cast, `UScalar.toFloat i`, equals `castNat_f64` of the value of `i`: Lean's own conversion of that natural number to binary64 (`Float.Model.ofNat`). For every `k ≤ 2^64` (every `usize`), `castNat_f64 k` is finite and its real value is `k` rounded to the nearest binary64 number, ties to even (FloatLib's `roundAt`); for `k ≤ 2^53` that is exactly `k`. |
+| `gain::ramp_f64` | `gain.rampGain_f64_not_finite` | `Gain/BridgeF64.lean` | If `start` or `end` is not finite, or `end - start` is not finite (it overflowed), `rampGain_f64 start end n i` is infinite or NaN, for every `n` and every `i`, `i = 0` included. |
+| `gain::ramp_f64` | `gain.rampGain_f64_zero`, `gain.rampGain_f64_zero_negZero` | `Gain/BridgeF64.lean` | When `end - start` is finite (so `start` and `end` are finite and the difference did not overflow) and `1 ≤ n < 2^64`: the first gain `rampGain_f64 start end n 0` equals `start` as a Lean `Float` (bit for bit), unless `start` is `-0` (bits `0x8000000000000000`); then the first gain is `+0` or `-0`. |
+| `gain::ramp_f64` | `gain.rampGain_f64_error`; `gain.ramp_line_zero`, `gain.ramp_line_last`, `gain.ramp_line_end` (`Gain/Line.lean`) | `Gain/BridgeF64.lean` | **Accuracy.** When `start` and `end` are finite and at most `2^1020` in size, `1 ≤ n ≤ 2^53` and `i < n`: the gain of sample `i` is finite, and its real value is within `u·\|S\| + 5u·\|E - S\| + (2n + 4)·η` of the straight line `S + (E - S)·i/n`, where `S`, `E` are the real values of `start`, `end`, `u = 2⁻⁵³` and `η = 2⁻¹⁰⁷⁵`. That line is `S` at `i = 0`, and for `n ≥ 1` it is `E - (E - S)/n` at `i = n - 1` and `E` at `i = n`. |
+| `gain::ramp_f64` | `gain.rampStep_f64_error`, `gain.rampGain_f64_last_error`, `gain.rampGain_f64_succ_sub`, `gain.rampGain_f64_next_block`, `gain.rampGain_f64_zero` | `Gain/BridgeF64.lean` | **Steps.** Under the same conditions: the step `rampStep_f64 start end n` (`(end - start) / castNat_f64 n`) has a real value `s` within `3u·\|E - S\| + 3η` of `(E - S)/n`; the last gain (`i = n - 1`) is within `u·\|S\| + 8u·\|E - S\| + (2n + 7)·η` of `E - s`; and for `i + 1 < n`, gain `i + 1` minus gain `i` is within `2u·\|S\| + 13u·\|E - S\| + (4n + 11)·η` of `s`. A following block from `end` to any `end₂`, of any length `1 ≤ m < 2^64`, starts at exactly `end` when `end₂ - end` is finite and `end` is not `-0` (`rampGain_f64_zero` applied to that block, with no condition on this block); with this block under the accuracy conditions as well, `end` minus this block's last gain is within `u·\|S\| + 8u·\|E - S\| + (2n + 7)·η` of `s` (`rampGain_f64_next_block`). |
+| `gain::ramp_f64` | `gain.rampGain_f64_mono` | `Gain/BridgeF64.lean` | **Direction.** For `n ≤ 2^64`, `i ≤ j ≤ 2^64`, and gains `i` and `j` both finite: if `S ≤ E`, the real value of gain `i` is at most that of gain `j`; if `E ≤ S`, the real value of gain `j` is at most that of gain `i`. |
+| `gain::ramp_f32` | `gain.ramp_f32_spec`, `gain.usize_toFloat32_eq_castNat_f32` | `Gain/SpecF32.lean` | The same two facts in binary32 (`rampList_f32`, `rampGain_f32`, `castNat_f32`, Lean's `Float32`). |
+| `gain::ramp_f32` | the `_f32` versions of the gain theorems above (`gain.real_castNat_f32_eq_roundAt`, `gain.real_castNat_f32`, `gain.isFinite_castNat_f32`, `gain.rampGain_f32_not_finite`, `gain.rampGain_f32_zero`, `gain.rampGain_f32_zero_negZero`, `gain.rampGain_f32_error`, `gain.rampStep_f32_error`, `gain.rampGain_f32_last_error`, `gain.rampGain_f32_succ_sub`, `gain.rampGain_f32_next_block`, `gain.rampGain_f32_mono`) | `Gain/BridgeF32.lean` | The same facts in binary32, with `2^24` in place of `2^53` (exact conversion, and the largest `n` of the accuracy bounds), `2^124` in place of `2^1020`, `u = 2⁻²⁴`, `η = 2⁻¹⁵⁰`, and `-0` having bits `0x80000000`. |
 | `one_pole::step_f64` | `one_pole.step_f64_eq` | `OnePole/SpecF64.lean` | Exactly `x + a * state` in binary64; never fails. |
 | `one_pole::process_f64` | `one_pole.process_f64_spec` | `OnePole/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `x + a * state` in binary64 to each sample in turn (Lean's `filt_f64`). |
 | `one_pole::step_f64` | `one_pole.step_f64_toReal` | `OnePole/BridgeF64.lean` | When `a`, `state`, `x`, the rounded product `a·state` and the result are all finite (no overflow): the result's real value is `x + a·state` with the product rounded to nearest, then the sum rounded to nearest. |
@@ -524,8 +530,8 @@ What is listed here is observed or expected behaviour, not proved.
   external `libm` functions the crate calls, which `Funs.lean` imports. Aeneas writes a template
   for it declaring those functions as axioms; `scripts/prove.sh` moves the template to
   `target/FunsExternal_Template.lean`, outside the Lean library.
-- One file per Rust module while it has one proof file (`Gain.lean`); a folder once it has more
-  (`OnePole/`). Inside a folder: `SpecF64.lean`/`SpecF32.lean` say what the translated code
+- One file per Rust module while it has one proof file; a folder once it has more (`OnePole/`,
+  `Gain/`). Inside a folder: `SpecF64.lean`/`SpecF32.lean` say what the translated code
   computes; `BridgeF64.lean`/`BridgeF32.lean` relate one step to real numbers; `Block.lean` holds
   the whole-block argument on real numbers only, shared by both precisions, and
   `BlockF64.lean`/`BlockF32.lean` apply it to the Rust functions; `Exact.lean` (real numbers
@@ -534,7 +540,9 @@ What is listed here is observed or expected behaviour, not proved.
   `Contraction.lean` (real numbers only) builds a `Contraction` for biquads with complex poles,
   distinct real poles or a repeated real pole inside the unit circle (`Biquad/`), or for the SVF
   with complex poles or from a biquad one (`Svf/`); `Basic.lean` (`Delay/`)
-  holds facts about lists, natural numbers and Aeneas's `Result` that both precisions' files use.
+  holds facts about lists, natural numbers and Aeneas's `Result` that both precisions' files use;
+  `Line.lean` (real numbers only, `Gain/`) holds the gain ramp's straight line and the error of
+  one ramp gain and of the step, shared by both precisions' `Bridge` files.
 - Names: Lean names about one precision end in `_f64` or `_f32`, like the Rust names
   (`filt_f64`, `real_f32`, `NoOverflow_f64`), and the filter functions keep the `filt_` prefix
   (`filt_real`). Otherwise Lean names follow Mathlib: definitions that are statements start with
@@ -542,7 +550,8 @@ What is listed here is observed or expected behaviour, not proved.
   snake case, keeping the casing of any definition they mention, except that a capitalized one
   starts lowercase (`filt_f64_withinStepErr`, `noOverflow_f64_of_inputs`).
 - `FloatFacts.lean` holds facts about floats shared by every module's proofs, including
-  `real_f64` / `real_f32` (the exact real value of a float).
+  `real_f64` / `real_f32` (the exact real value of a float), the size of one rounding, and how
+  infinity, NaN and signed zeros pass through one operation.
 - `TwoState.lean` (real numbers only) holds what the biquad's and the SVF's whole-block arguments
   share: `two_state.Contraction`, the `Contraction` structure for a filter with two state values
   and any 2 × 2 state-update matrix (`biquad.Contraction` is it at the companion matrix

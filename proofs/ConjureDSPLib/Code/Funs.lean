@@ -26,14 +26,14 @@ noncomputable section
 namespace conjure_dsp_lib
 
 /-- [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::CoeffsF64}::clone]:
-    Source: 'src/biquad.rs', lines 32:9-32:14
+    Source: 'src/biquad.rs', lines 44:9-44:14
     Visibility: public -/
 def biquad.CoeffsF64.Insts.CoreCloneClone.clone
   (self : biquad.CoeffsF64) : Result biquad.CoeffsF64 := do
   ok self
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::CoeffsF64}]
-    Source: 'src/biquad.rs', lines 32:9-32:14 -/
+    Source: 'src/biquad.rs', lines 44:9-44:14 -/
 @[reducible]
 def biquad.CoeffsF64.Insts.CoreCloneClone : core.clone.Clone biquad.CoeffsF64
   := {
@@ -41,7 +41,7 @@ def biquad.CoeffsF64.Insts.CoreCloneClone : core.clone.Clone biquad.CoeffsF64
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::Copy for conjure_dsp_lib::biquad::CoeffsF64}]
-    Source: 'src/biquad.rs', lines 32:16-32:20 -/
+    Source: 'src/biquad.rs', lines 44:16-44:20 -/
 @[reducible]
 def biquad.CoeffsF64.Insts.CoreMarkerCopy : core.marker.Copy biquad.CoeffsF64
   := {
@@ -49,14 +49,14 @@ def biquad.CoeffsF64.Insts.CoreMarkerCopy : core.marker.Copy biquad.CoeffsF64
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::biquad::CoeffsF64}]
-    Source: 'src/biquad.rs', lines 32:29-32:38 -/
+    Source: 'src/biquad.rs', lines 44:29-44:38 -/
 @[reducible]
 def biquad.CoeffsF64.Insts.CoreMarkerStructuralPartialEq :
   core.marker.StructuralPartialEq biquad.CoeffsF64 := {
 }
 
 /-- [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::CoeffsF64> for conjure_dsp_lib::biquad::CoeffsF64}::eq]:
-    Source: 'src/biquad.rs', lines 32:29-32:38
+    Source: 'src/biquad.rs', lines 44:29-44:38
     Visibility: public -/
 def biquad.CoeffsF64.Insts.CoreCmpPartialEqCoeffsF64.eq
   (self : biquad.CoeffsF64) (other : biquad.CoeffsF64) : Result Bool := do
@@ -73,7 +73,7 @@ def biquad.CoeffsF64.Insts.CoreCmpPartialEqCoeffsF64.eq
   else ok false
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::CoeffsF64> for conjure_dsp_lib::biquad::CoeffsF64}]
-    Source: 'src/biquad.rs', lines 32:29-32:38 -/
+    Source: 'src/biquad.rs', lines 44:29-44:38 -/
 @[reducible]
 def biquad.CoeffsF64.Insts.CoreCmpPartialEqCoeffsF64 : core.cmp.PartialEq
   biquad.CoeffsF64 biquad.CoeffsF64 := {
@@ -81,7 +81,7 @@ def biquad.CoeffsF64.Insts.CoreCmpPartialEqCoeffsF64 : core.cmp.PartialEq
 }
 
 /-- [conjure_dsp_lib::biquad::{conjure_dsp_lib::biquad::CoeffsF64}::IDENTITY]
-    Source: 'src/biquad.rs', lines 48:4-54:6
+    Source: 'src/biquad.rs', lines 62:4-68:6
     Visibility: public -/
 @[global_simps, irreducible]
 def biquad.CoeffsF64.IDENTITY : biquad.CoeffsF64 :=
@@ -94,14 +94,14 @@ def biquad.CoeffsF64.IDENTITY : biquad.CoeffsF64 :=
   }
 
 /-- [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::StateF64}::clone]:
-    Source: 'src/biquad.rs', lines 59:9-59:14
+    Source: 'src/biquad.rs', lines 73:9-73:14
     Visibility: public -/
 def biquad.StateF64.Insts.CoreCloneClone.clone
   (self : biquad.StateF64) : Result biquad.StateF64 := do
   ok self
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::StateF64}]
-    Source: 'src/biquad.rs', lines 59:9-59:14 -/
+    Source: 'src/biquad.rs', lines 73:9-73:14 -/
 @[reducible]
 def biquad.StateF64.Insts.CoreCloneClone : core.clone.Clone biquad.StateF64
   := {
@@ -109,7 +109,7 @@ def biquad.StateF64.Insts.CoreCloneClone : core.clone.Clone biquad.StateF64
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::Copy for conjure_dsp_lib::biquad::StateF64}]
-    Source: 'src/biquad.rs', lines 59:16-59:20 -/
+    Source: 'src/biquad.rs', lines 73:16-73:20 -/
 @[reducible]
 def biquad.StateF64.Insts.CoreMarkerCopy : core.marker.Copy biquad.StateF64
   := {
@@ -117,14 +117,14 @@ def biquad.StateF64.Insts.CoreMarkerCopy : core.marker.Copy biquad.StateF64
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::biquad::StateF64}]
-    Source: 'src/biquad.rs', lines 59:38-59:47 -/
+    Source: 'src/biquad.rs', lines 73:38-73:47 -/
 @[reducible]
 def biquad.StateF64.Insts.CoreMarkerStructuralPartialEq :
   core.marker.StructuralPartialEq biquad.StateF64 := {
 }
 
 /-- [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::StateF64> for conjure_dsp_lib::biquad::StateF64}::eq]:
-    Source: 'src/biquad.rs', lines 59:38-59:47
+    Source: 'src/biquad.rs', lines 73:38-73:47
     Visibility: public -/
 def biquad.StateF64.Insts.CoreCmpPartialEqStateF64.eq
   (self : biquad.StateF64) (other : biquad.StateF64) : Result Bool := do
@@ -133,7 +133,7 @@ def biquad.StateF64.Insts.CoreCmpPartialEqStateF64.eq
   else ok false
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::StateF64> for conjure_dsp_lib::biquad::StateF64}]
-    Source: 'src/biquad.rs', lines 59:38-59:47 -/
+    Source: 'src/biquad.rs', lines 73:38-73:47 -/
 @[reducible]
 def biquad.StateF64.Insts.CoreCmpPartialEqStateF64 : core.cmp.PartialEq
   biquad.StateF64 biquad.StateF64 := {
@@ -141,7 +141,7 @@ def biquad.StateF64.Insts.CoreCmpPartialEqStateF64 : core.cmp.PartialEq
 }
 
 /-- [conjure_dsp_lib::biquad::step_f64]:
-    Source: 'src/biquad.rs', lines 69:0-74:1
+    Source: 'src/biquad.rs', lines 83:0-88:1
     Visibility: public -/
 def biquad.step_f64
   (c : biquad.CoeffsF64) (state : biquad.StateF64) (x : Float) :
@@ -178,7 +178,7 @@ def biquad.step_f64
     })
 
 /-- [conjure_dsp_lib::biquad::process_f64]: loop body 0:
-    Source: 'src/biquad.rs', lines 81:4-84:5
+    Source: 'src/biquad.rs', lines 95:4-98:5
     Visibility: public -/
 @[rust_loop_body]
 def biquad.process_f64_loop.body
@@ -198,7 +198,7 @@ def biquad.process_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::biquad::process_f64]: loop 0:
-    Source: 'src/biquad.rs', lines 81:4-84:5
+    Source: 'src/biquad.rs', lines 95:4-98:5
     Visibility: public -/
 @[rust_loop]
 def biquad.process_f64_loop
@@ -211,7 +211,7 @@ def biquad.process_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::biquad::process_f64]:
-    Source: 'src/biquad.rs', lines 78:0-85:1
+    Source: 'src/biquad.rs', lines 92:0-99:1
     Visibility: public -/
 @[reducible]
 def biquad.process_f64
@@ -221,14 +221,14 @@ def biquad.process_f64
   biquad.process_f64_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::CoeffsF32}::clone]:
-    Source: 'src/biquad.rs', lines 88:9-88:14
+    Source: 'src/biquad.rs', lines 102:9-102:14
     Visibility: public -/
 def biquad.CoeffsF32.Insts.CoreCloneClone.clone
   (self : biquad.CoeffsF32) : Result biquad.CoeffsF32 := do
   ok self
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::CoeffsF32}]
-    Source: 'src/biquad.rs', lines 88:9-88:14 -/
+    Source: 'src/biquad.rs', lines 102:9-102:14 -/
 @[reducible]
 def biquad.CoeffsF32.Insts.CoreCloneClone : core.clone.Clone biquad.CoeffsF32
   := {
@@ -236,7 +236,7 @@ def biquad.CoeffsF32.Insts.CoreCloneClone : core.clone.Clone biquad.CoeffsF32
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::Copy for conjure_dsp_lib::biquad::CoeffsF32}]
-    Source: 'src/biquad.rs', lines 88:16-88:20 -/
+    Source: 'src/biquad.rs', lines 102:16-102:20 -/
 @[reducible]
 def biquad.CoeffsF32.Insts.CoreMarkerCopy : core.marker.Copy biquad.CoeffsF32
   := {
@@ -244,14 +244,14 @@ def biquad.CoeffsF32.Insts.CoreMarkerCopy : core.marker.Copy biquad.CoeffsF32
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::biquad::CoeffsF32}]
-    Source: 'src/biquad.rs', lines 88:29-88:38 -/
+    Source: 'src/biquad.rs', lines 102:29-102:38 -/
 @[reducible]
 def biquad.CoeffsF32.Insts.CoreMarkerStructuralPartialEq :
   core.marker.StructuralPartialEq biquad.CoeffsF32 := {
 }
 
 /-- [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::CoeffsF32> for conjure_dsp_lib::biquad::CoeffsF32}::eq]:
-    Source: 'src/biquad.rs', lines 88:29-88:38
+    Source: 'src/biquad.rs', lines 102:29-102:38
     Visibility: public -/
 def biquad.CoeffsF32.Insts.CoreCmpPartialEqCoeffsF32.eq
   (self : biquad.CoeffsF32) (other : biquad.CoeffsF32) : Result Bool := do
@@ -268,7 +268,7 @@ def biquad.CoeffsF32.Insts.CoreCmpPartialEqCoeffsF32.eq
   else ok false
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::CoeffsF32> for conjure_dsp_lib::biquad::CoeffsF32}]
-    Source: 'src/biquad.rs', lines 88:29-88:38 -/
+    Source: 'src/biquad.rs', lines 102:29-102:38 -/
 @[reducible]
 def biquad.CoeffsF32.Insts.CoreCmpPartialEqCoeffsF32 : core.cmp.PartialEq
   biquad.CoeffsF32 biquad.CoeffsF32 := {
@@ -276,7 +276,7 @@ def biquad.CoeffsF32.Insts.CoreCmpPartialEqCoeffsF32 : core.cmp.PartialEq
 }
 
 /-- [conjure_dsp_lib::biquad::{conjure_dsp_lib::biquad::CoeffsF32}::IDENTITY]
-    Source: 'src/biquad.rs', lines 104:4-110:6
+    Source: 'src/biquad.rs', lines 120:4-126:6
     Visibility: public -/
 @[global_simps, irreducible]
 def biquad.CoeffsF32.IDENTITY : biquad.CoeffsF32 :=
@@ -289,14 +289,14 @@ def biquad.CoeffsF32.IDENTITY : biquad.CoeffsF32 :=
   }
 
 /-- [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::StateF32}::clone]:
-    Source: 'src/biquad.rs', lines 115:9-115:14
+    Source: 'src/biquad.rs', lines 131:9-131:14
     Visibility: public -/
 def biquad.StateF32.Insts.CoreCloneClone.clone
   (self : biquad.StateF32) : Result biquad.StateF32 := do
   ok self
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::StateF32}]
-    Source: 'src/biquad.rs', lines 115:9-115:14 -/
+    Source: 'src/biquad.rs', lines 131:9-131:14 -/
 @[reducible]
 def biquad.StateF32.Insts.CoreCloneClone : core.clone.Clone biquad.StateF32
   := {
@@ -304,7 +304,7 @@ def biquad.StateF32.Insts.CoreCloneClone : core.clone.Clone biquad.StateF32
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::Copy for conjure_dsp_lib::biquad::StateF32}]
-    Source: 'src/biquad.rs', lines 115:16-115:20 -/
+    Source: 'src/biquad.rs', lines 131:16-131:20 -/
 @[reducible]
 def biquad.StateF32.Insts.CoreMarkerCopy : core.marker.Copy biquad.StateF32
   := {
@@ -312,14 +312,14 @@ def biquad.StateF32.Insts.CoreMarkerCopy : core.marker.Copy biquad.StateF32
 }
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::biquad::StateF32}]
-    Source: 'src/biquad.rs', lines 115:38-115:47 -/
+    Source: 'src/biquad.rs', lines 131:38-131:47 -/
 @[reducible]
 def biquad.StateF32.Insts.CoreMarkerStructuralPartialEq :
   core.marker.StructuralPartialEq biquad.StateF32 := {
 }
 
 /-- [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::StateF32> for conjure_dsp_lib::biquad::StateF32}::eq]:
-    Source: 'src/biquad.rs', lines 115:38-115:47
+    Source: 'src/biquad.rs', lines 131:38-131:47
     Visibility: public -/
 def biquad.StateF32.Insts.CoreCmpPartialEqStateF32.eq
   (self : biquad.StateF32) (other : biquad.StateF32) : Result Bool := do
@@ -328,7 +328,7 @@ def biquad.StateF32.Insts.CoreCmpPartialEqStateF32.eq
   else ok false
 
 /-- Trait implementation: [conjure_dsp_lib::biquad::{impl core::cmp::PartialEq<conjure_dsp_lib::biquad::StateF32> for conjure_dsp_lib::biquad::StateF32}]
-    Source: 'src/biquad.rs', lines 115:38-115:47 -/
+    Source: 'src/biquad.rs', lines 131:38-131:47 -/
 @[reducible]
 def biquad.StateF32.Insts.CoreCmpPartialEqStateF32 : core.cmp.PartialEq
   biquad.StateF32 biquad.StateF32 := {
@@ -336,7 +336,7 @@ def biquad.StateF32.Insts.CoreCmpPartialEqStateF32 : core.cmp.PartialEq
 }
 
 /-- [conjure_dsp_lib::biquad::step_f32]:
-    Source: 'src/biquad.rs', lines 125:0-130:1
+    Source: 'src/biquad.rs', lines 141:0-146:1
     Visibility: public -/
 def biquad.step_f32
   (c : biquad.CoeffsF32) (state : biquad.StateF32) (x : Float32) :
@@ -373,7 +373,7 @@ def biquad.step_f32
     })
 
 /-- [conjure_dsp_lib::biquad::process_f32]: loop body 0:
-    Source: 'src/biquad.rs', lines 137:4-140:5
+    Source: 'src/biquad.rs', lines 153:4-156:5
     Visibility: public -/
 @[rust_loop_body]
 def biquad.process_f32_loop.body
@@ -393,7 +393,7 @@ def biquad.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::biquad::process_f32]: loop 0:
-    Source: 'src/biquad.rs', lines 137:4-140:5
+    Source: 'src/biquad.rs', lines 153:4-156:5
     Visibility: public -/
 @[rust_loop]
 def biquad.process_f32_loop
@@ -406,7 +406,7 @@ def biquad.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::biquad::process_f32]:
-    Source: 'src/biquad.rs', lines 134:0-141:1
+    Source: 'src/biquad.rs', lines 150:0-157:1
     Visibility: public -/
 @[reducible]
 def biquad.process_f32
@@ -416,7 +416,7 @@ def biquad.process_f32
   biquad.process_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
-    Source: 'src/delay.rs', lines 70:4-82:5
+    Source: 'src/delay.rs', lines 72:4-84:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f64_loop.body
@@ -445,7 +445,7 @@ def delay.process_f64_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop 0:
-    Source: 'src/delay.rs', lines 70:4-82:5
+    Source: 'src/delay.rs', lines 72:4-84:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f64_loop
@@ -459,7 +459,7 @@ def delay.process_f64_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f64]:
-    Source: 'src/delay.rs', lines 49:0-84:1
+    Source: 'src/delay.rs', lines 51:0-86:1
     Visibility: public -/
 def delay.process_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -482,7 +482,7 @@ def delay.process_f64
     delay.process_f64_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop body 0:
-    Source: 'src/delay.rs', lines 109:4-121:5
+    Source: 'src/delay.rs', lines 111:4-123:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f32_loop.body
@@ -511,7 +511,7 @@ def delay.process_f32_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop 0:
-    Source: 'src/delay.rs', lines 109:4-121:5
+    Source: 'src/delay.rs', lines 111:4-123:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f32_loop
@@ -525,7 +525,7 @@ def delay.process_f32_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f32]:
-    Source: 'src/delay.rs', lines 88:0-123:1
+    Source: 'src/delay.rs', lines 90:0-125:1
     Visibility: public -/
 def delay.process_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -653,14 +653,14 @@ def gain.ramp_f32
       0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_f64]:
-    Source: 'src/one_pole.rs', lines 20:0-22:1
+    Source: 'src/one_pole.rs', lines 28:0-30:1
     Visibility: public -/
 def one_pole.step_f64
   (a : Float) (state : Float) (x : Float) : Result Float := do
   ok (Float.add x (Float.mul a state))
 
 /-- [conjure_dsp_lib::one_pole::process_f64]: loop body 0:
-    Source: 'src/one_pole.rs', lines 29:4-34:5
+    Source: 'src/one_pole.rs', lines 37:4-42:5
     Visibility: public -/
 @[rust_loop_body]
 def one_pole.process_f64_loop.body
@@ -679,7 +679,7 @@ def one_pole.process_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::one_pole::process_f64]: loop 0:
-    Source: 'src/one_pole.rs', lines 29:4-34:5
+    Source: 'src/one_pole.rs', lines 37:4-42:5
     Visibility: public -/
 @[rust_loop]
 def one_pole.process_f64_loop
@@ -691,7 +691,7 @@ def one_pole.process_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::one_pole::process_f64]:
-    Source: 'src/one_pole.rs', lines 26:0-35:1
+    Source: 'src/one_pole.rs', lines 34:0-43:1
     Visibility: public -/
 @[reducible]
 def one_pole.process_f64
@@ -701,14 +701,14 @@ def one_pole.process_f64
   one_pole.process_f64_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_f32]:
-    Source: 'src/one_pole.rs', lines 40:0-42:1
+    Source: 'src/one_pole.rs', lines 48:0-50:1
     Visibility: public -/
 def one_pole.step_f32
   (a : Float32) (state : Float32) (x : Float32) : Result Float32 := do
   ok (Float32.add x (Float32.mul a state))
 
 /-- [conjure_dsp_lib::one_pole::process_f32]: loop body 0:
-    Source: 'src/one_pole.rs', lines 49:4-54:5
+    Source: 'src/one_pole.rs', lines 57:4-62:5
     Visibility: public -/
 @[rust_loop_body]
 def one_pole.process_f32_loop.body
@@ -727,7 +727,7 @@ def one_pole.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::one_pole::process_f32]: loop 0:
-    Source: 'src/one_pole.rs', lines 49:4-54:5
+    Source: 'src/one_pole.rs', lines 57:4-62:5
     Visibility: public -/
 @[rust_loop]
 def one_pole.process_f32_loop
@@ -739,7 +739,7 @@ def one_pole.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::one_pole::process_f32]:
-    Source: 'src/one_pole.rs', lines 46:0-55:1
+    Source: 'src/one_pole.rs', lines 54:0-63:1
     Visibility: public -/
 @[reducible]
 def one_pole.process_f32
@@ -749,7 +749,7 @@ def one_pole.process_f32
   one_pole.process_f32_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::smoother::step_f64]:
-    Source: 'src/smoother.rs', lines 43:0-45:1
+    Source: 'src/smoother.rs', lines 48:0-50:1
     Visibility: public -/
 def smoother.step_f64
   (a : Float) (state : Float) (target : Float) : Result Float := do
@@ -757,7 +757,7 @@ def smoother.step_f64
     a) (Float.sub target state)))
 
 /-- [conjure_dsp_lib::smoother::process_f64]: loop body 0:
-    Source: 'src/smoother.rs', lines 55:4-60:5
+    Source: 'src/smoother.rs', lines 60:4-65:5
     Visibility: public -/
 @[rust_loop_body]
 def smoother.process_f64_loop.body
@@ -776,7 +776,7 @@ def smoother.process_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::smoother::process_f64]: loop 0:
-    Source: 'src/smoother.rs', lines 55:4-60:5
+    Source: 'src/smoother.rs', lines 60:4-65:5
     Visibility: public -/
 @[rust_loop]
 def smoother.process_f64_loop
@@ -788,7 +788,7 @@ def smoother.process_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::smoother::process_f64]:
-    Source: 'src/smoother.rs', lines 51:0-61:1
+    Source: 'src/smoother.rs', lines 56:0-66:1
     Visibility: public -/
 @[reducible]
 def smoother.process_f64
@@ -799,7 +799,7 @@ def smoother.process_f64
     (Float.ofBits 4607182418800017408) a) 0#usize
 
 /-- [conjure_dsp_lib::smoother::step_f32]:
-    Source: 'src/smoother.rs', lines 67:0-69:1
+    Source: 'src/smoother.rs', lines 72:0-74:1
     Visibility: public -/
 def smoother.step_f32
   (a : Float32) (state : Float32) (target : Float32) : Result Float32 := do
@@ -807,7 +807,7 @@ def smoother.step_f32
     a) (Float32.sub target state)))
 
 /-- [conjure_dsp_lib::smoother::process_f32]: loop body 0:
-    Source: 'src/smoother.rs', lines 79:4-84:5
+    Source: 'src/smoother.rs', lines 84:4-89:5
     Visibility: public -/
 @[rust_loop_body]
 def smoother.process_f32_loop.body
@@ -827,7 +827,7 @@ def smoother.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::smoother::process_f32]: loop 0:
-    Source: 'src/smoother.rs', lines 79:4-84:5
+    Source: 'src/smoother.rs', lines 84:4-89:5
     Visibility: public -/
 @[rust_loop]
 def smoother.process_f32_loop
@@ -839,7 +839,7 @@ def smoother.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::smoother::process_f32]:
-    Source: 'src/smoother.rs', lines 75:0-85:1
+    Source: 'src/smoother.rs', lines 80:0-90:1
     Visibility: public -/
 @[reducible]
 def smoother.process_f32

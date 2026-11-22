@@ -5,7 +5,8 @@
 //! a common choice is `a = exp(-1 / (time_constant_seconds * sample_rate))` (computed by the
 //! caller).
 //!
-//! **Settling.** In exact arithmetic a steady input settles on itself (unlike
+//! **Settling.** In exact arithmetic, with `|a| < 1`, a steady input settles on itself
+//! (`smoother.tendsto_filt_real_replicate`; unlike
 //! `one_pole::process_*`, which settles at `x / (1 - a)`). In floating point the state comes to
 //! rest close to the input but not always exactly on it, because with `a` near 1 the last steps
 //! round away, so do not test `state == target`.
@@ -23,16 +24,20 @@
 //! their `f32` versions; this uses the value each precision stores for 0.999, worked out outside
 //! Lean, not proved).
 //!
-//! **Stability.** In exact arithmetic it is stable for `|a| < 1`, and `0 <= a < 1` gives a glide
-//! with no overshoot (`a < 0` makes it alternate around the target).
+//! **Stability.** In exact arithmetic it is stable for `|a| < 1`: with every input at most `M` in
+//! size, every output is at most `|state| + |1 - a| * M / (1 - |a|)` in size
+//! (`smoother.filt_real_abs_le`). For a steady target, `0 <= a < 1` gives a glide with no
+//! overshoot, and `a < 0` makes it alternate around the target (follows from
+//! `smoother.filt_real_replicate`: from state `r`, with target `X`, output `k` is
+//! `X + a^(k+1)·(r - X)`).
 //!
 //! **Subnormals.** A state decaying toward 0 drifts into subnormal numbers, which are slow on
-//! some processors. This module does nothing about that: flushing subnormals to zero is the
-//! caller's job.
+//! some processors (a hardware fact, not proved here). This module does nothing about that:
+//! flushing subnormals to zero is the caller's job.
 //!
 //! **Relation to the one-pole filter.** In exact arithmetic it is the same filter as
-//! `one_pole::step_*` fed `(1 - a) * target`; in floating point the results can differ
-//! (different operation order).
+//! `one_pole::step_*` fed `(1 - a) * target` (`smoother.filt_real_eq_one_pole_filt_real`); in
+//! floating point the results can differ (different operation order).
 //!
 //! Call these through the module, as `smoother::process_f32`.
 

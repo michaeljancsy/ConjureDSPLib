@@ -2,8 +2,10 @@
 //!
 //! Functions here take numbers and buffers and return numbers or fill buffers. Per-sample code
 //! does no memory allocation, takes no locks and makes no system calls. The crate is `no_std`
-//! and does not use `alloc`, so it cannot allocate memory at all. Its one dependency is `libm`
-//! (pinned exactly, default features off), for `tan`, `pow` and `sqrt` in filter design.
+//! and does not use `alloc`, so it cannot allocate memory at all. These are properties of the
+//! code and its build, which the compiler enforces; they are not proved in Lean, and they rely on
+//! `libm` doing the same. The crate's one dependency is `libm` (pinned exactly, default features
+//! off), for `tan`, `pow` and `sqrt` in filter design.
 //!
 //! The code is written so that Aeneas can translate it to Lean (see `proofs/`): plain loops with
 //! an index rather than iterators, and no trait objects or closures in proved functions.

@@ -1,6 +1,6 @@
 module
 
-public import ConjureDSPLib.OnePole.Block
+public import ConjureDSPLib.OnePole.Exact
 public import Mathlib.Analysis.SpecificLimits.Normed
 
 /-!
@@ -17,6 +17,9 @@ The smoother `y = y_prev + (1 - A) * (x - y_prev)` (`process_f64` / `process_f32
    `X + A^n * (r - X)`.
 3. `tendsto_filt_real_replicate`: in exact arithmetic, when `|A| < 1`, that final state tends to
    `X` as `n` grows: a steady input settles on itself.
+4. `filt_real_abs_le`: in exact arithmetic, when `|A| < 1`, from state `S` with every input at
+   most `M` in size, every output and the final state are at most `|S| + |1 - A| * M / (1 - |A|)`
+   in size (`outBound` in `Block.lean`): the exact smoother is stable.
 
 These are about exact arithmetic only. In floating point the smoother and the one-pole round
 differently, and the smoother need not land exactly on its input. The smoother's floating-point
@@ -72,6 +75,22 @@ theorem tendsto_filt_real_replicate (A r X : ℝ) (hA : |A| < 1) :
   have h := (tendsto_pow_atTop_nhds_zero_of_abs_lt_one hA).mul_const (r - X)
   have h2 := h.const_add X
   simpa using h2
+
+/-- **Stability in exact arithmetic.** When `|A| < 1`, from state `S` with every input at most
+`M ≥ 0` in size, every output of the exact smoother, and its final state, is at most
+`|S| + |1 - A| * M / (1 - |A|)` in size, however long the block. -/
+theorem filt_real_abs_le (A M S : ℝ) (hA : |A| < 1) (hM0 : 0 ≤ M) (xs : List ℝ)
+    (hM : ∀ x ∈ xs, |x| ≤ M) :
+    (∀ y ∈ (filt_real A S xs).2, |y| ≤ |S| + |1 - A| * M / (1 - |A|)) ∧
+      |(filt_real A S xs).1| ≤ |S| + |1 - A| * M / (1 - |A|) := by
+  rw [filt_real_eq_one_pole_filt_real]
+  have hM' : ∀ x ∈ xs.map (fun x => (1 - A) * x), |x| ≤ |1 - A| * M := by
+    intro x hx
+    obtain ⟨z, hz, rfl⟩ := List.mem_map.mp hx
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hM z hz) (abs_nonneg _)
+  exact one_pole.filt_real_abs_le_outBound A (|1 - A| * M) S hA
+    (mul_nonneg (abs_nonneg _) hM0) _ hM'
 
 end conjure_dsp_lib.smoother
 

@@ -16,6 +16,12 @@ open FloatLib.Floats FloatLib.Floats.ExecFloat.Binary FloatLib.Floats.Formats.Bi
 
 namespace conjure_dsp_lib
 
+/-- The exact real value of a binary64 number, through FloatLib's model. -/
+noncomputable abbrev real_f64 (v : Float) : ℝ := toReal (ofFloat v : Binary64)
+
+/-- The exact real value of a binary32 number, through FloatLib's model. -/
+noncomputable abbrev real_f32 (v : Float32) : ℝ := toReal (ofFloat32 v : Binary32)
+
 /-- A finite Lean `Float`, imported into FloatLib's binary64 type, is still finite. (FloatLib
 proves this internally but keeps the lemma private.) -/
 theorem isFinite_ofFloat (v : Float) (h : v.isFinite = true) :

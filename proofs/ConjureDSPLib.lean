@@ -14,3 +14,5 @@ public import ConjureDSPLib.Biquad.SpecF64
 public import ConjureDSPLib.Biquad.SpecF32
 public import ConjureDSPLib.Biquad.Textbook
 public import ConjureDSPLib.Biquad.Block
+public import ConjureDSPLib.Biquad.BlockF64
+public import ConjureDSPLib.Biquad.BlockF32

@@ -125,6 +125,79 @@ theorem isFinite_mul_f32 (x y : Float32) (hx : x.isFinite = true) (hy : y.isFini
     (isFinite_ofFloat32 x hx) (isFinite_ofFloat32 y hy) ⟨le_refl 0, le_refl 0, by simp⟩ ?_
   exact le_of_eq_of_le (by ring) h
 
+/-- One binary64 addition of finite numbers with a finite result is within `u·|x + y| + η` of
+the exact sum, where `x`, `y` are the operands' exact values, `u` the unit roundoff and `η` the
+underflow error. -/
+theorem abs_real_add_sub_le_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hr : (x + y).isFinite = true) :
+    |real_f64 (x + y) - (real_f64 x + real_f64 y)| ≤
+      unitRoundoff_f64 * |real_f64 x + real_f64 y| + underflowErr_f64 := by
+  have h := isFinite_ofFloat _ hr
+  unfold real_f64
+  rw [ofFloat_add_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_add_eq_roundAt h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- One binary64 subtraction of finite numbers with a finite result is within `u·|x - y| + η` of
+the exact difference. -/
+theorem abs_real_sub_sub_le_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hr : (x - y).isFinite = true) :
+    |real_f64 (x - y) - (real_f64 x - real_f64 y)| ≤
+      unitRoundoff_f64 * |real_f64 x - real_f64 y| + underflowErr_f64 := by
+  have h := isFinite_ofFloat _ hr
+  unfold real_f64
+  rw [ofFloat_sub_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_sub_eq_roundAt h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- One binary64 multiplication of finite numbers with a finite result is within `u·|x·y| + η`
+of the exact product. -/
+theorem abs_real_mul_sub_le_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hr : (x * y).isFinite = true) :
+    |real_f64 (x * y) - real_f64 x * real_f64 y| ≤
+      unitRoundoff_f64 * |real_f64 x * real_f64 y| + underflowErr_f64 := by
+  have h := isFinite_ofFloat _ hr
+  unfold real_f64
+  rw [ofFloat_mul_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_mul_eq_roundAt h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- One binary32 addition of finite numbers with a finite result is within `u·|x + y| + η` of
+the exact sum. -/
+theorem abs_real_add_sub_le_f32 (x y : Float32) (hx : x.isFinite = true)
+    (hy : y.isFinite = true) (hr : (x + y).isFinite = true) :
+    |real_f32 (x + y) - (real_f32 x + real_f32 y)| ≤
+      unitRoundoff_f32 * |real_f32 x + real_f32 y| + underflowErr_f32 := by
+  have h := isFinite_ofFloat32 _ hr
+  unfold real_f32
+  rw [ofFloat32_add_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_add_eq_roundAt h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- One binary32 subtraction of finite numbers with a finite result is within `u·|x - y| + η` of
+the exact difference. -/
+theorem abs_real_sub_sub_le_f32 (x y : Float32) (hx : x.isFinite = true)
+    (hy : y.isFinite = true) (hr : (x - y).isFinite = true) :
+    |real_f32 (x - y) - (real_f32 x - real_f32 y)| ≤
+      unitRoundoff_f32 * |real_f32 x - real_f32 y| + underflowErr_f32 := by
+  have h := isFinite_ofFloat32 _ hr
+  unfold real_f32
+  rw [ofFloat32_sub_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_sub_eq_roundAt h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- One binary32 multiplication of finite numbers with a finite result is within `u·|x·y| + η`
+of the exact product. -/
+theorem abs_real_mul_sub_le_f32 (x y : Float32) (hx : x.isFinite = true)
+    (hy : y.isFinite = true) (hr : (x * y).isFinite = true) :
+    |real_f32 (x * y) - real_f32 x * real_f32 y| ≤
+      unitRoundoff_f32 * |real_f32 x * real_f32 y| + underflowErr_f32 := by
+  have h := isFinite_ofFloat32 _ hr
+  unfold real_f32
+  rw [ofFloat32_mul_of_isFinite x y hx hy] at h ⊢
+  rw [toReal_mul_eq_roundAt h]
+  exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
 end conjure_dsp_lib
 
 end

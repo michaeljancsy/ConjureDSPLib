@@ -294,6 +294,131 @@ theorem block_error_real (c : CoeffsReal) (C : Contraction c) (M α β : ℝ) (h
     linarith
   exact block_error_core c C Sb M L R Ê hR hE hS xs s s f ys hM hr he hw
 
+/-- `α`: the part of the bound on one step's roundings that does not grow with the state,
+for unit roundoff `u`, underflow error `η` and inputs at most `M`:
+`7·u·((|b0| + |b1| + |b2|)·M + 4·(|a1| + |a2|)·|b0|·M + (3·(|a1| + |a2|) + 1)·η) + 4·η`. -/
+noncomputable def localErrBase (c : CoeffsReal) (u η M : ℝ) : ℝ :=
+  7 * u * ((|c.b0| + |c.b1| + |c.b2|) * M + 4 * (|c.a1| + |c.a2|) * |c.b0| * M +
+    (3 * (|c.a1| + |c.a2|) + 1) * η) + 4 * η
+
+/-- `β`: how fast the bound on one step's roundings grows with the state bound `Sb`, for unit
+roundoff `u`: `7·u·(2·(|a1| + |a2|) + 1)`. -/
+noncomputable def localErrSlope (c : CoeffsReal) (u : ℝ) : ℝ :=
+  7 * u * (2 * (|c.a1| + |c.a2|) + 1)
+
+/-- `localErrBase` is nonnegative. -/
+theorem localErrBase_nonneg (c : CoeffsReal) {u η M : ℝ} (hu : 0 ≤ u) (hη : 0 ≤ η)
+    (hM : 0 ≤ M) : 0 ≤ localErrBase c u η M := by
+  unfold localErrBase; positivity
+
+/-- `localErrSlope` is nonnegative. -/
+theorem localErrSlope_nonneg (c : CoeffsReal) {u : ℝ} (hu : 0 ≤ u) :
+    0 ≤ localErrSlope c u := by
+  unfold localErrSlope; positivity
+
+/-- One rounding `r` of an exact value `e` with `|e| ≤ E`, within `u·|e| + η` of `e`, is within
+`u·E + η` of `e` and at most `2·E + η` in size (when `u ≤ 1`). -/
+theorem round_bounds {r e E u η : ℝ} (hu0 : 0 ≤ u) (hu1 : u ≤ 1)
+    (h : |r - e| ≤ u * |e| + η) (hE : |e| ≤ E) :
+    |r - e| ≤ u * E + η ∧ |r| ≤ 2 * E + η := by
+  have h1 := mul_le_mul_of_nonneg_left hE hu0
+  have hE0 : 0 ≤ E := (abs_nonneg _).trans hE
+  have h2 : u * E ≤ 1 * E := mul_le_mul_of_nonneg_right hu1 hE0
+  have h3 : |r| ≤ |r - e| + |e| := by
+    have := abs_add_le (r - e) e
+    rwa [sub_add_cancel] at this
+  constructor <;> linarith
+
+/-- **One step's roundings, on real numbers.** One transposed-direct-form-II step computed with
+nine roundings, each within `u·|e| + η` of the exact operation `e` on the computed operands:
+`P0 ≈ b0·X`, output `Y ≈ P0 + S1`, `P1 ≈ b1·X`, `Q1 ≈ a1·Y`, `D1 ≈ P1 - Q1`, new state
+`T1 ≈ D1 + S2`, `P2 ≈ b2·X`, `Q2 ≈ a2·Y`, new state `T2 ≈ P2 - Q2`. If `0 ≤ u ≤ 1`, `0 ≤ η`,
+`|X| ≤ M` and `|S1|, |S2| ≤ Sb`, then `Y`, `T1` and `T2` are each within
+`localErrBase c u η M + localErrSlope c u · Sb` of the exact step from the computed state and
+the computed output: `b0·X + S1`, `b1·X - a1·Y + S2` and `b2·X - a2·Y`. -/
+theorem step_localErr (c : CoeffsReal) {u η M Sb X S1 S2 P0 Y P1 Q1 D1 T1 P2 Q2 T2 : ℝ}
+    (hu0 : 0 ≤ u) (hu1 : u ≤ 1) (hη : 0 ≤ η)
+    (hX : |X| ≤ M) (hS1 : |S1| ≤ Sb) (hS2 : |S2| ≤ Sb)
+    (hP0 : |P0 - c.b0 * X| ≤ u * |c.b0 * X| + η)
+    (hY : |Y - (P0 + S1)| ≤ u * |P0 + S1| + η)
+    (hP1 : |P1 - c.b1 * X| ≤ u * |c.b1 * X| + η)
+    (hQ1 : |Q1 - c.a1 * Y| ≤ u * |c.a1 * Y| + η)
+    (hD1 : |D1 - (P1 - Q1)| ≤ u * |P1 - Q1| + η)
+    (hT1 : |T1 - (D1 + S2)| ≤ u * |D1 + S2| + η)
+    (hP2 : |P2 - c.b2 * X| ≤ u * |c.b2 * X| + η)
+    (hQ2 : |Q2 - c.a2 * Y| ≤ u * |c.a2 * Y| + η)
+    (hT2 : |T2 - (P2 - Q2)| ≤ u * |P2 - Q2| + η) :
+    let L := localErrBase c u η M + localErrSlope c u * Sb
+    |Y - (c.b0 * X + S1)| ≤ L ∧ |T1 - (c.b1 * X - c.a1 * Y + S2)| ≤ L ∧
+      |T2 - (c.b2 * X - c.a2 * Y)| ≤ L := by
+  intro L
+  have hM0 : 0 ≤ M := (abs_nonneg _).trans hX
+  have hSb : 0 ≤ Sb := (abs_nonneg _).trans hS1
+  have hbX : ∀ b : ℝ, |b * X| ≤ |b| * M := fun b => by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left hX (abs_nonneg _)
+  -- The output.
+  obtain ⟨e0, p0⟩ := round_bounds hu0 hu1 hP0 (hbX c.b0)
+  have z0 : |P0 + S1| ≤ 2 * (|c.b0| * M) + η + Sb := by
+    have := abs_add_le P0 S1; linarith
+  obtain ⟨eY, yb⟩ := round_bounds hu0 hu1 hY z0
+  have dy : |Y - (c.b0 * X + S1)| ≤ |Y - (P0 + S1)| + |P0 - c.b0 * X| := by
+    have := abs_add_le (Y - (P0 + S1)) (P0 - c.b0 * X)
+    rwa [show Y - (P0 + S1) + (P0 - c.b0 * X) = Y - (c.b0 * X + S1) by ring] at this
+  have haY : ∀ a : ℝ, |a * Y| ≤ |a| * (2 * (2 * (|c.b0| * M) + η + Sb) + η) := fun a => by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left yb (abs_nonneg _)
+  -- The first new state value: four roundings.
+  obtain ⟨e1, p1⟩ := round_bounds hu0 hu1 hP1 (hbX c.b1)
+  obtain ⟨f1, q1⟩ := round_bounds hu0 hu1 hQ1 (haY c.a1)
+  have z1 : |P1 - Q1| ≤ 2 * (|c.b1| * M) + η +
+      (2 * (|c.a1| * (2 * (2 * (|c.b0| * M) + η + Sb) + η)) + η) := by
+    have := abs_sub P1 Q1; linarith
+  obtain ⟨g1, d1⟩ := round_bounds hu0 hu1 hD1 z1
+  have w1 : |D1 + S2| ≤ 2 * (2 * (|c.b1| * M) + η +
+      (2 * (|c.a1| * (2 * (2 * (|c.b0| * M) + η + Sb) + η)) + η)) + η + Sb := by
+    have := abs_add_le D1 S2; linarith
+  obtain ⟨h1, -⟩ := round_bounds hu0 hu1 hT1 w1
+  have dt1 : |T1 - (c.b1 * X - c.a1 * Y + S2)| ≤ |T1 - (D1 + S2)| + |D1 - (P1 - Q1)| +
+      |P1 - c.b1 * X| + |Q1 - c.a1 * Y| := by
+    have k := abs_add_three (T1 - (D1 + S2)) (D1 - (P1 - Q1)) (P1 - c.b1 * X)
+    have k' := abs_sub (T1 - (D1 + S2) + (D1 - (P1 - Q1)) + (P1 - c.b1 * X))
+      (Q1 - c.a1 * Y)
+    rw [show T1 - (D1 + S2) + (D1 - (P1 - Q1)) + (P1 - c.b1 * X) - (Q1 - c.a1 * Y) =
+      T1 - (c.b1 * X - c.a1 * Y + S2) by ring] at k'
+    linarith
+  -- The second new state value: three roundings.
+  obtain ⟨e2, p2⟩ := round_bounds hu0 hu1 hP2 (hbX c.b2)
+  obtain ⟨f2, q2⟩ := round_bounds hu0 hu1 hQ2 (haY c.a2)
+  have z2 : |P2 - Q2| ≤ 2 * (|c.b2| * M) + η +
+      (2 * (|c.a2| * (2 * (2 * (|c.b0| * M) + η + Sb) + η)) + η) := by
+    have := abs_sub P2 Q2; linarith
+  obtain ⟨g2, -⟩ := round_bounds hu0 hu1 hT2 z2
+  have dt2 : |T2 - (c.b2 * X - c.a2 * Y)| ≤ |T2 - (P2 - Q2)| + |P2 - c.b2 * X| +
+      |Q2 - c.a2 * Y| := by
+    have k := abs_add_le (T2 - (P2 - Q2)) (P2 - c.b2 * X)
+    have k' := abs_sub (T2 - (P2 - Q2) + (P2 - c.b2 * X)) (Q2 - c.a2 * Y)
+    rw [show T2 - (P2 - Q2) + (P2 - c.b2 * X) - (Q2 - c.a2 * Y) =
+      T2 - (c.b2 * X - c.a2 * Y) by ring] at k'
+    linarith
+  -- Every monomial of `L` is nonnegative.
+  have hb0 := abs_nonneg c.b0
+  have hb1 := abs_nonneg c.b1
+  have hb2 := abs_nonneg c.b2
+  have ha1 := abs_nonneg c.a1
+  have ha2 := abs_nonneg c.a2
+  have m1 : 0 ≤ u * |c.b0| * M := by positivity
+  have m2 : 0 ≤ u * |c.b1| * M := by positivity
+  have m3 : 0 ≤ u * |c.b2| * M := by positivity
+  have m4 : 0 ≤ u * |c.a1| * |c.b0| * M := by positivity
+  have m5 : 0 ≤ u * |c.a2| * |c.b0| * M := by positivity
+  have m6 : 0 ≤ u * |c.a1| * η := by positivity
+  have m7 : 0 ≤ u * |c.a2| * η := by positivity
+  have m8 : 0 ≤ u * |c.a1| * Sb := by positivity
+  have m9 : 0 ≤ u * |c.a2| * Sb := by positivity
+  have m10 : 0 ≤ u * η := by positivity
+  have m11 : 0 ≤ u * Sb := by positivity
+  simp only [L, localErrBase, localErrSlope]
+  refine ⟨by linarith, by linarith, by linarith⟩
+
 end conjure_dsp_lib.biquad
 
 end

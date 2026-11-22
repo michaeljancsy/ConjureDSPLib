@@ -36,7 +36,8 @@ example, that Charon and Aeneas translate the Rust faithfully, and that `libm`'s
 `scripts/check.sh` runs everything a pull request must pass: a check of the Rust version,
 `cargo fmt --check`, `cargo clippy`, `cargo test`, `cargo doc`, then `scripts/prove.sh`, which
 runs Charon, Aeneas, `lake build` in `proofs/`, an axiom check (only `propext`,
-`Classical.choice` and `Quot.sound`; no `sorry`), and a `leanchecker` kernel replay.
+`Classical.choice` and `Quot.sound`; no `sorry`; no public theorem statement that names Lean's NaN
+constants or Aeneas's `bitsOf`, `signBit` or `copysignBits` helpers), and a `leanchecker` kernel replay.
 
 The exact tool versions are in `proofs/PINS`, and `scripts/prove.sh` refuses to run with any
 others. It finds Aeneas through `AENEAS_DIR` (a checkout at the pinned commit, with the Aeneas

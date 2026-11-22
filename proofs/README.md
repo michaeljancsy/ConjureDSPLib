@@ -455,12 +455,16 @@ What is listed here is observed or expected behaviour, not proved.
 ## What is assumed, not proved
 
 - Charon and Aeneas translate the Rust code into Lean faithfully.
-- Aeneas's float model (from the pinned `conjure` commit) has a single NaN: any operation that
-  produces a NaN drops its sign and payload. So anything that reads a NaN's sign or bit pattern
-  (`to_bits`, `is_sign_*`, `copysign`, `recip`, casts, and `from_bits` of a NaN bit pattern) can
-  differ from compiled Rust. `min`/`max` of +0 and −0 may return either; Rust leaves this open
-  too, and the model does not let a proof depend on which. No proof here relies on NaN bit
-  patterns, NaN signs, or which zero `min`/`max` returns.
+- Aeneas's float model (from the pinned `conjure` commit) has a single NaN, like Lean's own float
+  model. Reading a NaN's sign or bits (`to_bits`, `is_sign_negative`, `is_sign_positive`, and
+  `copysign` with a NaN sign) fails in the model (as a panic would), so a proof that code returns
+  a value also proves that it never reads a NaN's sign or bits. Theorems here still compare
+  floats with Lean's `=`, which counts all NaNs as equal; no theorem here states anything about
+  NaN bit patterns or NaN signs, and the axiom check rejects any public theorem statement that
+  names a NaN constant or one of the model's NaN-bits helpers (it sees only names written in the
+  statement).
+  `min`/`max` of +0 and −0 may return either; Rust leaves this open too, and the model does not
+  let a proof depend on which. No proof here relies on which zero `min`/`max` returns.
 - Not modelled: `sin`, `exp` and other transcendental functions from Rust's standard library,
   and the `NAN` constant. This crate uses none of them.
 - The crate's one dependency, `libm` 0.2.16 (a pure-Rust port of the musl and FreeBSD maths

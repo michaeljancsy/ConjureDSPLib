@@ -445,7 +445,7 @@ def biquad.process_f32
   biquad.process_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
-    Source: 'src/delay.rs', lines 51:4-63:5
+    Source: 'src/delay.rs', lines 70:4-82:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f64_loop.body
@@ -474,7 +474,7 @@ def delay.process_f64_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop 0:
-    Source: 'src/delay.rs', lines 51:4-63:5
+    Source: 'src/delay.rs', lines 70:4-82:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f64_loop
@@ -488,7 +488,7 @@ def delay.process_f64_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f64]:
-    Source: 'src/delay.rs', lines 30:0-65:1
+    Source: 'src/delay.rs', lines 49:0-84:1
     Visibility: public -/
 def delay.process_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -511,7 +511,7 @@ def delay.process_f64
     delay.process_f64_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop body 0:
-    Source: 'src/delay.rs', lines 90:4-102:5
+    Source: 'src/delay.rs', lines 109:4-121:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f32_loop.body
@@ -540,7 +540,7 @@ def delay.process_f32_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop 0:
-    Source: 'src/delay.rs', lines 90:4-102:5
+    Source: 'src/delay.rs', lines 109:4-121:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f32_loop
@@ -554,7 +554,7 @@ def delay.process_f32_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f32]:
-    Source: 'src/delay.rs', lines 69:0-104:1
+    Source: 'src/delay.rs', lines 88:0-123:1
     Visibility: public -/
 def delay.process_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize)

@@ -6,22 +6,41 @@
 //! state from block to block, so pass the same ones every time. Each channel needs its own
 //! buffer and position. This module never allocates memory.
 //!
-//! For each sample `x` of `audio`, in order, `process` does three things:
+//! Write `L` for the length of `buffer`, `d = min(delay_samples, L - 1)` for the delay used and
+//! `p = position mod L` for the write index. For each sample `x` of `audio`, in order, `process`
+//! does three things:
 //!
-//! 1. writes `x` at `buffer[position]`;
-//! 2. replaces `x` with `buffer[(position + L - delay_samples) mod L]`, the sample written
-//!    `delay_samples` samples earlier (so a delay of 0 returns `x` itself);
-//! 3. moves `position` on by one, back to 0 when it reaches `L`.
+//! 1. writes `x` at `buffer[p]`;
+//! 2. replaces `x` with `buffer[(p + L - d) mod L]`, the sample written `d` samples earlier (so a
+//!    delay of 0 returns `x` itself);
+//! 3. moves `p` on by one, back to 0 when it reaches `L`.
 //!
-//! The longest delay is `L - 1` samples. Before the first block, fill `buffer` with zeros
-//! (silence): then the first `delay_samples` outputs are 0.
+//! At the end, `position` is set to `p`. The delay is a whole number of samples: there is no
+//! interpolation between samples. The longest delay is `L - 1` samples, so for delays of up to
+//! `D` samples, use a buffer of `D + 1` samples.
+//!
+//! Calling `process` on one block and then on the next, with the same `buffer`, `position` and
+//! `delay_samples`, gives the same outputs, `buffer` and `position` as one call on the two blocks
+//! joined. Before the first block, fill `buffer` with zeros (silence): then the first
+//! `min(delay_samples, L - 1)` outputs of the first call are 0 (all of them, if `audio` is
+//! shorter).
+//!
+//! `delay_samples` may change between calls. The new `buffer` and `position` do not depend on it,
+//! so the stored history is kept, and the new delay takes effect from the first sample of the
+//! next call, with no smoothing.
 //!
 //! `process` never panics, whatever its arguments:
 //!
-//! - an empty `buffer` (`L = 0`) can store nothing, so `audio` and `position` are left unchanged;
+//! - an empty `buffer` (`L = 0`) can store nothing, so it behaves as a delay of 0: `audio` passes
+//!   through unchanged, and `position` is left unchanged;
 //! - a `delay_samples` larger than `L - 1` is treated as `L - 1`;
 //! - a `position` of `L` or more is first replaced by `position mod L` (so after a call with a
 //!   non-empty `buffer`, `position` is always less than `L`).
+//!
+//! What `process` computes is proved in Lean (`proofs/README.md`): the steps above are
+//! `process_f64_spec`, joining blocks is `process_f64_append`, the zeros are
+//! `process_f64_zero_prefix`, the empty buffer is `process_f64_empty_buffer` and never panicking
+//! is `process_f64_ok` (and the same names with `f32`).
 //!
 //! Call these through the module, as `delay::process_f32`.
 
@@ -179,7 +198,7 @@ mod tests {
                 }
 
                 #[test]
-                fn too_large_delay_and_position_are_clamped() {
+                fn too_large_delay_is_clamped_and_position_wrapped() {
                     let input: [$t; 5] = [1.0, 2.0, 3.0, 4.0, 5.0];
 
                     let mut audio = input;
@@ -197,6 +216,46 @@ mod tests {
                     assert_eq!(position, want_position);
                     // History 8, 9, 7, then the input; a delay of 2.
                     assert_eq!(audio, [9.0, 7.0, 1.0, 2.0, 3.0]);
+                }
+
+                #[test]
+                fn delay_equal_to_buffer_length_is_clamped() {
+                    // L = 4, so a delay of 4 is treated as 3.
+                    let mut buffer: [$t; 4] = [10.0, 11.0, 12.0, 13.0];
+                    let mut position = 0;
+                    let mut audio: [$t; 5] = [1.0, 2.0, 3.0, 4.0, 5.0];
+                    $process(&mut buffer, &mut position, 4, &mut audio);
+                    // History 10, 11, 12, 13, then the input; a delay of 3.
+                    assert_eq!(audio, [11.0, 12.0, 13.0, 1.0, 2.0]);
+                    assert_eq!(position, 1);
+                    assert_eq!(buffer, [5.0, 2.0, 3.0, 4.0]);
+                }
+
+                #[test]
+                fn read_behind_write_without_wrapping() {
+                    // Position 5 and delay 2: reads start at index 3 and stay below the end.
+                    let mut buffer: [$t; 8] = [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0];
+                    let mut position = 5;
+                    let mut audio: [$t; 3] = [1.0, 2.0, 3.0];
+                    $process(&mut buffer, &mut position, 2, &mut audio);
+                    assert_eq!(audio, [13.0, 14.0, 1.0]);
+                    assert_eq!(position, 0);
+                    assert_eq!(buffer, [10.0, 11.0, 12.0, 13.0, 14.0, 1.0, 2.0, 3.0]);
+                }
+
+                #[test]
+                fn one_sample_buffer_passes_audio_through() {
+                    // L = 1: every delay is treated as 0.
+                    for delay_samples in [0, 1, 5] {
+                        let input: [$t; 3] = [1.0, -2.0, 3.0];
+                        let mut audio = input;
+                        let mut buffer: [$t; 1] = [7.0];
+                        let mut position = 0;
+                        $process(&mut buffer, &mut position, delay_samples, &mut audio);
+                        assert_eq!(audio, input);
+                        assert_eq!(position, 0);
+                        assert_eq!(buffer, [3.0]);
+                    }
                 }
 
                 #[test]

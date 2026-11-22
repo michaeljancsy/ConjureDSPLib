@@ -1,29 +1,36 @@
 module
 
 public import ConjureDSPLib.Code.ConjureDspLib
-public import Mathlib.Data.List.Rotate
+public import ConjureDSPLib.Delay.Basic
 
 /-!
 # The delay line in f32: what the translated Rust does
 
 About `process_f32` from `src/delay.rs`, as Aeneas translated it.
 
-Write `L` for the buffer's length, `p` for the write position and `n` for the number of audio
-samples. The buffer read in time order, oldest first, is `buf.rotate p` (Mathlib's
+Write `L` for the buffer's length, `p` for the write position, `n` for the number of audio
+samples and `d = min delay_samples (L - 1)` for the delay used (the delay asked for, clamped to at
+most `L - 1`). The buffer read in time order, oldest first, is `buf.rotate p` (Mathlib's
 `List.rotate`): `buf[p], buf[p+1], …, buf[L-1], buf[0], …, buf[p-1]` when `p < L`; for `p ≥ L`,
 `List.rotate` uses `p mod L`, as the Rust code does. Following it with the block's input gives
-the history `buf.rotate p ++ audio`, of length `L + n`, in which the sample written `d` samples
-before input sample `j` is element `L + j - d`.
+the history `H = buf.rotate p ++ audio`, of length `L + n`, in which the sample written `d`
+samples before input sample `j` is element `L + j - d`.
 
 This file proves:
 
 1. `process_f32_spec`: for `L > 0` and any position and delay, `process_f32` never fails; output
-   sample `j` is element `L + j - d` of the history, with `d = min delay (L - 1)`; and the new
-   buffer read in time order from the new position is the last `L` elements of the history.
-   So the history after one block is the starting point of the next: blocks compose.
-2. `process_f32_delay`: the same, for a delay less than `L`, with `d` the delay itself.
-3. `process_f32_empty_buffer`: for `L = 0`, it returns the buffer, position and audio unchanged.
-4. `process_f32_ok`: `process_f32` never fails, for every buffer, position, delay and audio.
+   sample `j` is element `L + j - d` of `H`; and the new buffer read in time order from the new
+   position is the last `L` elements of `H`.
+2. `process_f32_spec_of_lt`: the same, for `delay_samples < L`, with `d = delay_samples`.
+3. `process_f32_getElem`: for `L > 0`, output sample `j` equals `H[L + j - d]`, with both
+   indices proved in range.
+4. `process_f32_zero_prefix`: for `L > 0` and a buffer of zeros, the first
+   `min d n` output samples are 0.
+5. `process_f32_append`: one call on `audio₁` followed by one on `audio₂`, with the buffer and
+   position the first returns, gives the same buffer, position and output samples as one call on
+   `audio₁ ++ audio₂`.
+6. `process_f32_empty_buffer`: for `L = 0`, it returns the buffer, position and audio unchanged.
+7. `process_f32_ok`: `process_f32` never fails, for every buffer, position, delay and audio.
 -/
 
 @[expose] public section
@@ -31,22 +38,6 @@ This file proves:
 open Aeneas Aeneas.Std Result
 
 namespace conjure_dsp_lib.delay
-
-/-- Moving on by one and wrapping at `L` is adding one mod `L`. -/
-private theorem succ_mod_eq (x L : ℕ) (hL : 0 < L) :
-    (x + 1) % L = if x % L + 1 = L then 0 else x % L + 1 := by
-  have hx := Nat.mod_lt x hL
-  rcases (by omega : L = 1 ∨ 2 ≤ L) with rfl | h2
-  · simp [Nat.mod_one]
-  · rw [Nat.add_mod, Nat.mod_eq_of_lt (by omega : 1 < L)]
-    split_ifs with h
-    · rw [h, Nat.mod_self]
-    · exact Nat.mod_eq_of_lt (by omega)
-
-/-- Choosing between two results that cannot fail is choosing between their values. -/
-private theorem ite_ok {α : Type} (c : Prop) [Decidable c] (x y : α) :
-    (if c then (ok x : Result α) else ok y) = ok (if c then x else y) := by
-  split <;> rfl
 
 /-- The loop, started at sample `i` with write index `w` and read index `r`. `S` is the whole
 history: the `L` samples in the buffer before the block, oldest first, then the block's input
@@ -143,28 +134,10 @@ theorem process_f32_loop_spec (L d p n : ℕ) (S : List Float32) (len : Std.Usiz
       exact ⟨hb, hwp, hbS, ha, ha1⟩
   · exact ⟨hb, ha, hw, hr, hrw, hi, hwp, hbS, ha1, ha2⟩
 
-/-- After the loop: buffer index `k` holds history sample `n + (k - w) mod L`, so reading the
-buffer in time order from `w` gives the history from sample `n` on. -/
-private theorem rotate_eq_drop_f32 (L n w : ℕ) (S b : List Float32) (hS : S.length = L + n)
-    (hb : b.length = L) (hw : w < L)
-    (hbS : ∀ k < L, b[k]? = S[if w ≤ k then n + k - w else n + k + L - w]?) :
-    b.rotate w = S.drop n := by
-  apply List.ext_getElem?
-  intro m
-  by_cases hm : m < L
-  · rw [List.getElem?_rotate (by omega), List.getElem?_drop, hb]
-    rw [hbS _ (Nat.mod_lt _ (by omega))]
-    congr 1
-    rcases Nat.lt_or_ge (m + w) L with h | h
-    · rw [Nat.mod_eq_of_lt h]; split_ifs <;> omega
-    · rw [Nat.mod_eq_sub_mod h, Nat.mod_eq_of_lt (by omega)]; split_ifs <;> omega
-  · rw [List.getElem?_eq_none (by simp [List.length_rotate]; omega),
-      List.getElem?_eq_none (by simp; omega)]
-
 /-- The loop from its start: write index `position mod L`, read index `d` samples behind it. -/
 private theorem process_f32_from_start (buffer audio : Slice Float32)
-    (position delay d w r : Std.Usize) (hL : 0 < buffer.length)
-    (hd : d.val = min delay.val (buffer.length - 1))
+    (position delay_samples d w r : Std.Usize) (hL : 0 < buffer.length)
+    (hd : d.val = min delay_samples.val (buffer.length - 1))
     (hw : w.val = position.val % buffer.length)
     (hrw : r.val + d.val = w.val ∨ r.val + d.val = w.val + buffer.length)
     (hr : r.val < buffer.length) :
@@ -172,7 +145,7 @@ private theorem process_f32_from_start (buffer audio : Slice Float32)
       audio'.length = audio.length ∧
       (∀ j < audio.length, audio'.val[j]? =
         (buffer.val.rotate position.val ++ audio.val)[buffer.length + j -
-          min delay.val (buffer.length - 1)]?) ∧
+          min delay_samples.val (buffer.length - 1)]?) ∧
       buffer'.length = buffer.length ∧
       position'.val = (position.val + audio.length) % buffer.length ∧
       buffer'.val.rotate position'.val =
@@ -188,7 +161,7 @@ private theorem process_f32_from_start (buffer audio : Slice Float32)
   · rintro ⟨b', p', a'⟩ ⟨hb', hp', hbS', ha', ha1'⟩
     simp only [WP.uncurry'_pair]
     refine ⟨ha', fun j hj => by rw [ha1' j hj, hd], hb', hp', ?_⟩
-    exact rotate_eq_drop_f32 _ _ _ _ _ hS hb' (by rw [hp']; exact Nat.mod_lt _ hL) hbS'
+    exact rotate_eq_drop _ _ _ _ _ hS hb' (by rw [hp']; exact Nat.mod_lt _ hL) hbS'
   · -- At the start, index `k` holds the history sample `(k - w) mod L` of the old buffer.
     intro k hk
     have h0 : (0#usize : Std.Usize).val = 0 := by simp
@@ -209,22 +182,22 @@ private theorem process_f32_from_start (buffer audio : Slice Float32)
     simp [List.length_rotate]
 
 /-- **The delay line, for any position and delay.** Let `L = buffer.length > 0`,
-`n = audio.length`, `d = min delay (L - 1)` (the delay, clamped to at most `L - 1`) and
+`n = audio.length`, `d = min delay_samples (L - 1)` (the delay, clamped to at most `L - 1`) and
 `H = buffer.rotate position ++ audio` (the buffer read in time order from `position`, taken mod
 `L`, then the input). Then `process_f32` never fails, and its result `(buffer', position', audio')`
 satisfies:
 - `audio'` has `n` samples, and for every `j < n`, `audio'[j]? = H[L + j - d]?`: output sample
-  `j` is element `L + j - d` of `H` (both indices are in range, so the samples are equal);
+  `j` is element `L + j - d` of `H` (`process_f32_getElem` states this with `getElem`);
 - `buffer'` has length `L`, and `position' = (position + n) mod L`;
 - `buffer'.rotate position' = H.drop n`: the new buffer read in time order from the new position
   is the last `L` elements of `H`. -/
-theorem process_f32_spec (buffer : Slice Float32) (position delay : Std.Usize)
+theorem process_f32_spec (buffer : Slice Float32) (position delay_samples : Std.Usize)
     (audio : Slice Float32) (hL : 0 < buffer.length) :
-    process_f32 buffer position delay audio ⦃ buffer' position' audio' =>
+    process_f32 buffer position delay_samples audio ⦃ buffer' position' audio' =>
       audio'.length = audio.length ∧
       (∀ j < audio.length, audio'.val[j]? =
         (buffer.val.rotate position.val ++ audio.val)[buffer.length + j -
-          min delay.val (buffer.length - 1)]?) ∧
+          min delay_samples.val (buffer.length - 1)]?) ∧
       buffer'.length = buffer.length ∧
       position'.val = (position.val + audio.length) % buffer.length ∧
       buffer'.val.rotate position'.val =
@@ -233,45 +206,119 @@ theorem process_f32_spec (buffer : Slice Float32) (position delay : Std.Usize)
   step*
   split <;> rename_i hdl <;> step* <;> split <;> rename_i hdw <;> step*
   all_goals first
-    | (apply process_f32_from_start (d := delay) <;> scalar_tac)
+    | (apply process_f32_from_start (d := delay_samples) <;> scalar_tac)
     | (apply process_f32_from_start (d := d) <;> scalar_tac)
 
-/-- **The delay property.** The same as `process_f32_spec` when `delay < L`, so that the delay is
-used as given: for `L = buffer.length > 0`, `n = audio.length` and
+/-- **The delay property.** The same as `process_f32_spec` when `delay_samples < L`, so that
+`d = delay_samples`: for `L = buffer.length > 0`, `n = audio.length` and
 `H = buffer.rotate position ++ audio`, `process_f32` never fails; `audio'` has `n` samples and
-`audio'[j]? = H[L + j - delay]?` for every `j < n` (the sample written `delay` samples earlier);
-`buffer'` has length `L`; `position' = (position + n) mod L`; and
+`audio'[j]? = H[L + j - delay_samples]?` for every `j < n` (the sample written `delay_samples`
+samples earlier); `buffer'` has length `L`; `position' = (position + n) mod L`; and
 `buffer'.rotate position' = H.drop n`, the last `L` elements of `H`. -/
-theorem process_f32_delay (buffer : Slice Float32) (position delay : Std.Usize)
-    (audio : Slice Float32) (hL : 0 < buffer.length) (hd : delay.val < buffer.length) :
-    process_f32 buffer position delay audio ⦃ buffer' position' audio' =>
+theorem process_f32_spec_of_lt (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (audio : Slice Float32) (hL : 0 < buffer.length) (hd : delay_samples.val < buffer.length) :
+    process_f32 buffer position delay_samples audio ⦃ buffer' position' audio' =>
       audio'.length = audio.length ∧
       (∀ j < audio.length, audio'.val[j]? =
-        (buffer.val.rotate position.val ++ audio.val)[buffer.length + j - delay.val]?) ∧
+        (buffer.val.rotate position.val ++ audio.val)[buffer.length + j - delay_samples.val]?) ∧
       buffer'.length = buffer.length ∧
       position'.val = (position.val + audio.length) % buffer.length ∧
       buffer'.val.rotate position'.val =
         (buffer.val.rotate position.val ++ audio.val).drop audio.length ⦄ := by
-  have hmin : min delay.val (buffer.length - 1) = delay.val := by omega
-  simpa only [hmin] using process_f32_spec buffer position delay audio hL
+  have hmin : min delay_samples.val (buffer.length - 1) = delay_samples.val := by omega
+  simpa only [hmin] using process_f32_spec buffer position delay_samples audio hL
+
+/-- **Output samples, with `getElem`.** For `L = buffer.length > 0`, `n = audio.length`,
+`d = min delay_samples (L - 1)` and `H = buffer.rotate position ++ audio`: `process_f32` never
+fails, `audio'` has `n` samples (`hn`), and for every `j < n`, `audio'[j] = H[L + j - d]`. Both
+indices are in range, as the statement's index proofs show: `j < n`, the length of `audio'`, and
+`L + j - d < L + n`, the length of `H`. -/
+theorem process_f32_getElem (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (audio : Slice Float32) (hL : 0 < buffer.length) :
+    process_f32 buffer position delay_samples audio ⦃ _ _ audio' =>
+      ∃ hn : audio'.length = audio.length, ∀ (j : ℕ) (hj : j < audio.length),
+        audio'.val[j]'(by simp only [Slice.length] at hn hj ⊢; omega) =
+          (buffer.val.rotate position.val ++ audio.val)[buffer.length + j -
+            min delay_samples.val (buffer.length - 1)]'(by
+              simp only [Slice.length] at hj ⊢; simp [List.length_rotate]; omega) ⦄ := by
+  apply WP.spec_mono (process_f32_spec buffer position delay_samples audio hL)
+  rintro ⟨buffer', position', audio'⟩ ⟨hn, hout, -⟩
+  refine ⟨hn, fun j hj => ?_⟩
+  have h := hout j hj
+  simp only [Slice.length] at hn hj
+  rw [List.getElem?_eq_getElem (by omega),
+    List.getElem?_eq_getElem (by simp [List.length_rotate]; omega)] at h
+  exact Option.some_inj.mp h
+
+/-- **Silence first.** Let `L = buffer.length > 0`, `n = audio.length` and
+`d = min delay_samples (L - 1)`. If every element of `buffer` is the float `0`, then
+`process_f32` never fails and, for every `j < min d n`, output sample `j` is `0`
+(`audio'[j]? = some 0`). -/
+theorem process_f32_zero_prefix (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (audio : Slice Float32) (hL : 0 < buffer.length) (hz : ∀ x ∈ buffer.val, x = 0) :
+    process_f32 buffer position delay_samples audio ⦃ _ _ audio' =>
+      ∀ j < min (min delay_samples.val (buffer.length - 1)) audio.length,
+        audio'.val[j]? = some 0 ⦄ := by
+  apply WP.spec_mono (process_f32_spec buffer position delay_samples audio hL)
+  rintro ⟨buffer', position', audio'⟩ ⟨-, hout, -⟩ j hj
+  have hR : (buffer.val.rotate position.val).length = buffer.length := by
+    simp [List.length_rotate]
+  rw [hout j (by omega), List.getElem?_append_left (by omega), List.getElem?_eq_getElem (by omega),
+    hz _ (List.mem_rotate.mp (List.getElem_mem _))]
 
 /-- With an empty buffer (`buffer.length = 0`), `process_f32` never fails and returns the buffer,
 position and audio unchanged. -/
-theorem process_f32_empty_buffer (buffer : Slice Float32) (position delay : Std.Usize)
+theorem process_f32_empty_buffer (buffer : Slice Float32) (position delay_samples : Std.Usize)
     (audio : Slice Float32) (hL : buffer.length = 0) :
-    process_f32 buffer position delay audio = ok (buffer, position, audio) := by
+    process_f32 buffer position delay_samples audio = ok (buffer, position, audio) := by
   have h : Slice.len buffer = 0#usize := UScalar.eq_of_val_eq (by simp [hL])
   simp [process_f32, h]
 
+/-- **Two blocks compose.** Let `audio` be `audio₁` followed by `audio₂`. Running `process_f32`
+on `audio₁`, then on `audio₂` with the buffer and position the first call returned, never fails;
+neither does one call on `audio` from the same starting buffer and position (every call with the
+same `delay_samples`); and the two calls end with the same buffer and position as the one call,
+and their output samples, joined, are its output samples. For any buffer, including an empty
+one. -/
+theorem process_f32_append (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (audio₁ audio₂ audio : Slice Float32) (haudio : audio.val = audio₁.val ++ audio₂.val) :
+    process_f32 buffer position delay_samples audio₁ ⦃ buffer₁ position₁ out₁ =>
+      process_f32 buffer₁ position₁ delay_samples audio₂ ⦃ buffer₂ position₂ out₂ =>
+        process_f32 buffer position delay_samples audio ⦃ buffer' position' out =>
+          buffer₂ = buffer' ∧ position₂ = position' ∧ out₁.val ++ out₂.val = out.val ⦄ ⦄ ⦄ := by
+  rcases Nat.eq_zero_or_pos buffer.length with hL | hL
+  · simp [process_f32_empty_buffer _ _ _ _ hL, haudio]
+  obtain ⟨⟨b₁, p₁, o₁⟩, e₁, hn₁, hout₁, hb₁, hp₁, hrot₁⟩ :=
+    exists_ok_of_spec (process_f32_spec buffer position delay_samples audio₁ hL)
+  obtain ⟨⟨b₂, p₂, o₂⟩, e₂, hn₂, hout₂, hb₂, hp₂, hrot₂⟩ :=
+    exists_ok_of_spec (process_f32_spec b₁ p₁ delay_samples audio₂ (by omega))
+  obtain ⟨⟨b, p, o⟩, e, hn, hout, hb, hp, hrot⟩ :=
+    exists_ok_of_spec (process_f32_spec buffer position delay_samples audio hL)
+  have hlen : audio.length = audio₁.length + audio₂.length := by
+    simp only [Slice.length, haudio, List.length_append]
+  rw [hb₁] at hout₂ hp₂
+  rw [hlen] at hn hout hp hrot
+  rw [hrot₁] at hout₂
+  rw [hrot₁] at hrot₂
+  rw [haudio, ← List.append_assoc] at hout hrot
+  have hR : (buffer.val.rotate position.val).length = buffer.length := by
+    simp [List.length_rotate]
+  have hpos : p₂ = p := UScalar.eq_of_val_eq (by
+    rw [hp₂, hp, hp₁, Nat.mod_add_mod, Nat.add_assoc])
+  simp only [e₁, e₂, e, WP.spec_ok, WP.uncurry'_pair]
+  refine ⟨(Slice.eq_iff _ _).mpr ?_, hpos, ?_⟩
+  · rw [← List.rotate_eq_rotate (n := p₂.val), hrot₂, hpos, hrot,
+      drop_append_drop _ _ _ _ (by simp)]
+  · exact outputs_append _ _ _ _ _ _ _ _ hR (by omega) hn₁ hout₁ hn₂ hout₂ hn hout
+
 /-- `process_f32` never fails, for every buffer, position, delay and audio: it returns a result,
 with no panic, out-of-bounds index or index overflow, and it terminates. -/
-theorem process_f32_ok (buffer : Slice Float32) (position delay : Std.Usize)
-    (audio : Slice Float32) : ∃ r, process_f32 buffer position delay audio = ok r := by
+theorem process_f32_ok (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (audio : Slice Float32) : ∃ r, process_f32 buffer position delay_samples audio = ok r := by
   rcases Nat.eq_zero_or_pos buffer.length with h | h
-  · exact ⟨_, process_f32_empty_buffer buffer position delay audio h⟩
-  · have hs := process_f32_spec buffer position delay audio h
-    revert hs
-    cases process_f32 buffer position delay audio <;> simp
+  · exact ⟨_, process_f32_empty_buffer buffer position delay_samples audio h⟩
+  · obtain ⟨r, hr, -⟩ := exists_ok_of_spec (process_f32_spec buffer position delay_samples audio h)
+    exact ⟨r, hr⟩
 
 end conjure_dsp_lib.delay
 

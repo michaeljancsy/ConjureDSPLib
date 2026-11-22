@@ -45,8 +45,11 @@ index, no arithmetic overflow on indices, and it terminates.
 | `delay::process_f64` | `delay.process_f64_ok` | `Delay/SpecF64.lean` | Never fails, for every buffer, position, delay and audio. |
 | `delay::process_f64` | `delay.process_f64_empty_buffer` | `Delay/SpecF64.lean` | With an empty buffer: never fails, and returns the buffer, position and audio unchanged. |
 | `delay::process_f64` | `delay.process_f64_spec` | `Delay/SpecF64.lean` | For a buffer of length `L > 0`, any position `p`, any delay `delay_samples` and `n` input samples, with `d = min(delay_samples, L - 1)` and the history `H = buffer.rotate p ++ audio` (Mathlib's `List.rotate`: the buffer read oldest first from index `p mod L`, then the input): never fails; the output has `n` samples, and for each `j < n` output sample `j` is element `L + j - d` of `H`; the new buffer has length `L`; the new position is `(p + n) mod L`; and the new buffer read oldest first from the new position (`buffer'.rotate p'`) is `H` without its first `n` elements, that is, its last `L` elements. |
-| `delay::process_f64` | `delay.process_f64_delay` | `Delay/SpecF64.lean` | The same, when `delay_samples < L`, with `d = delay_samples`. |
-| `delay::process_f32` | `delay.process_f32_ok`, `delay.process_f32_empty_buffer`, `delay.process_f32_spec`, `delay.process_f32_delay` | `Delay/SpecF32.lean` | The same four facts for `f32` samples. |
+| `delay::process_f64` | `delay.process_f64_spec_of_lt` | `Delay/SpecF64.lean` | The same, when `delay_samples < L`, with `d = delay_samples`. |
+| `delay::process_f64` | `delay.process_f64_getElem` | `Delay/SpecF64.lean` | For a buffer of length `L > 0`, with `p`, `n`, `d` and `H` as in `process_f64_spec`: never fails; the output has `n` samples, and for each `j < n` output sample `j` equals `H[L + j - d]` (Lean's `getElem`, with both indices proved in range in the statement). |
+| `delay::process_f64` | `delay.process_f64_zero_prefix` | `Delay/SpecF64.lean` | For a buffer of length `L > 0` whose elements are all the float `0`, any position, any `delay_samples` and `n` input samples, with `d = min(delay_samples, L - 1)`: never fails, and output sample `j` is `0` for every `j < min(d, n)`. |
+| `delay::process_f64` | `delay.process_f64_append` | `Delay/SpecF64.lean` | For any buffer (empty or not), position and `delay_samples` (the same in every call), and input `audio` equal to `audio₁` followed by `audio₂`: a call on `audio₁`, a call on `audio₂` with the buffer and position the first call returned, and one call on `audio` from the starting buffer and position all never fail; the two calls end with the same buffer and position as the one call, and their output samples, joined, are its output samples. |
+| `delay::process_f32` | `delay.process_f32_ok`, `delay.process_f32_empty_buffer`, `delay.process_f32_spec`, `delay.process_f32_spec_of_lt`, `delay.process_f32_getElem`, `delay.process_f32_zero_prefix`, `delay.process_f32_append` | `Delay/SpecF32.lean` | The same seven facts for `f32` samples. |
 
 For the biquad whole-block theorems (`Biquad/Block.lean`, `Biquad/BlockF64.lean`), every
 quantity below is computed from the real values of the stored coefficients, with `u` and `η` of
@@ -198,7 +201,8 @@ hand, not proved).
   only, `Smoother/`) proves what the filter does in exact arithmetic; `Textbook.lean` (real
   numbers only) shows the code's form of a filter equals the textbook formula;
   `Contraction.lean` (real numbers only) builds a `Contraction` for biquads with complex poles
-  inside the unit circle.
+  inside the unit circle; `Basic.lean` (`Delay/`) holds facts about lists, natural numbers and
+  Aeneas's `Result` that both precisions' files use.
 - Names: Lean names about one precision end in `_f64` or `_f32`, like the Rust names
   (`filt_f64`, `real_f32`, `NoOverflow_f64`), and the filter functions keep the `filt_` prefix
   (`filt_real`). Otherwise Lean names follow Mathlib: definitions that are statements start with

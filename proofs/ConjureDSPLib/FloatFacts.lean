@@ -110,6 +110,12 @@ theorem underflowErr_f64_eq : underflowErr_f64 = 2 ^ (-1075 : ℤ) := by
   rw [h]
   norm_num
 
+/-- binary64's underflow error is at most `2⁻²⁰⁰`. -/
+-- A crude bound, used instead of the exact `2⁻¹⁰⁷⁵`: it keeps the numbers `norm_num` works with
+-- small.
+theorem underflowErr_f64_le : underflowErr_f64 ≤ 2 ^ (-200 : ℤ) := by
+  rw [underflowErr_f64_eq]; exact zpow_le_zpow_right₀ (by norm_num) (by norm_num)
+
 /-- Binary32's underflow error is exactly `2⁻¹⁵⁰`, half the smallest subnormal `2⁻¹⁴⁹`. -/
 theorem underflowErr_f32_eq : underflowErr_f32 = 2 ^ (-150 : ℤ) := by
   unfold underflowErr_f32

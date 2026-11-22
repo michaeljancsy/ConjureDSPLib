@@ -749,7 +749,7 @@ def one_pole.process_f32
   one_pole.process_f32_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::smoother::step_f64]:
-    Source: 'src/smoother.rs', lines 39:0-41:1
+    Source: 'src/smoother.rs', lines 43:0-45:1
     Visibility: public -/
 def smoother.step_f64
   (a : Float) (state : Float) (target : Float) : Result Float := do
@@ -757,7 +757,7 @@ def smoother.step_f64
     a) (Float.sub target state)))
 
 /-- [conjure_dsp_lib::smoother::process_f64]: loop body 0:
-    Source: 'src/smoother.rs', lines 51:4-56:5
+    Source: 'src/smoother.rs', lines 55:4-60:5
     Visibility: public -/
 @[rust_loop_body]
 def smoother.process_f64_loop.body
@@ -776,7 +776,7 @@ def smoother.process_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::smoother::process_f64]: loop 0:
-    Source: 'src/smoother.rs', lines 51:4-56:5
+    Source: 'src/smoother.rs', lines 55:4-60:5
     Visibility: public -/
 @[rust_loop]
 def smoother.process_f64_loop
@@ -788,7 +788,7 @@ def smoother.process_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::smoother::process_f64]:
-    Source: 'src/smoother.rs', lines 47:0-57:1
+    Source: 'src/smoother.rs', lines 51:0-61:1
     Visibility: public -/
 @[reducible]
 def smoother.process_f64
@@ -799,7 +799,7 @@ def smoother.process_f64
     (Float.ofBits 4607182418800017408) a) 0#usize
 
 /-- [conjure_dsp_lib::smoother::step_f32]:
-    Source: 'src/smoother.rs', lines 63:0-65:1
+    Source: 'src/smoother.rs', lines 67:0-69:1
     Visibility: public -/
 def smoother.step_f32
   (a : Float32) (state : Float32) (target : Float32) : Result Float32 := do
@@ -807,7 +807,7 @@ def smoother.step_f32
     a) (Float32.sub target state)))
 
 /-- [conjure_dsp_lib::smoother::process_f32]: loop body 0:
-    Source: 'src/smoother.rs', lines 75:4-80:5
+    Source: 'src/smoother.rs', lines 79:4-84:5
     Visibility: public -/
 @[rust_loop_body]
 def smoother.process_f32_loop.body
@@ -827,7 +827,7 @@ def smoother.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::smoother::process_f32]: loop 0:
-    Source: 'src/smoother.rs', lines 75:4-80:5
+    Source: 'src/smoother.rs', lines 79:4-84:5
     Visibility: public -/
 @[rust_loop]
 def smoother.process_f32_loop
@@ -839,7 +839,7 @@ def smoother.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::smoother::process_f32]:
-    Source: 'src/smoother.rs', lines 71:0-81:1
+    Source: 'src/smoother.rs', lines 75:0-85:1
     Visibility: public -/
 @[reducible]
 def smoother.process_f32

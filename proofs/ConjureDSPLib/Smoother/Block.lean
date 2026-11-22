@@ -63,6 +63,7 @@ def stepBound (A u η M W : ℝ) : ℝ :=
 `stepBound A u η M W + errGrowth A u · E`. -/
 def errGrowth (A u : ℝ) : ℝ := u * |A| + (1 + u) * |1 - A| * u * (2 + u)
 
+/-- `stepBound` is affine in the state bound: adding `E` to `W` adds `errGrowth A u · E`. -/
 theorem stepBound_add (A u η M W E : ℝ) :
     stepBound A u η M (W + E) = stepBound A u η M W + errGrowth A u * E := by
   unfold stepBound errGrowth; ring
@@ -162,13 +163,20 @@ theorem block_error_core (A u η M B E : ℝ) (hu : 0 ≤ u) (hη : 0 ≤ η)
 
 /-- `B` of `block_error_real` (and of `process_f64_block_error` and the f32 version): when
 `|A| < 1`, a bound on the exact smoother's outputs from state `S` with inputs at most `M` in size.
-When `0 ≤ A < 1` it is `|S| + M`. -/
+When `0 ≤ A < 1` it is `|S| + M` (`outBound_eq_of_nonneg`). -/
 noncomputable def outBound (A M S : ℝ) : ℝ := |S| + |1 - A| * M / (1 - |A|)
 
 /-- `E` of `block_error_real` (and of `process_f64_block_error` and the f32 version): the
 whole-block error bound. -/
 noncomputable def errBound (A u η M S : ℝ) : ℝ :=
   stepBound A u η M (outBound A M S) / (1 - |A| - errGrowth A u)
+
+/-- When `0 ≤ A < 1`, `outBound A M S = |S| + M`. -/
+theorem outBound_eq_of_nonneg (A M S : ℝ) (hA0 : 0 ≤ A) (hA1 : A < 1) :
+    outBound A M S = |S| + M := by
+  unfold outBound
+  rw [abs_of_nonneg hA0, abs_of_nonneg (by linarith : (0 : ℝ) ≤ 1 - A)]
+  field_simp [(by linarith : (1 : ℝ) - A ≠ 0)]
 
 /-- `B = outBound` and `E = errBound` satisfy what `block_step` needs: `E ≥ 0`, `|S| ≤ B`, and
 the two inequalities. -/
@@ -342,6 +350,23 @@ theorem table_row_le_of_le (A a u η ηb : ℝ) (k j m n : ℕ) (hu : 0 < u) (hu
     rw [div_pow, ← pow_mul, div_mul_eq_mul_div, div_le_one (by positivity)]
     exact_mod_cast hpow
   exact ⟨hstabA, hB, hE', twenty_logb_le_of_pow_le _ _ m n hpos hE' hm hpow'⟩
+
+/-- **The size condition of the `_of_inputs` theorems, for inputs at most 1.** With
+`W = 1 + E` and `G = (1 + u)·(1 + W) + η` (the size condition's `W` and `G` when `M = 1` and
+`B = 1`): if `0 ≤ u ≤ 1`, `0 ≤ η ≤ 1`, `0 ≤ A ≤ 1` and `0 ≤ E ≤ 1`, then
+`G + W + (1 + u)·|1 - A|·G + η ≤ 24`. -/
+theorem sizeCondition_le_24 (A u η E : ℝ) (hu0 : 0 ≤ u) (hu1 : u ≤ 1) (hη0 : 0 ≤ η)
+    (hη1 : η ≤ 1) (hA0 : 0 ≤ A) (hA1 : A ≤ 1) (hE0 : 0 ≤ E) (hE1 : E ≤ 1) :
+    (1 + u) * (1 + (1 + E)) + η + (1 + E) +
+        (1 + u) * |1 - A| * ((1 + u) * (1 + (1 + E)) + η) + η ≤ 24 := by
+  rw [abs_of_nonneg (by linarith : (0 : ℝ) ≤ 1 - A)]
+  have hG : (1 + u) * (1 + (1 + E)) + η ≤ 7 := by nlinarith
+  have hG0 : 0 ≤ (1 + u) * (1 + (1 + E)) + η := by positivity
+  have hk : (1 + u) * (1 - A) ≤ 2 := by nlinarith
+  have hk0 : 0 ≤ (1 + u) * (1 - A) := mul_nonneg (by linarith) (by linarith)
+  have : (1 + u) * (1 - A) * ((1 + u) * (1 + (1 + E)) + η) ≤ 2 * 7 :=
+    mul_le_mul hk hG hG0 (by norm_num)
+  linarith
 
 end conjure_dsp_lib.smoother
 

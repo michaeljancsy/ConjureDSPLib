@@ -11,8 +11,9 @@ public import FloatLib.Floats.Formats.BinaryInterchange.Analysis.Sterbenz
 `process_f64` computes `c = 1 - a` once, then each step `s + c * (x - s)` (`process_f64_spec` in
 `SpecF64.lean`). This file relates both to exact real arithmetic:
 
-1. `coeff_f64_error`: the stored `c` is within `u·|1 - A| + η` of `1 - A` (`A` the value of `a`),
-   and `coeff_f64_exact`: when `1/2 ≤ A ≤ 2` it is exactly `1 - A` (Sterbenz's lemma).
+1. `coeff_f64_error`: the stored `c` is within `u·|1 - a| + η` of `1 - a` (`a` standing for its
+   value), and `coeff_f64_exact`: when the value of `a` is between 1/2 and 2, `c` is exactly
+   `1 - a` (Sterbenz's lemma).
 2. `step_f64_error`: one step, with three roundings (the difference, the product and the sum), is
    within `stepErr` of the exact step `s + c·(x - s)` with the stored `c`.
 -/
@@ -32,8 +33,8 @@ theorem real_f64_one : real_f64 1 = 1 := by
   have : (ofFloat (1 : Float) : Binary64) = 1 := by decide
   rw [this, toReal_one]
 
-/-- When `a` is finite and `|1 - A| ≤ 2`, where `A` is its value (for example when `|A| ≤ 1`),
-`1 - a` is finite. -/
+/-- When `a` is finite and `|1 - v| ≤ 2`, where `v` is the value of `a` (for example when
+`|v| ≤ 1`), `1 - a` is finite. -/
 theorem isFinite_one_sub_f64 (a : Float) (ha : a.isFinite = true) (h : |1 - real_f64 a| ≤ 2) :
     (1 - a).isFinite = true := by
   refine isFinite_sub_f64 1 a one_isFinite_f64 ha ?_
@@ -44,8 +45,15 @@ theorem isFinite_one_sub_f64 (a : Float) (ha : a.isFinite = true) (h : |1 - real
       _ ≤ (2 ^ 53 - 1) * 2 ^ 971 := mul_le_mul_of_nonneg_left this (by norm_num)
   exact h.trans this
 
+/-- When `a` is finite and its value is at most 1 in size, `1 - a` is finite. -/
+theorem isFinite_one_sub_f64_of_abs_le_one (a : Float) (ha : a.isFinite = true)
+    (ha1 : |real_f64 a| ≤ 1) : (1 - a).isFinite = true := by
+  refine isFinite_one_sub_f64 a ha ?_
+  have := abs_le.mp ha1
+  rw [abs_le]; constructor <;> linarith
+
 /-- **The stored coefficient, f64.** When `a` and `1 - a` are finite, the value of `1 - a` in
-binary64 is within `u·|1 - A| + η` of `1 - A`, where `A` is the value of `a`. -/
+binary64 is within `u·|1 - v| + η` of `1 - v`, where `v` is the value of `a`. -/
 theorem coeff_f64_error (a : Float) (ha : a.isFinite = true) (hc : (1 - a).isFinite = true) :
     |real_f64 (1 - a) - (1 - real_f64 a)| ≤
       unitRoundoff_f64 * |1 - real_f64 a| + underflowErr_f64 := by
@@ -53,8 +61,8 @@ theorem coeff_f64_error (a : Float) (ha : a.isFinite = true) (hc : (1 - a).isFin
   rwa [real_f64_one] at h
 
 /-- **The stored coefficient is exact for `1/2 ≤ A ≤ 2`, f64.** When `a` is finite and its value
-`A` satisfies `1/2 ≤ A ≤ 2` (for example a slow smoother's `a` near 1), `1 - a` is computed with
-no rounding error: its value is exactly `1 - A` (Sterbenz's lemma). -/
+`v` satisfies `1/2 ≤ v ≤ 2` (for example a slow smoother's `a` near 1), `1 - a` is computed with
+no rounding error: its value is exactly `1 - v` (Sterbenz's lemma). -/
 theorem coeff_f64_exact (a : Float) (ha : a.isFinite = true) (h1 : 1 / 2 ≤ real_f64 a)
     (h2 : real_f64 a ≤ 2) : real_f64 (1 - a) = 1 - real_f64 a := by
   have hc : (1 - a).isFinite = true :=

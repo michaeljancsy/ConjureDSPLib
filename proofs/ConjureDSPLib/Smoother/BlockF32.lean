@@ -219,10 +219,7 @@ theorem process_f32_block_error_of_inputs (a state : Float32) (buf : Slice Float
           (filt_real A (real_f32 state) (buf.val.map real_f32)).2 ∧
         |real_f32 r.1 - (filt_real A (real_f32 state) (buf.val.map real_f32)).1| ≤ E ⦄ := by
   intro A E
-  have hc : (1 - a).isFinite = true := by
-    refine isFinite_one_sub_f32 a ha ?_
-    have := abs_le.mp ha1
-    rw [abs_le]; constructor <;> linarith
+  have hc : (1 - a).isFinite = true := isFinite_one_sub_f32_of_abs_le_one a ha ha1
   obtain ⟨hE0, hSB, hB, hE⟩ := block_constants A unitRoundoff_f32 underflowErr_f32 M
     (real_f32 state) (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hM0 hstab
   have hB' : |real_f32 (1 - a)| * M + |1 - real_f32 (1 - a)| * outBound A M (real_f32 state) ≤
@@ -260,10 +257,7 @@ theorem process_f32_settle_of_inputs (a state x : Float32) (buf : Slice Float32)
     intro y hy; rw [hbuf y hy]; exact ⟨hx, hXM⟩
   obtain ⟨hno, -⟩ := process_f32_block_error_of_inputs a state buf M ha ha1 hs hin
     ((abs_nonneg _).trans hXM) hstab hcap
-  have hc : (1 - a).isFinite = true := by
-    refine isFinite_one_sub_f32 a ha ?_
-    have := abs_le.mp ha1
-    rw [abs_le]; constructor <;> linarith
+  have hc : (1 - a).isFinite = true := isFinite_one_sub_f32_of_abs_le_one a ha ha1
   have hrep : buf.val = List.replicate buf.val.length x := List.eq_replicate_iff.mpr ⟨rfl, hbuf⟩
   have hw := filt_f32_withinStepErr (1 - a) hc buf.val state hs hno
   rw [hrep, List.map_replicate] at hw
@@ -286,7 +280,7 @@ in size and a starting state of value `S = 0`, in binary32: the stability condit
 f32 stores 0.99 as 0.9900000095 (worked out outside Lean, not proved); since that is between 1/2
 and 2, `1 - a` is computed exactly (`coeff_f32_exact`), so `A` is that stored value, and the
 bound 0.990001 leaves room for it. -/
-theorem table_row_le_099_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.990001) :
+theorem table_row_le_of_le_099_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.990001) :
     |A| + errGrowth A unitRoundoff_f32 < 1 ∧ outBound A 1 0 = 1 ∧
       errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 6.2 * 10 ^ (-6 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0) ≤ -104.1 := by
@@ -310,7 +304,7 @@ in size and a starting state of value `S = 0`, in binary32: the stability condit
 f32 stores 0.999 as 0.9990000129 (worked out outside Lean, not proved); since that is between 1/2
 and 2, `1 - a` is computed exactly (`coeff_f32_exact`), so `A` is that stored value, and the
 bound 0.999001 leaves room for it. -/
-theorem table_row_le_0999_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999001) :
+theorem table_row_le_of_le_0999_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999001) :
     |A| + errGrowth A unitRoundoff_f32 < 1 ∧ outBound A 1 0 = 1 ∧
       errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 6 * 10 ^ (-5 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f32 underflowErr_f32 1 0) ≤ -84.4 := by
@@ -325,6 +319,60 @@ theorem table_row_le_0999_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999001) :
       norm_num)
     (by norm_num) (by rw [unitRoundoff_f32_eq]; norm_num) (by norm_num)
   exact ⟨h1, h2, h3.trans (by norm_num), h4.trans (by norm_num)⟩
+
+/-- **The size condition of `process_f32_block_error_of_inputs` and
+`process_f32_settle_of_inputs` holds for row `0.99` of the smoother table, f32.** For every
+real `A` with `0 ≤ A ≤ 0.990001`, `M = 1` and a starting state of value `S = 0`, in binary32: with
+`W = B + E` (`B = outBound A 1 0`, `E = errBound A u η 1 0`) and `G = (1 + u)·(M + W) + η`,
+`G + W + (1 + u)·|1 - A|·G + η` is at most the largest finite binary32 value. In those theorems
+`A = 1 - C` with `C` the value of the stored coefficient, so `|1 - A|` is `|C|`. -/
+theorem sizeCondition_of_le_099_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.990001) :
+    let W := outBound A 1 0 + errBound A unitRoundoff_f32 underflowErr_f32 1 0
+    let G := (1 + unitRoundoff_f32) * (1 + W) + underflowErr_f32
+    G + W + (1 + unitRoundoff_f32) * |1 - A| * G + underflowErr_f32 ≤ maxFinite_f32 := by
+  intro W G
+  obtain ⟨hstab, hB, hE, -⟩ := table_row_le_of_le_099_f32 A hA0 hA
+  have hu0 : 0 ≤ unitRoundoff_f32 := (Model.unitRoundoffAt_pos _).le
+  have hη0 : 0 ≤ underflowErr_f32 := (Model.underflowErrorAt_pos _).le
+  obtain ⟨hE0, -, -, -⟩ := block_constants A _ _ 1 0 hu0 hη0 zero_le_one hstab
+  have h24 := sizeCondition_le_24 A unitRoundoff_f32 underflowErr_f32
+    (errBound A unitRoundoff_f32 underflowErr_f32 1 0) hu0
+    (by rw [unitRoundoff_f32_eq]; norm_num) hη0 (by rw [underflowErr_f32_eq]; norm_num) hA0
+    (by linarith) hE0 (hE.trans (by norm_num))
+  have hmax : (24 : ℝ) ≤ maxFinite_f32 := by
+    rw [maxFinite_f32_eq]
+    have : (1 : ℝ) ≤ 2 ^ 104 := one_le_pow₀ (by norm_num)
+    calc (24 : ℝ) ≤ ((2 ^ 24 - 1)) * 1 := by norm_num
+      _ ≤ (2 ^ 24 - 1) * 2 ^ 104 := mul_le_mul_of_nonneg_left this (by norm_num)
+  simp only [W, G, hB]
+  linarith
+
+/-- **The size condition of `process_f32_block_error_of_inputs` and
+`process_f32_settle_of_inputs` holds for row `0.999` of the smoother table, f32.** For every
+real `A` with `0 ≤ A ≤ 0.999001`, `M = 1` and a starting state of value `S = 0`, in binary32: with
+`W = B + E` (`B = outBound A 1 0`, `E = errBound A u η 1 0`) and `G = (1 + u)·(M + W) + η`,
+`G + W + (1 + u)·|1 - A|·G + η` is at most the largest finite binary32 value. In those theorems
+`A = 1 - C` with `C` the value of the stored coefficient, so `|1 - A|` is `|C|`. -/
+theorem sizeCondition_of_le_0999_f32 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999001) :
+    let W := outBound A 1 0 + errBound A unitRoundoff_f32 underflowErr_f32 1 0
+    let G := (1 + unitRoundoff_f32) * (1 + W) + underflowErr_f32
+    G + W + (1 + unitRoundoff_f32) * |1 - A| * G + underflowErr_f32 ≤ maxFinite_f32 := by
+  intro W G
+  obtain ⟨hstab, hB, hE, -⟩ := table_row_le_of_le_0999_f32 A hA0 hA
+  have hu0 : 0 ≤ unitRoundoff_f32 := (Model.unitRoundoffAt_pos _).le
+  have hη0 : 0 ≤ underflowErr_f32 := (Model.underflowErrorAt_pos _).le
+  obtain ⟨hE0, -, -, -⟩ := block_constants A _ _ 1 0 hu0 hη0 zero_le_one hstab
+  have h24 := sizeCondition_le_24 A unitRoundoff_f32 underflowErr_f32
+    (errBound A unitRoundoff_f32 underflowErr_f32 1 0) hu0
+    (by rw [unitRoundoff_f32_eq]; norm_num) hη0 (by rw [underflowErr_f32_eq]; norm_num) hA0
+    (by linarith) hE0 (hE.trans (by norm_num))
+  have hmax : (24 : ℝ) ≤ maxFinite_f32 := by
+    rw [maxFinite_f32_eq]
+    have : (1 : ℝ) ≤ 2 ^ 104 := one_le_pow₀ (by norm_num)
+    calc (24 : ℝ) ≤ ((2 ^ 24 - 1)) * 1 := by norm_num
+      _ ≤ (2 ^ 24 - 1) * 2 ^ 104 := mul_le_mul_of_nonneg_left this (by norm_num)
+  simp only [W, G, hB]
+  linarith
 
 end conjure_dsp_lib.smoother
 

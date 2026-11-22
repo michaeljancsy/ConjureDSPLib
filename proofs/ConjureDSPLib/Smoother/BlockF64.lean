@@ -219,10 +219,7 @@ theorem process_f64_block_error_of_inputs (a state : Float) (buf : Slice Float) 
           (filt_real A (real_f64 state) (buf.val.map real_f64)).2 ∧
         |real_f64 r.1 - (filt_real A (real_f64 state) (buf.val.map real_f64)).1| ≤ E ⦄ := by
   intro A E
-  have hc : (1 - a).isFinite = true := by
-    refine isFinite_one_sub_f64 a ha ?_
-    have := abs_le.mp ha1
-    rw [abs_le]; constructor <;> linarith
+  have hc : (1 - a).isFinite = true := isFinite_one_sub_f64_of_abs_le_one a ha ha1
   obtain ⟨hE0, hSB, hB, hE⟩ := block_constants A unitRoundoff_f64 underflowErr_f64 M
     (real_f64 state) (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hM0 hstab
   have hB' : |real_f64 (1 - a)| * M + |1 - real_f64 (1 - a)| * outBound A M (real_f64 state) ≤
@@ -260,10 +257,7 @@ theorem process_f64_settle_of_inputs (a state x : Float) (buf : Slice Float) (M 
     intro y hy; rw [hbuf y hy]; exact ⟨hx, hXM⟩
   obtain ⟨hno, -⟩ := process_f64_block_error_of_inputs a state buf M ha ha1 hs hin
     ((abs_nonneg _).trans hXM) hstab hcap
-  have hc : (1 - a).isFinite = true := by
-    refine isFinite_one_sub_f64 a ha ?_
-    have := abs_le.mp ha1
-    rw [abs_le]; constructor <;> linarith
+  have hc : (1 - a).isFinite = true := isFinite_one_sub_f64_of_abs_le_one a ha ha1
   have hrep : buf.val = List.replicate buf.val.length x := List.eq_replicate_iff.mpr ⟨rfl, hbuf⟩
   have hw := filt_f64_withinStepErr (1 - a) hc buf.val state hs hno
   rw [hrep, List.map_replicate] at hw
@@ -277,12 +271,6 @@ theorem process_f64_settle_of_inputs (a state x : Float) (buf : Slice Float) (M 
 
 /-! ## The f64 rows of the smoother table -/
 
-/-- binary64's underflow error is at most `2⁻²⁰⁰`. -/
--- A crude bound, used instead of the exact `2⁻¹⁰⁷⁵`: it keeps the numbers `norm_num` works with
--- small.
-theorem underflowErr_f64_le : underflowErr_f64 ≤ 2 ^ (-200 : ℤ) := by
-  rw [underflowErr_f64_eq]; exact zpow_le_zpow_right₀ (by norm_num) (by norm_num)
-
 -- The dB step checks a power of 10 with up to 3200 digits; norm_num needs a higher limit for that.
 set_option exponentiation.threshold 4000 in
 /-- **Row `a = 0.99` of the smoother table in `proofs/README.md`, f64.** For every real `A` with
@@ -291,7 +279,7 @@ size and a starting state of value `S = 0`, in binary64: the stability condition
 `B = outBound A 1 0 = 1`, `E = errBound A u η 1 0 ≤ 1.16 × 10⁻¹⁴` and `20·log₁₀ E ≤ −278.7`.
 f64 stores 0.99 as 0.98999999999999999112 (worked out outside Lean, not proved); since that is
 between 1/2 and 2, `1 - a` is computed exactly (`coeff_f64_exact`), so `A` is that stored value. -/
-theorem table_row_le_099_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.99) :
+theorem table_row_le_of_le_099_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.99) :
     |A| + errGrowth A unitRoundoff_f64 < 1 ∧ outBound A 1 0 = 1 ∧
       errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤ 1.16 * 10 ^ (-14 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0) ≤ -278.7 := by
@@ -314,7 +302,7 @@ size and a starting state of value `S = 0`, in binary64: the stability condition
 `B = outBound A 1 0 = 1`, `E = errBound A u η 1 0 ≤ 1.12 × 10⁻¹³` and `20·log₁₀ E ≤ −259`.
 f64 stores 0.999 as 0.99899999999999999911 (worked out outside Lean, not proved); since that is
 between 1/2 and 2, `1 - a` is computed exactly (`coeff_f64_exact`), so `A` is that stored value. -/
-theorem table_row_le_0999_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999) :
+theorem table_row_le_of_le_0999_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999) :
     |A| + errGrowth A unitRoundoff_f64 < 1 ∧ outBound A 1 0 = 1 ∧
       errBound A unitRoundoff_f64 underflowErr_f64 1 0 ≤ 1.12 * 10 ^ (-13 : ℤ) ∧
       20 * Real.logb 10 (errBound A unitRoundoff_f64 underflowErr_f64 1 0) ≤ -259 := by
@@ -329,6 +317,60 @@ theorem table_row_le_0999_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999) :
       norm_num)
     (by norm_num) (by rw [unitRoundoff_f64_eq]; norm_num) (by norm_num)
   exact ⟨h1, h2, h3.trans (by norm_num), h4.trans (by norm_num)⟩
+
+/-- **The size condition of `process_f64_block_error_of_inputs` and
+`process_f64_settle_of_inputs` holds for row `0.99` of the smoother table, f64.** For every
+real `A` with `0 ≤ A ≤ 0.99`, `M = 1` and a starting state of value `S = 0`, in binary64: with
+`W = B + E` (`B = outBound A 1 0`, `E = errBound A u η 1 0`) and `G = (1 + u)·(M + W) + η`,
+`G + W + (1 + u)·|1 - A|·G + η` is at most the largest finite binary64 value. In those theorems
+`A = 1 - C` with `C` the value of the stored coefficient, so `|1 - A|` is `|C|`. -/
+theorem sizeCondition_of_le_099_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.99) :
+    let W := outBound A 1 0 + errBound A unitRoundoff_f64 underflowErr_f64 1 0
+    let G := (1 + unitRoundoff_f64) * (1 + W) + underflowErr_f64
+    G + W + (1 + unitRoundoff_f64) * |1 - A| * G + underflowErr_f64 ≤ maxFinite_f64 := by
+  intro W G
+  obtain ⟨hstab, hB, hE, -⟩ := table_row_le_of_le_099_f64 A hA0 hA
+  have hu0 : 0 ≤ unitRoundoff_f64 := (Model.unitRoundoffAt_pos _).le
+  have hη0 : 0 ≤ underflowErr_f64 := (Model.underflowErrorAt_pos _).le
+  obtain ⟨hE0, -, -, -⟩ := block_constants A _ _ 1 0 hu0 hη0 zero_le_one hstab
+  have h24 := sizeCondition_le_24 A unitRoundoff_f64 underflowErr_f64
+    (errBound A unitRoundoff_f64 underflowErr_f64 1 0) hu0
+    (by rw [unitRoundoff_f64_eq]; norm_num) hη0 (underflowErr_f64_le.trans (by norm_num)) hA0
+    (by linarith) hE0 (hE.trans (by norm_num))
+  have hmax : (24 : ℝ) ≤ maxFinite_f64 := by
+    rw [maxFinite_f64_eq]
+    have : (1 : ℝ) ≤ 2 ^ 971 := one_le_pow₀ (by norm_num)
+    calc (24 : ℝ) ≤ ((2 ^ 53 - 1)) * 1 := by norm_num
+      _ ≤ (2 ^ 53 - 1) * 2 ^ 971 := mul_le_mul_of_nonneg_left this (by norm_num)
+  simp only [W, G, hB]
+  linarith
+
+/-- **The size condition of `process_f64_block_error_of_inputs` and
+`process_f64_settle_of_inputs` holds for row `0.999` of the smoother table, f64.** For every
+real `A` with `0 ≤ A ≤ 0.999`, `M = 1` and a starting state of value `S = 0`, in binary64: with
+`W = B + E` (`B = outBound A 1 0`, `E = errBound A u η 1 0`) and `G = (1 + u)·(M + W) + η`,
+`G + W + (1 + u)·|1 - A|·G + η` is at most the largest finite binary64 value. In those theorems
+`A = 1 - C` with `C` the value of the stored coefficient, so `|1 - A|` is `|C|`. -/
+theorem sizeCondition_of_le_0999_f64 (A : ℝ) (hA0 : 0 ≤ A) (hA : A ≤ 0.999) :
+    let W := outBound A 1 0 + errBound A unitRoundoff_f64 underflowErr_f64 1 0
+    let G := (1 + unitRoundoff_f64) * (1 + W) + underflowErr_f64
+    G + W + (1 + unitRoundoff_f64) * |1 - A| * G + underflowErr_f64 ≤ maxFinite_f64 := by
+  intro W G
+  obtain ⟨hstab, hB, hE, -⟩ := table_row_le_of_le_0999_f64 A hA0 hA
+  have hu0 : 0 ≤ unitRoundoff_f64 := (Model.unitRoundoffAt_pos _).le
+  have hη0 : 0 ≤ underflowErr_f64 := (Model.underflowErrorAt_pos _).le
+  obtain ⟨hE0, -, -, -⟩ := block_constants A _ _ 1 0 hu0 hη0 zero_le_one hstab
+  have h24 := sizeCondition_le_24 A unitRoundoff_f64 underflowErr_f64
+    (errBound A unitRoundoff_f64 underflowErr_f64 1 0) hu0
+    (by rw [unitRoundoff_f64_eq]; norm_num) hη0 (underflowErr_f64_le.trans (by norm_num)) hA0
+    (by linarith) hE0 (hE.trans (by norm_num))
+  have hmax : (24 : ℝ) ≤ maxFinite_f64 := by
+    rw [maxFinite_f64_eq]
+    have : (1 : ℝ) ≤ 2 ^ 971 := one_le_pow₀ (by norm_num)
+    calc (24 : ℝ) ≤ ((2 ^ 53 - 1)) * 1 := by norm_num
+      _ ≤ (2 ^ 53 - 1) * 2 ^ 971 := mul_le_mul_of_nonneg_left this (by norm_num)
+  simp only [W, G, hB]
+  linarith
 
 end conjure_dsp_lib.smoother
 

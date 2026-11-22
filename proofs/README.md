@@ -25,11 +25,14 @@ index, no arithmetic overflow on indices, and it terminates.
 | `biquad::process_f64` | `biquad.process_f64_spec` | `Biquad/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `tdf2_f64` to each sample in turn (Lean's `filt_f64`). |
 | `biquad::step_f32`, `process_f32` | `biquad.step_f32_eq`, `biquad.process_f32_spec` | `Biquad/SpecF32.lean` | The same two facts in binary32. |
 | (the biquad's form) | `biquad.filt_real_eq_df1_real_zero`, `biquad.filt_real_eq_df1_real` | `Biquad/Textbook.lean` | In exact arithmetic, the transposed form from a zero state gives exactly the textbook recurrence `y[n] = b0·x[n] + b1·x[n-1] + b2·x[n-2] - a1·y[n-1] - a2·y[n-2]` with zero history (and, in general, from the state that matches a given history). |
+| `biquad::step_f64` | `biquad.tdf2_f64_localErr` | `Biquad/BlockF64.lean` | When the coefficients, state and input are finite and no intermediate result overflows (`StepFinite_f64`), with both state values at most `Sb` and the input at most `M` in size: the output and each new state value are within `α + β·Sb` of the exact step from the same state, where `α = 7u((\|b0\| + \|b1\| + \|b2\|)M + 4(\|a1\| + \|a2\|)\|b0\|M + (3(\|a1\| + \|a2\|) + 1)η) + 4η` and `β = 7u(2(\|a1\| + \|a2\|) + 1)` (`localErrBase_f64`, `localErrSlope_f64`). |
+| `biquad::process_f64` | `biquad.process_f64_block_error` (and `filt_f64_block_error`, the same about `filt_f64`) | `Biquad/BlockF64.lean` | **Whole-block error.** Given a `Contraction` for the exact coefficients (see below), finite coefficients and starting state, no overflow (`NoOverflow_f64`), inputs at most `M` in size and `cInf·K·(2 + \|a1\| + \|a2\|)·β < 1 - ρ`: never fails, every output sample is within `cInf·Ê + L` of the exact real-number filter `filt_real`, and each final state value within `cInf·Ê`, for a block of any length (`Ê = stateErrBound`, `L = stepRoundBound`, in `Biquad/Block.lean`). |
+| `biquad::step_f32`, `process_f32` | `biquad.tdf2_f32_localErr`, `biquad.process_f32_block_error` (and `filt_f32_block_error`) | `Biquad/BlockF32.lean` | The same in binary32. |
 
 The `toReal` and error theorems are stated about the expression `x + a * y`; the `step_*_eq`
 theorems are what tie that expression to the Rust functions. The whole-block theorems are stated
 about `process_f64` / `process_f32` directly. Their real-number argument is in `OnePole/Block.lean`
-(`block_error_real`), shared by both precisions.
+(`block_error_real`), shared by both precisions; the biquad's is in `Biquad/Block.lean`.
 
 The whole-block theorems compare the Rust outputs with the exact filter run on the exact real
 values of the stored floats: `A` is the value of `a`, `S` of the starting `state`, and the inputs
@@ -86,9 +89,10 @@ the `_of_inputs` theorems is far from binding: with `a = 0.999`, inputs at most 
   separate multiply and add: Rust does not fuse `x + a * y` (or the biquad's `b0 * x + s1` and
   `b1 * x - a1 * y + s2`) into one multiply-add instruction unless the code asks for `mul_add`,
   and this code does not.
-- The biquad's floating-point error bound is not proved yet (issue #5, second part). The
-  textbook equivalence is in exact arithmetic: in floating point the transposed form and the
-  textbook form round differently.
+- The biquad's whole-block error bound is proved for any given `Contraction` of its state-update
+  map (see `Biquad/Contraction.lean`), assuming no step overflows. The textbook equivalence is in
+  exact arithmetic: in floating point the transposed form and the textbook form round
+  differently.
 
 ## Layout
 

@@ -171,7 +171,8 @@ For each row the theorem proves:
   `V = stepValueBound_f32` / `_f64` (the cap of the whole-block `_of_inputs` theorems) are at most
   the values shown;
 - `V·10³⁵ ≤` the largest finite value, which is exactly `(2²⁴ − 1)·2¹⁰⁴` in f32 and
-  `(2⁵³ − 1)·2⁹⁷¹` in f64 (`maxFinite_f32_eq`, `maxFinite_f64_eq`).
+  `(2⁵³ − 1)·2⁹⁷¹` in f64 (`maxFinite_f32_eq`, `maxFinite_f64_eq`);
+- for f32 at 100 Hz, also `cInf·Ê + L ≥ 17`, so above 1.0 (no dB value is shown).
 
 | Precision | Cutoff | `cInf·Ê + L` | In dB | `Sb` | `V` | Theorem |
 |---|---|---|---|---|---|---|
@@ -184,9 +185,9 @@ For each row the theorem proves:
 
 The values shown were chosen a little above the values of the formulas (a little below, for the
 lower bounds; worked out outside Lean, not proved), so each proved bound can be slightly weaker
-than the formula's value. `ω` and
-`ρ = √a2` are not rational: each theorem bounds them by rational numbers whose squares are on
-either side of `a2 − a1²/4` and `a2` (`complexPolesContraction_bounds`). `block_bounds_le` and
+than the formula's value. `ω` and `ρ = √a2` are not rational: each theorem bounds them by
+rational numbers whose squares are on either side of `a2 − a1²/4` and `a2`
+(`complexPolesContraction_bounds`). `block_bounds_le` and
 `block_bounds_ge` in `Biquad/Block.lean` turn bounds on `cInf`, `K` and `ρ` into bounds on `Sb`
 and `cInf·Ê + L` (`stateBoundAt`, `outErrBoundAt`); `block_bounds_of_rat_f64` / `_f32` apply them
 to the whole-block constants, and what is left is arithmetic on rational numbers, which `norm_num`

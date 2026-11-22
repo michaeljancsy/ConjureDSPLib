@@ -11,6 +11,9 @@ index, no arithmetic overflow on indices, and it terminates.
 | Rust function | Theorem | File | Says |
 |---|---|---|---|
 | `gain::apply_f64`, `apply_f32` | `gain.apply_f64_eq`, `gain.apply_f32_eq` | `Gain.lean` | Exactly `gain * x` (Lean's `Float.mul` / `Float32.mul`); never fails. |
+| `gain::ramp_f64` | `gain.ramp_f64_spec` | `Gain.lean` | Never fails, and the output samples are exactly `rampList_f64 start end` of the input samples: with `n` the block's length, sample `i` (`x`) becomes `x * (start + ((end - start) / castNat_f64 n) * castNat_f64 i)` (`rampGain_f64`), each operation in binary64 (Lean's `Float`) in that order. For an empty block, `rampList_f64` is the empty list. |
+| (`i as f64` for a `usize` `i`) | `gain.usize_toFloat_eq_castNat_f64` | `Gain.lean` | Aeneas's translation of the cast, `UScalar.toFloat i`, equals `castNat_f64` of the value of `i`: Lean's own conversion of that natural number to binary64 (`Float.Model.ofNat`). How that conversion rounds is Lean core's definition and is not proved here. |
+| `gain::ramp_f32` | `gain.ramp_f32_spec`, `gain.usize_toFloat32_eq_castNat_f32` | `Gain.lean` | The same two facts in binary32 (`rampList_f32`, `rampGain_f32`, `castNat_f32`, Lean's `Float32`). |
 | `one_pole::step_f64` | `one_pole.step_f64_eq` | `OnePole/SpecF64.lean` | Exactly `x + a * state` in binary64; never fails. |
 | `one_pole::process_f64` | `one_pole.process_f64_spec` | `OnePole/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `x + a * state` in binary64 to each sample in turn (Lean's `filt_f64`). |
 | `one_pole::step_f64` | `one_pole.step_f64_toReal` | `OnePole/BridgeF64.lean` | When `a`, `state`, `x`, the rounded product `a·state` and the result are all finite (no overflow): the result's real value is `x + a·state` with the product rounded to nearest, then the sum rounded to nearest. |

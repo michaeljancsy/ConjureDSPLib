@@ -87,8 +87,7 @@ theorem unpack_mul_castNat_f32_zero (s : Float32) (hs : s.isFinite = true) :
   cases h : s.toModel.unpack <;> simp_all [UnpackedFloat.mul, UnpackedFloat.isFinite]
 
 /-- When the step is finite, the first gain is exactly `start` (as bits, so also its sign),
-unless `start` is `-0` (bits `0x80000000`). `start` itself may be anything else, even
-infinite or NaN. -/
+unless `start` is `-0` (bits `0x80000000`). (A finite step needs `start` to be finite.) -/
 theorem rampGain_f32_zero_of_step (start «end» : Float32) (n : ℕ)
     (hs : (rampStep_f32 start «end» n).isFinite = true)
     (hz : start.toBits ≠ 0x80000000) : rampGain_f32 start «end» n 0 = start := by

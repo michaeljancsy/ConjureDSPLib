@@ -9,12 +9,15 @@ looks at every declaration they contain, private and compiler-generated ones inc
 - any declaration is itself an `axiom`;
 - any declaration depends on an axiom other than `propext`, `Classical.choice` and `Quot.sound`.
   That includes `sorryAx` (what `sorry` leaves behind) and the axioms `native_decide` creates;
-- the statement (type) of a public theorem outside the generated `ConjureDSPLib.Code` mentions
-  a NaN constant (`Float.nan`, `Float32.nan` and their models) or a helper of Aeneas's float
-  model that gives a NaN's bits or sign (`core.f64.bitsOf`, `signBit`, `copysignBits` and the
-  `f32` ones). The model has a single NaN, so a statement about NaN bits or signs could
-  disagree with Rust. `Float.toBits` and `Float32.toBits` are allowed: theorems use them for
-  `-0`, whose bits the model and Rust agree on. Proofs and definitions are not checked.
+- the statement (type) of a public theorem outside `ConjureDSPLib.Code` (the generated code and
+  its hand-written `FunsExternal`) mentions a NaN constant (`Float.nan`, `Float32.nan`,
+  `Float.Model.nan`, `Float32.Model.nan`, `Float.Model.UnpackedFloat.notANumber`,
+  `Float.Model.UnpackedFloat.packedNaN`) or a helper of Aeneas's float model that gives a NaN's
+  bits or sign (`Aeneas.Std.core.f64.bitsOf`, `signBit`, `copysignBits` and the `f32` ones).
+  The model has a single NaN, so a statement about NaN bits or signs could disagree with Rust.
+  Only constants named directly in a statement are seen: not ones reached through a definition
+  the statement uses, and not NaN values built by arithmetic or `ofBits`; `Float.toBits` is
+  allowed (it is used for −0). Proofs and definitions are not checked.
 
 It trusts the compiled `.olean` files. `scripts/prove.sh` also replays every module through
 Lean's kernel with `leanchecker`, which catches proofs that skipped the kernel.
@@ -25,8 +28,11 @@ open Lean
 def allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
 
 /-- Constants that public theorem statements must not mention (see the header). -/
+-- These names use one backtick because Aeneas is not imported here; check at run time that each
+-- exists, or a misspelt name would make the statement check pass silently.
 def nanConsts : List Name :=
   [`Float.nan, `Float32.nan, `Float.Model.nan, `Float32.Model.nan,
+   `Float.Model.UnpackedFloat.notANumber, `Float.Model.UnpackedFloat.packedNaN,
    `Aeneas.Std.core.f64.bitsOf, `Aeneas.Std.core.f64.signBit, `Aeneas.Std.core.f64.copysignBits,
    `Aeneas.Std.core.f32.bitsOf, `Aeneas.Std.core.f32.signBit, `Aeneas.Std.core.f32.copysignBits]
 

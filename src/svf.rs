@@ -23,12 +23,12 @@
 //! block, of any length, against the same filter in exact arithmetic
 //! (`svf.process_f64_block_error`, `svf.process_f32_block_error`), under the assumptions in
 //! `proofs/README.md`. Their conditions are on the stored coefficients, the starting state, the
-//! inputs and a chosen state bound `Sb`: a `Contraction` for the coefficients (for example
+//! inputs and a chosen state bound `Sb ≥ 0`: a `Contraction` for the coefficients (for example
 //! `svf.complexPolesContraction`, when they have complex poles), finite coefficients and starting
-//! state, every input at most `M` in size, no overflow in any step (or, in the `_of_inputs`
-//! versions, finite inputs and a cap on `V`), and `cInf·(R + Ê) ≤ Sb`. For the low-pass examples
-//! in `proofs/README.md`, the proofs check the `Contraction`, the `Sb` condition and the cap on
-//! `V`, for inputs at most 1 in size and a start from zero.
+//! state, every input at most `M` in size (with `M ≥ 0`), no overflow in any step (or, in the
+//! `_of_inputs` versions, finite inputs and a cap on `V`), and `cInf·(R + Ê) ≤ Sb`. For the
+//! low-pass examples in `proofs/README.md`, the proofs check the `Contraction`, the `Sb` condition
+//! and the cap on `V`, for inputs at most 1 in size and a start from zero.
 //!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.

@@ -4,6 +4,7 @@ public import FloatLib.Floats.Formats.IEEE754.Native.AddSub
 public import FloatLib.Floats.Formats.IEEE754.Native.MulDiv
 public import FloatLib.Floats.Formats.BinaryInterchange.Configured.Real
 public import FloatLib.Floats.Formats.BinaryInterchange.Configured.MixedError.Rounding
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
 
 /-!
 # Facts about Lean's floats and FloatLib's models of them
@@ -257,6 +258,29 @@ theorem abs_real_mul_sub_le_f32 (x y : Float32) (hx : x.isFinite = true)
   rw [ofFloat32_mul_of_isFinite x y hx hy] at h ⊢
   rw [toReal_mul_eq_roundAt h]
   exact Model.abs_roundAt_sub_le_unitRoundoffAt _ _
+
+/-- **A decibel bound from a power bound.** If `0 < x ≤ r` and `r ^ m · 10 ^ n ≤ 1` (`m > 0`),
+then `20·log₁₀ x ≤ -(20·n / m)`: `x` in decibels relative to 1 (for example the one-pole's `E / B`,
+or the biquad's bound `cInf·Ê + L` relative to 1.0). The power bound is a statement about rational
+numbers that `norm_num` checks. -/
+theorem twenty_logb_le_of_pow_le (x r : ℝ) (m n : ℕ) (hx : 0 < x) (hxr : x ≤ r) (hm : 0 < m)
+    (hr : r ^ m * 10 ^ n ≤ 1) : 20 * Real.logb 10 x ≤ -(20 * n / m) := by
+  have hr0 : 0 < r := hx.trans_le hxr
+  have h1 : Real.logb 10 x ≤ Real.logb 10 r := Real.logb_le_logb_of_le (by norm_num) hx hxr
+  have hpow : r ^ m ≤ ((10 : ℝ) ^ n)⁻¹ := by
+    rw [← one_div, le_div_iff₀ (by positivity)]
+    exact hr
+  have h2 : (m : ℝ) * Real.logb 10 r ≤ -n := by
+    rw [← Real.logb_pow]
+    calc Real.logb 10 (r ^ m) ≤ Real.logb 10 ((10 : ℝ) ^ n)⁻¹ :=
+          Real.logb_le_logb_of_le (by norm_num) (by positivity) hpow
+      _ = -n := by rw [Real.logb_inv, Real.logb_pow, Real.logb_self_eq_one (by norm_num)]; ring
+  have hm' : (0 : ℝ) < m := by exact_mod_cast hm
+  have h3 : Real.logb 10 r ≤ -n / m := by
+    rw [le_div_iff₀ hm']; linarith
+  have : -(20 * (n : ℝ) / m) = 20 * (-n / m) := by ring
+  rw [this]
+  linarith
 
 end conjure_dsp_lib
 

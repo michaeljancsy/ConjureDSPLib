@@ -41,7 +41,7 @@ index, no arithmetic overflow on indices, and it terminates.
 | `biquad::process_f64` | `biquad.noOverflow_f64_of_inputs` | `Biquad/BlockF64.lean` | Given a `Contraction` for the real values of the stored coefficients, finite coefficients, any numbers `Sb`, `M`, `R`, `Ê` (not necessarily those listed below the table) with `ρ·R + K·G·M ≤ R`, `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb` and `V` (at that `Sb`) at most the largest finite binary64 value, a starting state with both values finite, a real pair `r` with `N(r) ≤ R` and `N(S − r) ≤ Ê` where `S` is the starting state's real value, and every input finite and at most `M` in size: no step overflows (`NoOverflow_f64`). |
 | `biquad::process_f64` | `biquad.process_f64_block_error_of_inputs` (and `filt_f64_block_error_of_inputs`, the same about `filt_f64`) | `Biquad/BlockF64.lean` | **Whole-block error, with conditions on the inputs only.** Given a `Contraction` for the real values of the stored coefficients, finite coefficients and starting state, every input finite and at most `M` in size with `M ≥ 0`, `cInf·K·κ·β < 1 - ρ`, and `V` with `Sb` as below (`stepValueBound_f64`) at most the largest finite binary64 value (about 1.8 × 10³⁰⁸): no step overflows (`NoOverflow_f64`), and the conclusion of `process_f64_block_error` holds: never fails; each output sample is within `cInf·Ê + L` of the corresponding output of `filt_real` run on the real values of the stored inputs from the real value of the stored starting state; each final state value is within `cInf·Ê` of the exact one; for a block of any length. |
 | `biquad::step_f32`, `process_f32` | `biquad.stepFinite_f32`, `biquad.noOverflow_f32_of_inputs`, `biquad.process_f32_block_error_of_inputs` (and `filt_f32_block_error_of_inputs`) | `Biquad/BlockF32.lean` | The same three in binary32 (largest finite value about 3.4 × 10³⁸). |
-| (biquads with complex poles) | `biquad.complexPolesContraction`, `biquad.complexPoleNorm_update` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with complex poles inside the unit circle (`a1² < 4·a2`, `a2 < 1`): for example RBJ low-pass, high-pass, band-pass, notch and all-pass filters with `Q > 1/2`, provided `a1² < 4·a2` still holds after the coefficients are rounded (it fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz). Measured by `complexPoleNorm`, the state-update map multiplies every pair's measure by exactly `√a2`, the pole radius (`ρ = √a2`). `cInf = (1 + \|a1\|/2)/ω + 1` and `K = ω + \|a1\|/2 + 1` with `ω = √(a2 - a1²/4)`; `cInf` grows like `1/ω` as the poles approach the real axis. |
+| (biquads with complex poles) | `biquad.complexPolesContraction`, `biquad.complexPoleNorm_update` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with complex poles inside the unit circle (`a1² < 4·a2`, `a2 < 1`): for example RBJ low-pass, high-pass, band-pass, notch and all-pass filters with `Q > 1/2`, provided `a1² < 4·a2` still holds after the coefficients are rounded (it fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz, `lowPass1Hz_real_poles_f32`). Measured by `complexPoleNorm`, the state-update map multiplies every pair's measure by exactly `√a2`, the pole radius (`ρ = √a2`). `cInf = (1 + \|a1\|/2)/ω + 1` and `K = ω + \|a1\|/2 + 1` with `ω = √(a2 - a1²/4)`; `cInf` grows like `1/ω` as the poles approach the real axis. |
 | `delay::process_f64` | `delay.process_f64_ok` | `Delay/SpecF64.lean` | Never fails, for every buffer, position, delay and audio. |
 | `delay::process_f64` | `delay.process_f64_empty_buffer` | `Delay/SpecF64.lean` | With an empty buffer: never fails, and returns the buffer, position and audio unchanged. |
 | `delay::process_f64` | `delay.process_f64_spec` | `Delay/SpecF64.lean` | For a buffer of length `L > 0`, any position `p`, any delay `delay_samples` and `n` input samples, with `d = min(delay_samples, L - 1)` and the history `H = buffer.rotate p ++ audio` (Mathlib's `List.rotate`: the buffer read oldest first from index `p mod L`, then the input): never fails; the output has `n` samples, and for each `j < n` output sample `j` is element `L + j - d` of `H`; the new buffer has length `L`; the new position is `(p + n) mod L`; and the new buffer read oldest first from the new position (`buffer'.rotate p'`) is `H` without its first `n` elements, that is, its last `L` elements. |
@@ -153,49 +153,90 @@ is at most the largest finite binary32 value (`block_constants_le_of_abs_le_f32`
 exactly `(2²⁴ - 1)·2¹⁰⁴` (`maxFinite_f32_eq`), and in f32 `u = 2⁻²⁴` and `η = 2⁻¹⁵⁰`
 (`unitRoundoff_f32_eq`, `underflowErr_f32_eq`).
 
-For the biquad, using `complexPolesContraction`, for an RBJ-cookbook Butterworth low-pass
-(`Q = 0.7071`) at 48 kHz, with its coefficients rounded to each precision, inputs at most 1.0 and
-a start from zero, the proved bound `cInf·Ê + L` on each output's error is as follows (worked out
-by hand, not proved; dB relative to 1.0):
+For the biquad, the theorems below take an RBJ-cookbook Butterworth low-pass (`Q = 0.7071`) at
+48 kHz, with `M = 1` (inputs at most 1 in size) and a start from zero, for stored coefficients
+whose real values are exact numbers given in `Biquad/BlockF64.lean` and `Biquad/BlockF32.lean`
+(`lowPass100Hz_f64`, `lowPass100Hz_f32` and so on, each with its bits). That these are the
+cookbook formulas' coefficients (computed in binary64 and, for f32, each rounded to binary32) is
+worked out outside Lean, not proved: the formulas use `cos` and `sin`, which are outside the
+model.
 
-| Cutoff | f32 | f64 |
-|---|---|---|
-| 100 Hz | 17 (above 1.0) | 1.0 × 10⁻⁸ (−159.9 dB) |
-| 1 kHz | 5.4 × 10⁻² (−25.3 dB) | 1.0 × 10⁻¹⁰ (−200.0 dB) |
-| 10 kHz | 1.8 × 10⁻⁴ (−74.9 dB) | 3.4 × 10⁻¹³ (−249.5 dB) |
+For each row the theorem proves:
 
-In f32 the condition `cInf·K·κ·β < 1 - ρ` fails below about 82.4 Hz, so nothing is proved there,
-and the bound is above 1.0 below about 250 Hz.
+- the coefficients have complex poles inside the unit circle;
+- with `complexPolesContraction`, the condition `cInf·K·κ·β < 1 − ρ` of the whole-block theorems
+  holds;
+- `cInf·Ê + L` (the bound on each output's error) and its value in decibels relative to 1.0 (only
+  where it is below 1.0), `Sb = computedStateBound_f32` / `_f64` and
+  `V = stepValueBound_f32` / `_f64` (the cap of the whole-block `_of_inputs` theorems) are at most
+  the values shown;
+- `V·10³⁵ ≤` the largest finite value, which is exactly `(2²⁴ − 1)·2¹⁰⁴` in f32 and
+  `(2⁵³ − 1)·2⁹⁷¹` in f64 (`maxFinite_f32_eq`, `maxFinite_f64_eq`);
+- for f32 at 100 Hz, also `cInf·Ê + L ≥ 17`, so above 1.0 (no dB value is shown).
+
+| Precision | Cutoff | `cInf·Ê + L` | In dB | `Sb` | `V` | Theorem |
+|---|---|---|---|---|---|---|
+| f32 | 100 Hz | ≤ 17.1 (and ≥ 17) | (above 1.0) | ≤ 25.1 | ≤ 619 | `lowPass100Hz_bounds_f32` |
+| f32 | 1 kHz | ≤ 0.0542 | ≤ −25.3 dB | ≤ 8.35 | ≤ 186 | `lowPass1kHz_bounds_f32` |
+| f32 | 10 kHz | ≤ 1.81 × 10⁻⁴ | ≤ −74.8 dB | ≤ 7.28 | ≤ 41.4 | `lowPass10kHz_bounds_f32` |
+| f64 | 100 Hz | ≤ 1.02 × 10⁻⁸ | ≤ −159.8 dB | ≤ 8.04 | ≤ 199 | `lowPass100Hz_bounds_f64` |
+| f64 | 1 kHz | ≤ 1.01 × 10⁻¹⁰ | ≤ −199.9 dB | ≤ 8.29 | ≤ 185 | `lowPass1kHz_bounds_f64` |
+| f64 | 10 kHz | ≤ 3.37 × 10⁻¹³ | ≤ −249.4 dB | ≤ 7.28 | ≤ 41.4 | `lowPass10kHz_bounds_f64` |
+
+The values shown were chosen a little above the values of the formulas (a little below, for the
+lower bounds; worked out outside Lean, not proved), so each proved bound can be slightly weaker
+than the formula's value. `ω` and `ρ = √a2` are not rational: each theorem bounds them by
+rational numbers whose squares are on either side of `a2 − a1²/4` and `a2`
+(`complexPolesContraction_bounds`). `block_bounds_le` and
+`block_bounds_ge` in `Biquad/Block.lean` turn bounds on `cInf`, `K` and `ρ` into bounds on `Sb`
+and `cInf·Ê + L` (`stateBoundAt`, `outErrBoundAt`); `block_bounds_of_rat_f64` / `_f32` apply them
+to the whole-block constants, and what is left is arithmetic on rational numbers, which `norm_num`
+checks.
+
+For the same filter, `M = 1` and start, the theorems below state facts at single cutoffs. Each
+one that bounds `cInf·Ê + L` also proves that the coefficients have complex poles inside the unit
+circle and that the condition `cInf·K·κ·β < 1 − ρ` holds.
+
+- In f32 at 82 Hz the condition `cInf·K·κ·β < 1 − ρ` is false for `complexPolesContraction`
+  (`lowPass82Hz_smallness_fails_f32`), so the whole-block theorems used with it prove nothing
+  there; at 83 Hz it holds and `cInf·Ê + L ≤ 606` (`lowPass83Hz_bound_f32`).
+- In f32 the bound `cInf·Ê + L` is at least 1.07 at 240 Hz (`lowPass240Hz_bound_f32`), at most
+  0.979 at 250 Hz (`lowPass250Hz_bound_f32`), and at least 1.13 at 23 kHz
+  (`lowPass23kHz_bound_f32`).
+- In f32 the bound is at most 0.0346 and at most −29.2 dB at 21 kHz (`lowPass21kHz_bound_f32`),
+  and at least 0.0127, at most 0.0128 and at most −37.8 dB at 20 kHz (`lowPass20kHz_bound_f32`).
+  So it is not monotonic in the cutoff: at least 17 at 100 Hz, at most 1.81 × 10⁻⁴ at 10 kHz, at
+  least 0.0127 at 20 kHz.
+- In f64 the bound is at most 1.02 × 10⁻⁴ and at most −79.8 dB at 1 Hz
+  (`lowPass1Hz_bound_f64`), at most 1.02 × 10⁻⁶ and at most −119.8 dB at 10 Hz
+  (`lowPass10Hz_bound_f64`), and at most 2.73 × 10⁻⁷ and at most −131.2 dB at 23.8 kHz
+  (`lowPass23800Hz_bound_f64`).
+- In f32 at 1 Hz the stored coefficients have real poles (`a1² < 4·a2` fails,
+  `lowPass1Hz_real_poles_f32`), so `complexPolesContraction` does not apply.
+
+Nothing is proved for a whole range of cutoffs, which would need `cos` and `sin`. Worked out
+outside Lean, not proved: in f32 the condition fails at every cutoff below about 82.4 Hz where the
+stored poles are complex (below about 3 Hz they are real at some cutoffs, as at 1 Hz), the bound
+is above 1.0 below about 247.6 Hz and above about 22.96 kHz, and below −25 dB only from
+about 982 Hz to about 21.4 kHz; in f64 the bound is below −120 dB from about 10.08 Hz to about
+23.87 kHz.
 
 These bounds are much larger than the one-pole's. Part of that is real: at low cutoffs the poles
 sit near the real axis, and the filter's own worst-case error gain is large (about 1.3 × 10⁴ at
 100 Hz). Part is slack in the proof: the state bound `Sb` used for the per-step rounding is about
 7–23× the true largest state (at 100 Hz, 1 kHz and 10 kHz), the per-step bound is crude, and the
-contraction step adds a factor of about 4. In f64 the
-bound is below −120 dB from about 10 Hz to about 23.9 kHz, and −80 dB at 1 Hz. In f32 it is below
-−25 dB only from about 1 kHz to about 21 kHz, above 1.0 below about 250 Hz and above about 23 kHz,
-and absent below about 82.4 Hz. The bound is not monotonic in the cutoff (for example f32: −74.9 dB
-at 10 kHz, −37.9 dB at 20 kHz). Everything in this paragraph is worked out by hand, not proved.
+contraction step adds a factor of about 4. The figures in this paragraph are worked out outside
+Lean, not proved: the true worst-case error gain and the true largest state are sums over the
+filter's whole impulse response, which no theorem here bounds.
 
-For the same filter, inputs and start, the cap `V` of the biquad whole-block `_of_inputs`
-theorems (`filt_*_block_error_of_inputs`, `process_*_block_error_of_inputs`), at the `Sb` they use
-(`computedStateBound_f64` / `_f32`), is as follows (worked out by hand, not proved):
-
-| Cutoff | f32 `Sb` | f32 `V` | f64 `Sb` | f64 `V` |
-|---|---|---|---|---|
-| 100 Hz | 25 | 6.2 × 10² | 8.0 | 2.0 × 10² |
-| 1 kHz | 8.3 | 1.9 × 10² | 8.3 | 1.8 × 10² |
-| 10 kHz | 7.3 | 41 | 7.3 | 41 |
-
-At these cutoffs `V` is below the largest finite value (about 3.4 × 10³⁸ in f32, 1.8 × 10³⁰⁸ in
-f64) by a factor of more than 10³⁵ (worked out by hand, not proved). With
-`complexPolesContraction`, in f32 below about 82.4 Hz the biquad whole-block `_of_inputs` theorems
-prove nothing, because their condition `cInf·K·κ·β < 1 - ρ` fails there, as for the other
-whole-block theorems. The hypotheses of `noOverflow_f32_of_inputs` cannot all hold there either:
-its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and `N(S − r) ≤ Ê` together
-imply that condition when `α > 0` and `cInf·K·κ > 0` (`biquad.smallness_of_invariant`). That
-these two hold for `complexPolesContraction`, and that the condition fails below about 82.4 Hz,
-is worked out by hand, not proved.
+Where the condition `cInf·K·κ·β < 1 − ρ` fails, as in f32 at 82 Hz, the biquad whole-block
+`_of_inputs` theorems (`filt_*_block_error_of_inputs`, `process_*_block_error_of_inputs`) prove
+nothing, as for the other whole-block theorems. The hypotheses of `noOverflow_f32_of_inputs`
+cannot all hold there either: its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and
+`N(S − r) ≤ Ê` together imply that condition when `α > 0` and `cInf·K·κ > 0`
+(`biquad.smallness_of_invariant`). Both of these always hold here: `α = localErrBase_f32` is
+positive (for `M ≥ 0`) because `η > 0` (`localErrBase_pos`), and `cInf·K·κ > 0` for every
+`complexPolesContraction` (`complexPolesContraction_cInf_K_roundGain_pos`).
 
 ## Observations (not proofs)
 
@@ -241,13 +282,13 @@ What is listed here is observed or expected behaviour, not proved.
   (`low_pass` to `high_shelf`): their names and formulas follow A. Simper (Cytomic), and that the
   coefficients give the named responses is not proved.
 - The biquad's whole-block error bound is proved for any given `Contraction` of its state-update
-  map. One is supplied only for complex poles inside the unit circle (`complexPolesContraction`),
-  so for real-pole biquads (for example an RBJ low-pass with `Q ≤ 1/2`) no bound is proved yet. It
-  also assumes `cInf·K·κ·β < 1 - ρ` (false in f32 for a 48 kHz Butterworth low-pass below about
-  82.4 Hz). `process_f64_block_error` / `process_f32_block_error` also assume that no step
-  overflows (`NoOverflow_f64` / `NoOverflow_f32`), a condition on the computed values; the
-  whole-block `_of_inputs` theorems instead assume that every input is finite and that `V` is at
-  most the largest finite value, and prove that no step overflows (through
+  map. One is supplied only for complex poles inside the unit circle (`complexPolesContraction`), so
+  for real-pole biquads (for example an RBJ low-pass with `Q ≤ 1/2`) no bound is proved yet. It also
+  assumes `cInf·K·κ·β < 1 - ρ` (false in f32 for a 48 kHz Butterworth low-pass at 82 Hz,
+  `lowPass82Hz_smallness_fails_f32`). `process_f64_block_error` / `process_f32_block_error` also
+  assume that no step overflows (`NoOverflow_f64` / `NoOverflow_f32`), a condition on the computed
+  values; the whole-block `_of_inputs` theorems instead assume that every input is finite and that
+  `V` is at most the largest finite value, and prove that no step overflows (through
   `noOverflow_f64_of_inputs` / `_f32`, which assumes the proof's invariant bounds instead). The
   textbook equivalence is in exact arithmetic: in floating point the transposed form and the
   textbook form round differently.

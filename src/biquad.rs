@@ -182,13 +182,9 @@ mod tests {
 
                 #[test]
                 fn identity_coefficients_pass_input_through() {
-                    let id = $coeffs {
-                        b0: 1.0,
-                        b1: 0.0,
-                        b2: 0.0,
-                        a1: 0.0,
-                        a2: 0.0,
-                    };
+                    let id = $coeffs::IDENTITY;
+                    assert_eq!(id.b0, 1.0);
+                    assert_eq!((id.b1, id.b2, id.a1, id.a2), (0.0, 0.0, 0.0, 0.0));
                     let input: [$t; 4] = [0.3, -1.0, 2.5, 0.0];
                     let mut buf = input;
                     let mut state = $state::default();
@@ -200,23 +196,23 @@ mod tests {
                 fn state_carries_across_blocks() {
                     let input: [$t; 7] = [1.0, -2.0, 0.5, 3.0, 0.0, -1.0, 0.25];
                     let mut whole = input;
-                    let mut s1 = $state {
+                    let mut whole_state = $state {
                         s1: 0.125,
                         s2: -0.25,
                     };
-                    $process(&C, &mut s1, &mut whole);
+                    $process(&C, &mut whole_state, &mut whole);
 
                     let mut split = input;
-                    let mut s2 = $state {
+                    let mut split_state = $state {
                         s1: 0.125,
                         s2: -0.25,
                     };
                     let (first, second) = split.split_at_mut(3);
-                    $process(&C, &mut s2, first);
-                    $process(&C, &mut s2, second);
+                    $process(&C, &mut split_state, first);
+                    $process(&C, &mut split_state, second);
 
                     assert_eq!(whole, split);
-                    assert_eq!(s1, s2);
+                    assert_eq!(whole_state, split_state);
                 }
 
                 /// The step written out the usual way: `z` holds `[s1, s2]`, `y = b0·x + z0`,

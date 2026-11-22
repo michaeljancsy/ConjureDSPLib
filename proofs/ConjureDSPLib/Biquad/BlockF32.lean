@@ -12,9 +12,9 @@ public import ConjureDSPLib.FloatFacts
 for the real values of the stored coefficients (see `Block.lean`), finite coefficients and
 starting state, inputs at most `M`, no overflow and `cInf·K·κ·β < 1 − ρ`, every output and the
 final state are within distances of the exact real-number filter `filt_real` that depend on the
-coefficients, the `Contraction`, `M` and the starting state but not on the block length. A
-`Contraction` for biquads with complex poles inside the unit circle, and one for distinct real
-poles inside it, are in `Biquad/Contraction.lean`.
+coefficients, the `Contraction`, `M` and the starting state but not on the block length.
+`Contraction`s for biquads with complex poles, distinct real poles or a repeated real pole inside
+the unit circle are in `Biquad/Contraction.lean`.
 
 Each step rounds nine times (`tdf2_f32`); `tdf2_f32_localErr` bounds the effect of those
 roundings on the step's output and new state by `α + β·Sb` when the state is at most `Sb` in
@@ -952,11 +952,12 @@ theorem lowPass1Hz_pole_one_f32 :
 
 /-! ## RBJ low-pass examples with real poles, f32
 
-For an RBJ-cookbook low-pass at 48 kHz with `Q < 1/2` the poles are real and distinct; with
-`Q = 1/2` they are equal in exact arithmetic. Each `lowPass…_f32` below holds the exact real values
-of the stored coefficients at a 1 kHz cutoff. Worked out outside Lean, not proved: they are what the
-computation of the section above gives with `Q = 0.4` or `Q = 0.5` in place of `0.7071`, in
-binary64 and then each rounded to binary32. `cos` and `sin` are outside the model. -/
+Worked out outside Lean, not proved: for an RBJ-cookbook low-pass at 48 kHz with `Q < 1/2` the
+poles are real and distinct, and with `Q = 1/2` they are equal in exact arithmetic. Each
+`lowPass…_f32` below holds the exact real values of the stored coefficients at a 1 kHz cutoff.
+Worked out outside Lean, not proved: they are what the computation of the section above gives
+with `Q = 0.4` or `Q = 0.5` in place of `0.7071`, in binary64 and then each rounded to binary32.
+`cos` and `sin` are outside the model. -/
 
 /-- The exact real values of the binary32 coefficients stored for an RBJ low-pass with `Q = 0.4`
 at a 1 kHz cutoff. Their bits: `b0 = 0x3B710308`, `b1 = 0x3BF10308`, `b2 = 0x3B710308`,
@@ -1022,10 +1023,10 @@ theorem lowPass1kHzQ05_bound_f32 (c : CoeffsF32) (hc : realCoeffs_f32 c = lowPas
     (s : StateF32) (hs : realState_f32 s = (0, 0)) :
     ∃ (h : 4 * (realCoeffs_f32 c).a2 < (realCoeffs_f32 c).a1 ^ 2)
       (h1 : (realCoeffs_f32 c).a2 < 1) (h2 : |(realCoeffs_f32 c).a1| < 1 + (realCoeffs_f32 c).a2),
-      (realCoeffs_f32 c).a1 ^ 2 - 4 * (realCoeffs_f32 c).a2 < 1.3 * 10 ^ (-7 : ℤ) ∧
-      2700 < (realPolesContraction (realCoeffs_f32 c) h h1 h2).cInf ∧
       let C := realPolesContraction (realCoeffs_f32 c) h h1 h2
-      C.cInf * C.K * roundGain (realCoeffs_f32 c) * localErrSlope_f32 c < 1 - C.ρ ∧
+      (realCoeffs_f32 c).a1 ^ 2 - 4 * (realCoeffs_f32 c).a2 < 1.3 * 10 ^ (-7 : ℤ) ∧
+        2700 < C.cInf ∧
+        C.cInf * C.K * roundGain (realCoeffs_f32 c) * localErrSlope_f32 c < 1 - C.ρ ∧
         C.cInf * stateErrBound_f32 c C 1 s + localErrBound_f32 c C 1 s ≤ 734 := by
   refine (fun H => ?main) (realPolesContraction_block_bounds_of_rat_f32 c _ hc s hs
     0.00035894 0.00035895 (734) 1418 (30029)
@@ -1034,13 +1035,12 @@ theorem lowPass1kHzQ05_bound_f32 (c : CoeffsF32) (hc : realCoeffs_f32 c = lowPas
     obtain ⟨h, h1, h2, hsmall, -, hX, -, -⟩ := H
     have hd : (realCoeffs_f32 c).a1 ^ 2 - 4 * (realCoeffs_f32 c).a2 < 1.3 * 10 ^ (-7 : ℤ) := by
       rw [hc]; norm_num [lowPass1kHzQ05_f32]
-    refine ⟨h, h1, h2, hd, ?_, ?_⟩
-    · obtain ⟨hci, -⟩ := realPolesContraction_bounds (realCoeffs_f32 c) h h1 h2
-        (dl := 0.00035894) (du := 0.00035895) (by norm_num) (by norm_num)
-        (by rw [hc]; norm_num [lowPass1kHzQ05_f32]) (by rw [hc]; norm_num [lowPass1kHzQ05_f32])
-      exact lt_of_lt_of_le (by norm_num) hci
-    · intro C
-      exact ⟨hsmall, hX⟩
+    refine ⟨h, h1, h2, ?_⟩
+    intro C
+    obtain ⟨hci, -⟩ := realPolesContraction_bounds (realCoeffs_f32 c) h h1 h2
+      (dl := 0.00035894) (du := 0.00035895) (by norm_num) (by norm_num)
+      (by rw [hc]; norm_num [lowPass1kHzQ05_f32]) (by rw [hc]; norm_num [lowPass1kHzQ05_f32])
+    exact ⟨hd, lt_of_lt_of_le (by norm_num) hci, hsmall, hX⟩
   all_goals bound_norm_num [lowPass1kHzQ05_f32]
 
 end conjure_dsp_lib.biquad

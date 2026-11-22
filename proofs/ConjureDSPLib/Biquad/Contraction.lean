@@ -8,7 +8,8 @@ public import Mathlib.Analysis.Complex.Norm
 # Contractions for biquads with poles inside the unit circle
 
 Many audio biquads have a pair of complex poles `r·e^{±iθ}`: for example RBJ low-pass,
-high-pass, band-pass, notch and all-pass filters do exactly when `Q > 1/2`. In coefficients:
+high-pass, band-pass, notch and all-pass filters do exactly when `Q > 1/2` (worked out outside
+Lean, not proved). In coefficients:
 `a1² < 4·a2`. With `ω = √(a2 - a1²/4) = r·sin θ`, measure a pair `(v₁, v₂)` by the length of
 
 `(ω·v₁, v₂ - (a1/2)·v₁)`
@@ -34,8 +35,9 @@ and `smallness_fails`.
 
 When `a1² > 4·a2` the poles are real and distinct: `p, q = (-a1 ± d)/2` with
 `d = √(a1² - 4·a2) = p - q` (`poleGap`). For example RBJ low-pass filters with `Q < 1/2` have
-such poles. The coordinates `p·v₁ + v₂` and `q·v₁ + v₂` of a pair are multiplied by `p` and `q`
-by the state-update map (`realPoleNorm_update`), so their sizes added up, `realPoleNorm`, shrink by
+such poles (worked out outside Lean, not proved). The coordinates `p·v₁ + v₂` and `q·v₁ + v₂` of
+a pair are multiplied by `p` and `q` by the state-update map (`realPoleCoord_update`), so their
+sizes added up, `realPoleNorm`, shrink by
 `ρ = (|a1| + d)/2 = max(|p|, |q|)` (`max_abs_realPoles`). Both poles are inside the unit circle
 exactly when `a2 < 1` and `|a1| < 1 + a2` (`realPoles_lt_one_iff`), and then this gives a
 `Contraction` (`realPolesContraction`) with `cInf = 1/d` and `K = 2`. `cInf = 1/(p - q)` grows
@@ -43,11 +45,13 @@ without bound as the two poles merge. `realPolesContraction_bounds` and
 `realPolesContraction_block_bounds_le` bound the constants from rational numbers on either side
 of `d`.
 
-When `a1² = 4·a2` both poles are `p = -a1/2`. The state-update map then cannot be diagonalised,
-and `repeatedPoleContraction` uses `ε·|v₁| + |p·v₁ + v₂|` for a chosen `ε > 0`, with
-`ρ = |p| + ε`, `cInf = 1 + 1/ε` and `K = 1`, when `|p| + ε < 1`.
+When `a1² = 4·a2` both poles are `p = -a1/2`. The state-update map is then not diagonalisable
+(it is similar to a Jordan block), and no measure shrinks every pair by `|p|` itself (both worked
+out outside Lean, not proved); `repeatedPoleContraction` uses `ε·|v₁| + |p·v₁ + v₂|` for a
+chosen `ε > 0`, with `ρ = |p| + ε`, `cInf = 1 + 1/ε` and `K = 1`, when `|p| + ε < 1`.
 
-When 1 is a pole (`1 + a1 + a2 = 0`) no `Contraction` exists (`isEmpty_contraction_of_pole_one`).
+When 1 is a pole (`1 + a1 + a2 = 0`) the state-update map leaves the pair `(1, -a2)` unchanged
+(`update_one_neg_a2_of_pole_one`), so no `Contraction` exists (`isEmpty_contraction_of_pole_one`).
 -/
 
 @[expose] public section
@@ -349,26 +353,32 @@ theorem realPoles_lt_one_iff (c : CoeffsReal) (h : 4 * c.a2 < c.a1 ^ 2) :
       nlinarith
     linarith
 
-/-- **The state-update map multiplies each coordinate by its pole**, when `a1² > 4·a2`: the
-measure of the new pair is `|p|·|p·v₁ + v₂| + |q|·|q·v₁ + v₂|`. -/
+/-- **The state-update map multiplies each coordinate by its pole**, when `a1² > 4·a2`: with
+`p = (-a1 + d)/2`, `q = (-a1 - d)/2` and the new pair `(-a1·v₁ + v₂, -a2·v₁)`, its coordinate
+`p·(-a1·v₁ + v₂) + (-a2·v₁)` is `p·(p·v₁ + v₂)`, and the same with `q`. -/
+theorem realPoleCoord_update (c : CoeffsReal) (h : 4 * c.a2 < c.a1 ^ 2) (v₁ v₂ : ℝ) :
+    (-c.a1 + poleGap c) / 2 * (-c.a1 * v₁ + v₂) + -c.a2 * v₁ =
+        (-c.a1 + poleGap c) / 2 * ((-c.a1 + poleGap c) / 2 * v₁ + v₂) ∧
+      (-c.a1 - poleGap c) / 2 * (-c.a1 * v₁ + v₂) + -c.a2 * v₁ =
+        (-c.a1 - poleGap c) / 2 * ((-c.a1 - poleGap c) / 2 * v₁ + v₂) := by
+  have hd := poleGap_sq c h
+  exact ⟨by linear_combination (-v₁ / 4) * hd, by linear_combination (-v₁ / 4) * hd⟩
+
+/-- **The measure of the new pair**, when `a1² > 4·a2`: `|p|·|p·v₁ + v₂| + |q|·|q·v₁ + v₂|`
+(from `realPoleCoord_update`). -/
 theorem realPoleNorm_update (c : CoeffsReal) (h : 4 * c.a2 < c.a1 ^ 2) (v₁ v₂ : ℝ) :
     realPoleNorm c (-c.a1 * v₁ + v₂) (-c.a2 * v₁) =
       |(-c.a1 + poleGap c) / 2| * |(-c.a1 + poleGap c) / 2 * v₁ + v₂| +
         |(-c.a1 - poleGap c) / 2| * |(-c.a1 - poleGap c) / 2 * v₁ + v₂| := by
-  have hd := poleGap_sq c h
-  have e1 : (-c.a1 + poleGap c) / 2 * (-c.a1 * v₁ + v₂) + -c.a2 * v₁ =
-      (-c.a1 + poleGap c) / 2 * ((-c.a1 + poleGap c) / 2 * v₁ + v₂) := by
-    linear_combination (-v₁ / 4) * hd
-  have e2 : (-c.a1 - poleGap c) / 2 * (-c.a1 * v₁ + v₂) + -c.a2 * v₁ =
-      (-c.a1 - poleGap c) / 2 * ((-c.a1 - poleGap c) / 2 * v₁ + v₂) := by
-    linear_combination (-v₁ / 4) * hd
+  obtain ⟨e1, e2⟩ := realPoleCoord_update c h v₁ v₂
   rw [realPoleNorm, e1, e2, abs_mul, abs_mul]
 
 /-- **A `Contraction` for biquads with distinct real poles inside the unit circle**
 (`a1² > 4·a2`, `a2 < 1` and `|a1| < 1 + a2`; by `realPoles_lt_one_iff` the last two say that
 both poles `p, q = (-a1 ± d)/2` are less than 1 in size): the measure `realPoleNorm`, with
 `ρ = (|a1| + d)/2 = max(|p|, |q|)` (`max_abs_realPoles`), `cInf = 1/d` and `K = 2`, where
-`d = √(a1² - 4·a2) = p - q`. -/
+`d = √(a1² - 4·a2) = p - q`. The state-update map multiplies `p·v₁ + v₂` by `p` and `q·v₁ + v₂`
+by `q` (`realPoleCoord_update`). -/
 noncomputable def realPolesContraction (c : CoeffsReal) (h : 4 * c.a2 < c.a1 ^ 2)
     (h1 : c.a2 < 1) (h2 : |c.a1| < 1 + c.a2) : Contraction c where
   N := realPoleNorm c
@@ -508,12 +518,20 @@ theorem realPolesContraction_block_bounds_le (c : CoeffsReal) (h : 4 * c.a2 < c.
 noncomputable def repeatedPoleNorm (c : CoeffsReal) (ε v₁ v₂ : ℝ) : ℝ :=
   ε * |v₁| + |-c.a1 / 2 * v₁ + v₂|
 
+/-- `(1 + 1/ε)` times the measure, expanded: `ε·|v₁| + |p·v₁ + v₂| + |v₁| + |p·v₁ + v₂|/ε`. -/
+theorem one_add_inv_mul_repeatedPoleNorm (c : CoeffsReal) {ε : ℝ} (hε : 0 < ε) (v₁ v₂ : ℝ) :
+    (1 + 1 / ε) * repeatedPoleNorm c ε v₁ v₂ =
+      ε * |v₁| + |-c.a1 / 2 * v₁ + v₂| + |v₁| + |-c.a1 / 2 * v₁ + v₂| / ε := by
+  unfold repeatedPoleNorm
+  field_simp
+  ring
+
 /-- **A `Contraction` for biquads with a repeated real pole inside the unit circle**
 (`a1² = 4·a2`, so both poles are `p = -a1/2`), for any `ε > 0` with `|a1|/2 + ε < 1`: the
 measure `repeatedPoleNorm c ε`, with `ρ = |p| + ε`, `cInf = 1 + 1/ε` and `K = 1`. The
-state-update map is not diagonalisable here (its matrix is a Jordan block), so no measure
-shrinks every pair by `|p|` itself; a smaller `ε` gives a `ρ` closer to `|p|` but a larger
-`cInf`. -/
+state-update map is not diagonalisable here (it is similar to a Jordan block), and no measure
+shrinks every pair by `|p|` itself (both worked out outside Lean, not proved); a smaller `ε`
+gives a `ρ` closer to `|p|` but a larger `cInf`. -/
 noncomputable def repeatedPoleContraction (c : CoeffsReal) (h : c.a1 ^ 2 = 4 * c.a2) {ε : ℝ}
     (hε : 0 < ε) (h1 : |c.a1| / 2 + ε < 1) : Contraction c where
   N := repeatedPoleNorm c ε
@@ -549,21 +567,15 @@ noncomputable def repeatedPoleContraction (c : CoeffsReal) (h : c.a1 ^ 2 = 4 * c
   cInf_nonneg := by positivity
   K_nonneg := by norm_num
   le_fst v₁ v₂ := by
-    unfold repeatedPoleNorm
-    have e : (1 + 1 / ε) * (ε * |v₁| + |-c.a1 / 2 * v₁ + v₂|) =
-        ε * |v₁| + |-c.a1 / 2 * v₁ + v₂| + |v₁| + |-c.a1 / 2 * v₁ + v₂| / ε := by
-      field_simp; ring
-    rw [e]
+    show |v₁| ≤ (1 + 1 / ε) * repeatedPoleNorm c ε v₁ v₂
+    rw [one_add_inv_mul_repeatedPoleNorm c hε]
     have : 0 ≤ |-c.a1 / 2 * v₁ + v₂| / ε := by positivity
     have := abs_nonneg v₁
     have := abs_nonneg (-c.a1 / 2 * v₁ + v₂)
     nlinarith
   le_snd v₁ v₂ := by
-    unfold repeatedPoleNorm
-    have e : (1 + 1 / ε) * (ε * |v₁| + |-c.a1 / 2 * v₁ + v₂|) =
-        ε * |v₁| + |-c.a1 / 2 * v₁ + v₂| + |v₁| + |-c.a1 / 2 * v₁ + v₂| / ε := by
-      field_simp; ring
-    rw [e]
+    show |v₂| ≤ (1 + 1 / ε) * repeatedPoleNorm c ε v₁ v₂
+    rw [one_add_inv_mul_repeatedPoleNorm c hε]
     have h3 : |v₂| ≤ |-c.a1 / 2 * v₁ + v₂| + |c.a1| / 2 * |v₁| := by
       calc |v₂| = |(-c.a1 / 2 * v₁ + v₂) - (-c.a1 / 2 * v₁)| := by ring_nf
         _ ≤ |-c.a1 / 2 * v₁ + v₂| + |-c.a1 / 2 * v₁| := abs_sub _ _
@@ -583,13 +595,21 @@ noncomputable def repeatedPoleContraction (c : CoeffsReal) (h : c.a1 ^ 2 = 4 * c
 
 /-! ## A pole at 1 -/
 
+/-- **When 1 is a pole, the state-update map leaves `(1, -a2)` unchanged**: if
+`1 + a1 + a2 = 0`, then `-a1·1 + (-a2) = 1` and `-a2·1 = -a2`. -/
+theorem update_one_neg_a2_of_pole_one (c : CoeffsReal) (h : 1 + c.a1 + c.a2 = 0) :
+    -c.a1 * 1 + -c.a2 = 1 ∧ -c.a2 * 1 = -c.a2 :=
+  ⟨by linarith, mul_one _⟩
+
 /-- **No `Contraction` exists when 1 is a pole** (`1 + a1 + a2 = 0`): the state-update map then
-keeps the pair `(1, -a2)` unchanged, so no measure can shrink it. -/
+leaves the pair `(1, -a2)` unchanged (`update_one_neg_a2_of_pole_one`), so no measure can shrink
+it. -/
 theorem isEmpty_contraction_of_pole_one (c : CoeffsReal) (h : 1 + c.a1 + c.a2 = 0) :
     IsEmpty (Contraction c) := by
   refine ⟨fun C => ?_⟩
   have hc := C.contract 1 (-c.a2)
-  rw [show -c.a1 * 1 + -c.a2 = 1 by linarith, mul_one] at hc
+  obtain ⟨e1, e2⟩ := update_one_neg_a2_of_pole_one c h
+  rw [e1, e2] at hc
   have hN := C.nonneg 1 (-c.a2)
   have hρ := C.ρ_lt_one
   have h0 : C.N 1 (-c.a2) = 0 := by nlinarith

@@ -12,9 +12,9 @@ public import ConjureDSPLib.FloatFacts
 for the real values of the stored coefficients (see `Block.lean`), finite coefficients and
 starting state, inputs at most `M`, no overflow and `cInf·K·κ·β < 1 − ρ`, every output and the
 final state are within distances of the exact real-number filter `filt_real` that depend on the
-coefficients, the `Contraction`, `M` and the starting state but not on the block length. A
-`Contraction` for biquads with complex poles inside the unit circle, and one for distinct real
-poles inside it, are in `Biquad/Contraction.lean`.
+coefficients, the `Contraction`, `M` and the starting state but not on the block length.
+`Contraction`s for biquads with complex poles, distinct real poles or a repeated real pole inside
+the unit circle are in `Biquad/Contraction.lean`.
 
 Each step rounds nine times (`tdf2_f64`); `tdf2_f64_localErr` bounds the effect of those
 roundings on the step's output and new state by `α + β·Sb` when the state is at most `Sb` in
@@ -753,10 +753,11 @@ theorem lowPass23800Hz_bound_f64 (c : CoeffsF64) (hc : realCoeffs_f64 c = lowPas
 
 /-! ## An RBJ low-pass example with real poles, f64
 
-For an RBJ-cookbook low-pass at 48 kHz with `Q < 1/2` the poles are real and distinct.
-`lowPass1kHzQ04_f64` holds the exact real values of the stored coefficients at a 1 kHz cutoff with
-`Q = 0.4`. Worked out outside Lean, not proved: they are what the computation of the section above
-gives with `Q = 0.4` in place of `0.7071`, in binary64. `cos` and `sin` are outside the model. -/
+Worked out outside Lean, not proved: for an RBJ-cookbook low-pass at 48 kHz with `Q < 1/2` the
+poles are real and distinct. `lowPass1kHzQ04_f64` holds the exact real values of the stored
+coefficients at a 1 kHz cutoff with `Q = 0.4`. Worked out outside Lean, not proved: they are what
+the computation of the section above gives with `Q = 0.4` in place of `0.7071`, in binary64.
+`cos` and `sin` are outside the model. -/
 
 /-- The exact real values of the binary64 coefficients stored for an RBJ low-pass with `Q = 0.4`
 at a 1 kHz cutoff. Their bits: `b0 = 0x3F6E2060F5D26D0A`, `b1 = 0x3F7E2060F5D26D0A`,

@@ -41,10 +41,10 @@ index, no arithmetic overflow on indices, and it terminates.
 | `biquad::process_f64` | `biquad.noOverflow_f64_of_inputs` | `Biquad/BlockF64.lean` | Given a `Contraction` for the real values of the stored coefficients, finite coefficients, any numbers `Sb`, `M`, `R`, `Ê` (not necessarily those listed below the table) with `ρ·R + K·G·M ≤ R`, `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb` and `V` (at that `Sb`) at most the largest finite binary64 value, a starting state with both values finite, a real pair `r` with `N(r) ≤ R` and `N(S − r) ≤ Ê` where `S` is the starting state's real value, and every input finite and at most `M` in size: no step overflows (`NoOverflow_f64`). |
 | `biquad::process_f64` | `biquad.process_f64_block_error_of_inputs` (and `filt_f64_block_error_of_inputs`, the same about `filt_f64`) | `Biquad/BlockF64.lean` | **Whole-block error, with conditions on the inputs only.** Given a `Contraction` for the real values of the stored coefficients, finite coefficients and starting state, every input finite and at most `M` in size with `M ≥ 0`, `cInf·K·κ·β < 1 - ρ`, and `V` with `Sb` as below (`stepValueBound_f64`) at most the largest finite binary64 value (about 1.8 × 10³⁰⁸): no step overflows (`NoOverflow_f64`), and the conclusion of `process_f64_block_error` holds: never fails; each output sample is within `cInf·Ê + L` of the corresponding output of `filt_real` run on the real values of the stored inputs from the real value of the stored starting state; each final state value is within `cInf·Ê` of the exact one; for a block of any length. |
 | `biquad::step_f32`, `process_f32` | `biquad.stepFinite_f32`, `biquad.noOverflow_f32_of_inputs`, `biquad.process_f32_block_error_of_inputs` (and `filt_f32_block_error_of_inputs`) | `Biquad/BlockF32.lean` | The same three in binary32 (largest finite value about 3.4 × 10³⁸). |
-| (biquads with complex poles) | `biquad.complexPolesContraction`, `biquad.complexPoleNorm_update` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with complex poles inside the unit circle (`a1² < 4·a2`, `a2 < 1`): for example RBJ low-pass, high-pass, band-pass, notch and all-pass filters with `Q > 1/2`, provided `a1² < 4·a2` still holds after the coefficients are rounded (it fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz, `lowPass1Hz_real_poles_f32`). Measured by `complexPoleNorm`, the state-update map multiplies every pair's measure by exactly `√a2`, the pole radius (`ρ = √a2`). `cInf = (1 + \|a1\|/2)/ω + 1` and `K = ω + \|a1\|/2 + 1` with `ω = √(a2 - a1²/4)`; `cInf` grows like `1/ω` as the poles approach the real axis. |
-| (biquads with distinct real poles) | `biquad.realPolesContraction`, `biquad.realPoleNorm_update`, `biquad.realPoles_lt_one_iff` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with distinct real poles inside the unit circle (`a1² > 4·a2`, `a2 < 1`, `\|a1\| < 1 + a2`; when `a1² > 4·a2`, the last two hold exactly when both poles `p, q = (-a1 ± d)/2` are less than 1 in size, `realPoles_lt_one_iff`): for example an RBJ low-pass with `Q < 1/2`, provided `a1² > 4·a2` still holds after the coefficients are rounded. Measured by `realPoleNorm`, `\|p·v₁ + v₂\| + \|q·v₁ + v₂\|`, the state-update map multiplies `p·v₁ + v₂` by `p` and `q·v₁ + v₂` by `q`, so `ρ = (\|a1\| + d)/2 = max(\|p\|, \|q\|)` (`max_abs_realPoles`). `cInf = 1/d` and `K = 2` with `d = √(a1² - 4·a2) = p - q`; `cInf` grows without bound as the two poles merge. |
+| (biquads with complex poles) | `biquad.complexPolesContraction`, `biquad.complexPoleNorm_update` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with complex poles inside the unit circle (`a1² < 4·a2`, `a2 < 1`): for example RBJ low-pass, high-pass, band-pass, notch and all-pass filters with `Q > 1/2` (worked out outside Lean, not proved), provided `a1² < 4·a2` still holds after the coefficients are rounded (it fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz, `lowPass1Hz_real_poles_f32`). Measured by `complexPoleNorm`, the state-update map multiplies every pair's measure by exactly `√a2`, the pole radius (`ρ = √a2`). `cInf = (1 + \|a1\|/2)/ω + 1` and `K = ω + \|a1\|/2 + 1` with `ω = √(a2 - a1²/4)`; `cInf` grows like `1/ω` as the poles approach the real axis. |
+| (biquads with distinct real poles) | `biquad.realPolesContraction`, `biquad.realPoleNorm_update`, `biquad.realPoles_lt_one_iff` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with distinct real poles inside the unit circle (`a1² > 4·a2`, `a2 < 1`, `\|a1\| < 1 + a2`; given the first, the other two say both poles are less than 1 in size, `realPoles_lt_one_iff`): for example an RBJ low-pass with `Q < 1/2` (worked out outside Lean, not proved), provided `a1² > 4·a2`, `a2 < 1` and `\|a1\| < 1 + a2` still hold after the coefficients are rounded (the last fails in f32 for a 1 Hz Butterworth low-pass at 48 kHz, `lowPass1Hz_pole_one_f32`). Measured by `realPoleNorm`, `ρ = (\|a1\| + d)/2`, the larger pole size (`max_abs_realPoles`), `cInf = 1/d` and `K = 2`, where `d = √(a1² − 4·a2)` is the distance between the poles; `cInf = 1/d` grows without bound as `d → 0`. The state-update map multiplies `p·v₁ + v₂` by `p` and `q·v₁ + v₂` by `q` (`realPoleCoord_update`). |
 | (biquads with a repeated real pole) | `biquad.repeatedPoleContraction` | `Biquad/Contraction.lean` | A `Contraction` for any biquad with a repeated real pole `p = -a1/2` (`a1² = 4·a2`), for any chosen `ε > 0` with `\|p\| + ε < 1`: measured by `repeatedPoleNorm`, `ε·\|v₁\| + \|p·v₁ + v₂\|`, with `ρ = \|p\| + ε`, `cInf = 1 + 1/ε` and `K = 1`. |
-| (biquads with a pole at 1) | `biquad.isEmpty_contraction_of_pole_one` | `Biquad/Contraction.lean` | When 1 is a pole (`1 + a1 + a2 = 0`), no `Contraction` exists: the state-update map leaves the pair `(1, -a2)` unchanged. |
+| (biquads with a pole at 1) | `biquad.isEmpty_contraction_of_pole_one` | `Biquad/Contraction.lean` | When 1 is a pole (`1 + a1 + a2 = 0`), no `Contraction` exists: the state-update map leaves the pair `(1, -a2)` unchanged (`update_one_neg_a2_of_pole_one`). |
 | `delay::process_f64` | `delay.process_f64_ok` | `Delay/SpecF64.lean` | Never fails, for every buffer, position, delay and audio. |
 | `delay::process_f64` | `delay.process_f64_empty_buffer` | `Delay/SpecF64.lean` | With an empty buffer: never fails, and returns the buffer, position and audio unchanged. |
 | `delay::process_f64` | `delay.process_f64_spec` | `Delay/SpecF64.lean` | For a buffer of length `L > 0`, any position `p`, any delay `delay_samples` and `n` input samples, with `d = min(delay_samples, L - 1)` and the history `H = buffer.rotate p ++ audio` (Mathlib's `List.rotate`: the buffer read oldest first from index `p mod L`, then the input): never fails; the output has `n` samples, and for each `j < n` output sample `j` is element `L + j - d` of `H`; the new buffer has length `L`; the new position is `(p + n) mod L`; and the new buffer read oldest first from the new position (`buffer'.rotate p'`) is `H` without its first `n` elements, that is, its last `L` elements. |
@@ -197,10 +197,10 @@ to the whole-block constants, and what is left is arithmetic on rational numbers
 checks.
 
 For the same filter, `M = 1` and start, the theorems below state facts at single cutoffs; the
-last three are about RBJ low-pass filters with `Q = 0.4` and `Q = 0.5` instead, whose poles are
-real. Each one that bounds `cInf·Ê + L` also proves that the coefficients have poles inside the
-unit circle (complex, or real where that is said) and that the condition `cInf·K·κ·β < 1 − ρ`
-holds for the `Contraction` it uses.
+last two items (three theorems) are about RBJ low-pass filters with `Q = 0.4` and `Q = 0.5` at
+1 kHz instead, whose poles are real. Each one that bounds `cInf·Ê + L` also proves that the
+coefficients have poles inside the unit circle (complex, or real where that is said) and that the
+condition `cInf·K·κ·β < 1 − ρ` holds for the `Contraction` it uses.
 
 - In f32 at 82 Hz the condition `cInf·K·κ·β < 1 − ρ` is false for `complexPolesContraction`
   (`lowPass82Hz_smallness_fails_f32`), so the whole-block theorems used with it prove nothing
@@ -227,11 +227,11 @@ holds for the `Contraction` it uses.
   `Sb ≤ 2.75` and `V ≤ 56.3` (`lowPass1kHzQ04_bounds_f32`); in f64 it is at most 1.04 × 10⁻¹¹
   and at most −219.6 dB, `Sb ≤ 2.75` and `V ≤ 56.2` (`lowPass1kHzQ04_bounds_f64`).
 - For an RBJ low-pass with `Q = 0.5` at 1 kHz in f32 (coefficients `lowPass1kHzQ05_f32`, worked
-  out outside Lean in the same way, not proved; also worked out outside Lean, not proved: the
-  cookbook filter's poles are equal in exact arithmetic), the stored poles are real and distinct
-  but close: `a1² − 4·a2` is below 1.3 × 10⁻⁷, so
-  `cInf = 1/d` is above 2700. With `realPolesContraction` the condition holds, but `cInf·Ê + L`
-  is only shown to be at most 734 (`lowPass1kHzQ05_bound_f32`).
+  out outside Lean in the same way; in exact arithmetic this filter's two poles are equal, also
+  worked out outside Lean, not proved), the stored poles are real and distinct but close:
+  `a1² − 4·a2` is below 1.3 × 10⁻⁷, so `cInf = 1/d` is above 2700. With `realPolesContraction`
+  the condition holds, but `cInf·Ê + L` is only shown to be at most 734
+  (`lowPass1kHzQ05_bound_f32`).
 
 Nothing is proved for a whole range of cutoffs, which would need `cos` and `sin`. Worked out
 outside Lean, not proved: in f32 the condition fails at every cutoff below about 82.4 Hz where the
@@ -263,6 +263,16 @@ What is listed here is observed or expected behaviour, not proved.
 
 - The whole-block bounds are worst cases. Typical rounding errors partly cancel, and are much
   smaller than the one-pole's `E` and the biquad's `cInf·Ê + L`.
+- For RBJ-cookbook low-pass and high-pass biquads (which have the same poles), binary32
+  coefficients can put a pole on or outside the unit circle at very low cutoffs (computed in
+  Python, not proved; `Q` = 0.5, 0.7071, 2 and 10, cutoffs in 0.01 Hz steps up to 200 Hz and
+  1 Hz steps up to half the sample rate, testing `a2 < 1` and `|a1| < 1 + a2`). With the
+  coefficients computed in binary64 and then rounded to binary32, this happens at some cutoffs
+  below about 2.1 Hz at 44.1 kHz, 2.2 Hz at 48 kHz and 4.4 Hz at 96 kHz. With them computed in
+  binary32 throughout, it happens up to about 2.8 Hz at 44.1 kHz, 3 Hz at 48 kHz and 6 Hz at
+  96 kHz, the worst case being `Q = 0.5`. It also happens at some cutoffs within 6 Hz of half the
+  sample rate. One case is proved: the f32 1 Hz Butterworth low-pass at 48 kHz has a pole at
+  exactly 1 (`lowPass1Hz_pole_one_f32`).
 
 ## What is assumed, not proved
 
@@ -303,22 +313,23 @@ What is listed here is observed or expected behaviour, not proved.
 - The biquad's whole-block error bound is proved for any given `Contraction` of its state-update
   map. One is supplied for complex poles inside the unit circle (`complexPolesContraction`), for
   distinct real poles inside it (`realPolesContraction`, for example an RBJ low-pass with
-  `Q < 1/2`) and for a repeated real pole inside it (`repeatedPoleContraction`). None is supplied
-  when a pole is on or outside the unit circle, and when 1 is a pole none exists
-  (`isEmpty_contraction_of_pole_one`; the f32 1 Hz Butterworth low-pass at 48 kHz has one,
-  `lowPass1Hz_pole_one_f32`). Real poles that are distinct but close together, as are those of
-  the rounded coefficients of an RBJ low-pass with `Q = 1/2` in f32 at 1 kHz, are covered only
-  with `cInf = 1/(p − q)`, which is then large (above 2700 there, `lowPass1kHzQ05_bound_f32`); no
-  measure whose `cInf` stays bounded as the poles merge is supplied, and
-  `repeatedPoleContraction` applies only when they are exactly equal. It also assumes
-  `cInf·K·κ·β < 1 - ρ` (false in f32 for a 48 kHz Butterworth low-pass at 82 Hz,
-  `lowPass82Hz_smallness_fails_f32`). `process_f64_block_error` / `process_f32_block_error` also
-  assume that no step overflows (`NoOverflow_f64` / `NoOverflow_f32`), a condition on the computed
-  values; the whole-block `_of_inputs` theorems instead assume that every input is finite and that
-  `V` is at most the largest finite value, and prove that no step overflows (through
-  `noOverflow_f64_of_inputs` / `_f32`, which assumes the proof's invariant bounds instead). The
-  textbook equivalence is in exact arithmetic: in floating point the transposed form and the
-  textbook form round differently.
+  `Q < 1/2`, worked out outside Lean, not proved) and for a repeated real pole inside it
+  (`repeatedPoleContraction`). None is supplied when a pole is on or outside the unit circle, and
+  when 1 is a pole none exists (`isEmpty_contraction_of_pole_one`; the f32 1 Hz Butterworth
+  low-pass at 48 kHz has one, `lowPass1Hz_pole_one_f32`).
+- Real poles that are distinct but close together have a large `cInf = 1/(p − q)` in
+  `realPolesContraction` (above 2700 for an RBJ low-pass with `Q = 1/2` in f32 at 1 kHz,
+  `lowPass1kHzQ05_bound_f32`). `repeatedPoleContraction` needs exactly equal poles, and no
+  measure whose `cInf` stays bounded as the poles merge is supplied.
+- The biquad's whole-block bound also assumes `cInf·K·κ·β < 1 - ρ` (false in f32 for a 48 kHz
+  Butterworth low-pass at 82 Hz, `lowPass82Hz_smallness_fails_f32`).
+  `process_f64_block_error` / `process_f32_block_error` also assume that no step overflows
+  (`NoOverflow_f64` / `NoOverflow_f32`), a condition on the computed values; the whole-block
+  `_of_inputs` theorems instead assume that every input is finite and that `V` is at most the
+  largest finite value, and prove that no step overflows (through `noOverflow_f64_of_inputs` /
+  `_f32`, which assumes the proof's invariant bounds instead). The textbook equivalence is in
+  exact arithmetic: in floating point the transposed form and the textbook form round
+  differently.
 
 ## Layout
 

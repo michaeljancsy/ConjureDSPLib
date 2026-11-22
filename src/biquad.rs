@@ -21,8 +21,10 @@
 //! coefficients can change between calls; the state is kept.
 //!
 //! Designing coefficients (low-pass, shelf, ...) is not part of this module. The filter is stable
-//! when both poles are inside the unit circle: `|a2| < 1` and `|a1| < 1 + a2`. Flushing
-//! subnormal numbers to zero is the caller's job.
+//! when both poles are inside the unit circle: `|a2| < 1` and `|a1| < 1 + a2`. For very low
+//! cutoffs (a few hertz), `f32` coefficients can put a pole on or outside the unit circle (see
+//! "Observations" in `proofs/README.md`), so use the `f64` filter there. Flushing subnormal
+//! numbers to zero is the caller's job.
 //!
 //! Call these through the module, as `biquad::process_f32`.
 

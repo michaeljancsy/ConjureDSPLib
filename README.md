@@ -41,7 +41,8 @@ through Lean's kernel, so a proof that skipped the kernel is still caught. The A
 and Mathlib libraries are trusted as compiled, not replayed.
 
 To move to a newer Aeneas: check out the new `conjure` commit in a folder named
-`toolchains/aeneas-<first 8 characters of the commit>`, build it, change `AENEAS_COMMIT` in
+`toolchains/aeneas-<first 8 characters of the commit>` (where `scripts/prove.sh` looks by
+default; otherwise set `AENEAS_DIR`), build it, change `AENEAS_COMMIT` in
 `proofs/PINS` (and `CHARON_COMMIT` if Aeneas's `charon-pin` changed), run `scripts/check.sh`,
 commit any regenerated Lean, and update "What is assumed, not proved" in `proofs/README.md` if
 the fork's float model changed.

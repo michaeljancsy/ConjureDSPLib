@@ -598,15 +598,17 @@ theorem smallness_of_invariant (c : CoeffsReal) (C : Contraction c)
   nlinarith [h1, h2, h3, h4]
 
 /-- `Sb'` at given numbers: `ci·(n₀ + k·G·M + k·κ·α)/(1 − ρ' − ci·k·κ·β)` (`G = inputGain c`,
-`κ = roundGain c`). With `ci`, `k`, `ρ'` and `n₀` at `cInf`, `K`, `ρ` and `N(s)` of a
-`Contraction` it is `computedStateBound` (`block_bounds_le`, `block_bounds_ge` compare them). -/
+`κ = roundGain c`). With `ci`, `k` and `ρ'` equal to `cInf`, `K` and `ρ` of a `Contraction` and
+`n₀ = N(s)·(1 − ρ)`, it equals `computedStateBound`; `block_bounds_le` and `block_bounds_ge`
+compare the two when the numbers are only above or below those. -/
 noncomputable def stateBoundAt (c : CoeffsReal) (M α β n₀ ci k ρ' : ℝ) : ℝ :=
   ci * (n₀ + k * inputGain c * M + k * roundGain c * α) / (1 - ρ' - ci * k * roundGain c * β)
 
 /-- The bound on each output's error at given numbers: `(α + β·Sb')·(1 + ci·k·κ/(1 − ρ'))`, with
-`Sb' = stateBoundAt c M α β n₀ ci k ρ'` and `κ = roundGain c`. With `ci`, `k`, `ρ'` and `n₀` at
-`cInf`, `K`, `ρ` and `N(s)` of a `Contraction` it is `cInf·Ê + L` (`block_bounds_le`,
-`block_bounds_ge` compare them). -/
+`Sb' = stateBoundAt c M α β n₀ ci k ρ'` and `κ = roundGain c`. With `ci`, `k` and `ρ'` equal to
+`cInf`, `K` and `ρ` of a `Contraction` and `n₀ = N(s)·(1 − ρ)`, it equals `cInf·Ê + L`;
+`block_bounds_le` and `block_bounds_ge` compare the two when the numbers are only above or below
+those. -/
 noncomputable def outErrBoundAt (c : CoeffsReal) (M α β n₀ ci k ρ' : ℝ) : ℝ :=
   (α + β * stateBoundAt c M α β n₀ ci k ρ') * (1 + ci * k * roundGain c / (1 - ρ'))
 
@@ -766,8 +768,8 @@ theorem block_bounds_ge (c : CoeffsReal) (C : Contraction c) (M α β ci k ρl :
   have h := mul_le_mul hL (add_le_add_left ht 1) (by linarith) (hL''0.trans hL)
   linarith
 
-/-- **When the condition of `block_error_real` fails.** If `ci`, `k ≥ 0` and `ρl` are at most
-`cInf`, `K` and `ρ`, `0 ≤ β`, and `1 − ρl ≤ ci·k·κ·β` (`κ = roundGain c`), then
+/-- **When the condition of `block_error_real` fails.** If `0 ≤ k`, `0 ≤ β`, `ci`, `k` and `ρl`
+are at most `cInf`, `K` and `ρ`, and `1 − ρl ≤ ci·k·κ·β` (`κ = roundGain c`), then
 `cInf·K·κ·β < 1 − ρ` is false. -/
 theorem smallness_fails (c : CoeffsReal) (C : Contraction c) (β ci k ρl : ℝ) (hβ : 0 ≤ β)
     (hk0 : 0 ≤ k) (hci : ci ≤ C.cInf) (hk : k ≤ C.K) (hρ : ρl ≤ C.ρ)
@@ -779,6 +781,12 @@ theorem smallness_fails (c : CoeffsReal) (C : Contraction c) (β ci k ρl : ℝ)
     mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right hCK hκ) hβ
   intro hlt
   linarith
+
+/-- `norm_num` with the coefficients `c` and the bound formulas unfolded: closes the statements
+about rational numbers in the worked examples of `BlockF64.lean` and `BlockF32.lean`. -/
+scoped macro "bound_norm_num" "[" c:ident "]" : tactic =>
+  `(tactic| norm_num [$c:ident, outErrBoundAt, stateBoundAt, localErrBase, localErrSlope,
+    inputGain, roundGain, stepValueBound, abs_of_neg, abs_of_pos])
 
 end conjure_dsp_lib.biquad
 

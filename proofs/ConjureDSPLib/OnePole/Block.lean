@@ -6,6 +6,7 @@ public import Mathlib.Tactic.Positivity
 public import Mathlib.Tactic.FieldSimp
 public import Mathlib.Tactic.Ring
 public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import ConjureDSPLib.FloatFacts
 
 /-!
 # The one-pole filter over a whole block: the real-number argument
@@ -278,28 +279,6 @@ theorem errBound_between_of_abs_le (A u η δ : ℝ) (hu0 : 0 < u) (hu : u ≤ 1
     have e2 : 3 * u * (t * (t - α * κ)) = t * (3 * u * t - 3 * (u * (α * κ))) := by ring
     rw [e, e2]
     exact mul_le_mul_of_nonneg_left (by nlinarith) ht.le
-
-/-- **A decibel bound from a power bound.** If `0 < x ≤ r` and `r ^ m · 10 ^ n ≤ 1` (`m > 0`),
-then `20·log₁₀ x ≤ -(20·n / m)`. With `x = E / B` this states `E` relative to `B` in decibels;
-the power bound is a statement about rational numbers that `norm_num` checks. -/
-theorem twenty_logb_le_of_pow_le (x r : ℝ) (m n : ℕ) (hx : 0 < x) (hxr : x ≤ r) (hm : 0 < m)
-    (hr : r ^ m * 10 ^ n ≤ 1) : 20 * Real.logb 10 x ≤ -(20 * n / m) := by
-  have hr0 : 0 < r := hx.trans_le hxr
-  have h1 : Real.logb 10 x ≤ Real.logb 10 r := Real.logb_le_logb_of_le (by norm_num) hx hxr
-  have hpow : r ^ m ≤ ((10 : ℝ) ^ n)⁻¹ := by
-    rw [← one_div, le_div_iff₀ (by positivity)]
-    exact hr
-  have h2 : (m : ℝ) * Real.logb 10 r ≤ -n := by
-    rw [← Real.logb_pow]
-    calc Real.logb 10 (r ^ m) ≤ Real.logb 10 ((10 : ℝ) ^ n)⁻¹ :=
-          Real.logb_le_logb_of_le (by norm_num) (by positivity) hpow
-      _ = -n := by rw [Real.logb_inv, Real.logb_pow, Real.logb_self_eq_one (by norm_num)]; ring
-  have hm' : (0 : ℝ) < m := by exact_mod_cast hm
-  have h3 : Real.logb 10 r ≤ -n / m := by
-    rw [le_div_iff₀ hm']; linarith
-  have : -(20 * (n : ℝ) / m) = 20 * (-n / m) := by ring
-  rw [this]
-  linarith
 
 /-- **The four bounds of one row of the table in `proofs/README.md`.** For inputs at most `M = 1`
 in size and a starting state `S = 0`, with `0 < u`, `0 ≤ η ≤ ηb`, `|A| ≤ a` and

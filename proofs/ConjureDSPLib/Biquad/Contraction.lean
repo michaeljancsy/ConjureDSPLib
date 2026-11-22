@@ -42,6 +42,12 @@ noncomputable def poleIm (c : CoeffsReal) : ℝ := Real.sqrt (c.a2 - c.a1 ^ 2 / 
 noncomputable def complexPoleNorm (c : CoeffsReal) (v₁ v₂ : ℝ) : ℝ :=
   ‖(⟨poleIm c * v₁, v₂ - c.a1 / 2 * v₁⟩ : ℂ)‖
 
+/-- The zero pair measures zero. -/
+theorem complexPoleNorm_zero (c : CoeffsReal) : complexPoleNorm c 0 0 = 0 := by
+  unfold complexPoleNorm
+  rw [show (⟨poleIm c * 0, 0 - c.a1 / 2 * 0⟩ : ℂ) = 0 from Complex.ext (by simp) (by simp)]
+  exact norm_zero
+
 /-- With complex poles, `ω² = a2 - a1²/4`. -/
 theorem poleIm_sq (c : CoeffsReal) (h : c.a1 ^ 2 < 4 * c.a2) :
     poleIm c ^ 2 = c.a2 - c.a1 ^ 2 / 4 :=

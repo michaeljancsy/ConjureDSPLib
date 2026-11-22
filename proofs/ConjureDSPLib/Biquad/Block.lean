@@ -557,18 +557,20 @@ theorem step_values_le (c : CoeffsReal) {u η M Sb X S1 S2 P0 Y P1 Q1 D1 P2 Q2 :
     have := abs_sub P2 Q2
     linarith
 
-/-- **The invariant inequalities force the smallness condition.** If numbers `Sb`, `R`, `Ê`
-satisfy `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê` and `cInf·(R + Ê) ≤ Sb` (two of the hypotheses of
-`noOverflow_f64_of_inputs` / `_f32`), with `R ≥ 0`, `Ê ≥ 0`, `α > 0` and `cInf·K·κ > 0`
-(`κ = roundGain c`), then `cInf·K·κ·β < 1 − ρ`. So where that condition fails, those hypotheses
-cannot all hold. -/
-theorem smallness_of_invariant (c : CoeffsReal) (C : Contraction c) {Sb R Ê α β : ℝ}
+/-- **The invariant inequalities force `cInf·K·κ·β < 1 − ρ`.** If numbers `Sb`, `R`, `Ê` and
+states `r`, `s` satisfy `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and
+`N(s − r) ≤ Ê` (hypotheses of `noOverflow_f64_of_inputs` / `_f32`), with `α > 0` and
+`cInf·K·κ > 0` (`κ = roundGain c`), then `cInf·K·κ·β < 1 − ρ`. So where that condition fails,
+those hypotheses cannot all hold. -/
+theorem smallness_of_invariant (c : CoeffsReal) (C : Contraction c)
+    {Sb R Ê α β r₁ r₂ s₁ s₂ : ℝ}
     (hE : C.ρ * Ê + C.K * ((α + β * Sb) * roundGain c) ≤ Ê)
-    (hS : C.cInf * (R + Ê) ≤ Sb) (hR0 : 0 ≤ R) (hE0 : 0 ≤ Ê) (hα : 0 < α)
-    (hpos : 0 < C.cInf * C.K * roundGain c) :
+    (hS : C.cInf * (R + Ê) ≤ Sb) (hr : C.N r₁ r₂ ≤ R) (he : C.N (s₁ - r₁) (s₂ - r₂) ≤ Ê)
+    (hα : 0 < α) (hpos : 0 < C.cInf * C.K * roundGain c) :
     C.cInf * C.K * roundGain c * β < 1 - C.ρ := by
-  by_contra hnot'
-  have hnot := not_lt.mp hnot'
+  have hR0 : 0 ≤ R := le_trans (C.nonneg _ _) hr
+  have hE0 : 0 ≤ Ê := le_trans (C.nonneg _ _) he
+  by_contra! hnot
   have hρ := C.ρ_lt_one
   have hci := C.cInf_nonneg
   have hSb0 : 0 ≤ Sb := le_trans (by positivity) hS

@@ -116,13 +116,14 @@ for inputs at most 1.0 in size and a starting state of 0, so the exact output st
 The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 lose the most.
 It is a worst case: typical rounding errors partly cancel and are much smaller.
 
-The size limit of the `_of_inputs` theorems is proved to hold for slow smoothers in f32: for every
+The size limit of the one-pole `process_f32_block_error_of_inputs` is proved to hold for slow
+smoothers in f32: for every
 real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a starting state of value
 `S = 0`, the stability condition holds, `B ≤ 1001.01`, `E ≤ 0.12`, and `M + (1 + u)·(B + E) + η`
 is at most the largest finite binary32 value (`block_constants_le_of_abs_le_f32`). That value is
 exactly `(2²⁴ - 1)·2¹⁰⁴` (`maxFinite_f32_eq`), and in f32 `u = 2⁻²⁴` and `η = 2⁻¹⁵⁰`
 (`unitRoundoff_f32_eq`, `underflowErr_f32_eq`). The bound 0.999001 leaves room for 0.999
-itself, which f32 stores as 0.9990000129 (worked out outside Lean, not proved).
+itself, which f32 stores as 0.9990000129 (worked out by hand, not proved).
 
 For the biquad, using `complexPolesContraction`, for an RBJ-cookbook Butterworth low-pass
 (`Q = 0.7071`) at 48 kHz, with its coefficients rounded to each precision, inputs at most 1.0 and
@@ -164,8 +165,9 @@ f64) by a factor of more than 10³⁵ (worked out by hand, not proved). With
 prove nothing, because their condition `cInf·K·κ·β < 1 - ρ` fails there, as for the other
 whole-block theorems. The hypotheses of `noOverflow_f32_of_inputs` cannot all hold there either:
 its `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`, `cInf·(R + Ê) ≤ Sb`, `N(r) ≤ R` and `N(S − r) ≤ Ê` together
-imply that condition when `α > 0` and `cInf·K·κ > 0`, as for `complexPolesContraction`
-(`biquad.smallness_of_invariant`).
+imply that condition when `α > 0` and `cInf·K·κ > 0` (`biquad.smallness_of_invariant`). That
+these two hold for `complexPolesContraction`, and that the condition fails below about 82.4 Hz,
+is worked out by hand, not proved.
 
 ## What is assumed, not proved
 

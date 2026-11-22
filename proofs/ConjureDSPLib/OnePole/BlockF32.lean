@@ -222,11 +222,12 @@ theorem stability_of_abs_le_f32 (A : ℝ) (hA : |A| ≤ 1 - 2 ^ (-22 : ℤ)) :
   norm_num at hA ⊢
   nlinarith [abs_nonneg A]
 
-/-- **The size limit of `process_f32_block_error_of_inputs` is far from binding for a slow
-smoother.** For every real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a
+/-- **The size limit of `process_f32_block_error_of_inputs` holds for a slow smoother, f32.**
+For every real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a
 starting state of value `S = 0`, in binary32: the stability condition holds, `B ≤ 1001.01`,
 `E ≤ 0.12`, and `M + (1 + u)·(B + E) + η` is at most the largest finite binary32 value. `B` and
-`E` are `outBound` and `errBound`, `u` and `η` binary32's rounding constants. -/
+`E` are `outBound` and `errBound`, `u` and `η` binary32's rounding constants. f32 only: it is
+the tighter of the two precisions. -/
 theorem block_constants_le_of_abs_le_f32 (A : ℝ) (hA : |A| ≤ 0.999001) :
     |A| + |A| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1 ∧
       outBound A 1 0 ≤ 1001.01 ∧

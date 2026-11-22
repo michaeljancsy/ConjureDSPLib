@@ -90,8 +90,10 @@ and inputs. The one-pole's conditions:
   value;
 - every input is at most `M` in size;
 - `|A| + |A|·u·(2 + u) < 1`, which is `|A|·(1 + u)² < 1`: stable, with a little room for
-  rounding. Any `|A| ≤ 1 - 2⁻⁵¹` (f64) or `|A| ≤ 1 - 2⁻²²` (f32) satisfies it (simple
-  algebra, not a Lean theorem).
+  rounding. Every real `A` with `|A| ≤ 1 - 2⁻⁵¹` satisfies it in f64
+  (`stability_of_abs_le_f64`), and every real `A` with `|A| ≤ 1 - 2⁻²²` satisfies it in f32
+  (`stability_of_abs_le_f32`), where `u` is `2⁻⁵³` in f64 and `2⁻²⁴` in f32
+  (`unitRoundoff_f64_eq`, `unitRoundoff_f32_eq`).
 
 Then, with `B = |S| + M / (1 - |A|)` (a bound on the exact filter's outputs):
 
@@ -112,9 +114,15 @@ for inputs at most 1.0 in size and a starting state of 0, so the exact output st
 | f64 | 0.999 | 1000 | 2.2 × 10⁻¹⁰ | −253.1 dB |
 
 The bound grows like `1 / (1 - a)²` as `a` approaches 1: slow smoothers in f32 lose the most.
-It is a worst case: typical rounding errors partly cancel and are much smaller. The size limit of
-the `_of_inputs` theorems is far from binding: with `a = 0.999`, inputs at most 1 and a start of
-0, `B + E` is about 1000, against a largest finite value of about 3.4 × 10³⁸ in f32.
+It is a worst case: typical rounding errors partly cancel and are much smaller.
+
+The size limit of the `_of_inputs` theorems is proved to hold for slow smoothers in f32: for every
+real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a starting state of value
+`S = 0`, the stability condition holds, `B ≤ 1001.01`, `E ≤ 0.12`, and `M + (1 + u)·(B + E) + η`
+is at most the largest finite binary32 value (`block_constants_le_of_abs_le_f32`). That value is
+exactly `(2²⁴ - 1)·2¹⁰⁴` (`maxFinite_f32_eq`), and in f32 `u = 2⁻²⁴` and `η = 2⁻¹⁵⁰`
+(`unitRoundoff_f32_eq`, `underflowErr_f32_eq`). The bound 0.999001 leaves room for 0.999
+itself, which f32 stores as 0.9990000129 (worked out outside Lean, not proved).
 
 For the biquad, using `complexPolesContraction`, for an RBJ-cookbook Butterworth low-pass
 (`Q = 0.7071`) at 48 kHz, with its coefficients rounded to each precision, inputs at most 1.0 and

@@ -214,6 +214,57 @@ theorem process_f32_block_error_of_inputs (a state : Float32) (buf : Slice Float
   exact ⟨hno, process_f32_block_error a state buf M ha hs hno hM0
     (fun x hx => (hin x hx).2) hstab⟩
 
+/-- **A simple sufficient condition for the stability condition, f32.** Every real `A` with
+`|A| ≤ 1 - 2⁻²²` satisfies `|A| + |A|·u·(2 + u) < 1`, where `u` is binary32's unit roundoff. -/
+theorem stability_of_abs_le_f32 (A : ℝ) (hA : |A| ≤ 1 - 2 ^ (-22 : ℤ)) :
+    |A| + |A| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1 := by
+  rw [unitRoundoff_f32_eq]
+  norm_num at hA ⊢
+  nlinarith [abs_nonneg A]
+
+/-- **The size limit of `process_f32_block_error_of_inputs` is far from binding for a slow
+smoother.** For every real `A` with `|A| ≤ 0.999001`, inputs at most `M = 1` in size and a
+starting state of value `S = 0`, in binary32: the stability condition holds, `B ≤ 1001.01`,
+`E ≤ 0.12`, and `M + (1 + u)·(B + E) + η` is at most the largest finite binary32 value. `B` and
+`E` are `outBound` and `errBound`, `u` and `η` binary32's rounding constants. -/
+theorem block_constants_le_of_abs_le_f32 (A : ℝ) (hA : |A| ≤ 0.999001) :
+    |A| + |A| * unitRoundoff_f32 * (2 + unitRoundoff_f32) < 1 ∧
+      outBound A 1 0 ≤ 1001.01 ∧
+      errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 0.12 ∧
+      1 + (1 + unitRoundoff_f32) *
+          (outBound A 1 0 + errBound A unitRoundoff_f32 underflowErr_f32 1 0) +
+        underflowErr_f32 ≤ maxFinite_f32 := by
+  have ha := abs_nonneg A
+  have hstab := stability_of_abs_le_f32 A (by norm_num; linarith)
+  have hd : (0.000999 : ℝ) ≤ 1 - |A| := by linarith
+  have hB : outBound A 1 0 ≤ 1001.01 := by
+    unfold outBound
+    rw [abs_zero, zero_add, div_le_iff₀ (by linarith)]
+    nlinarith
+  have hB0 : 0 ≤ outBound A 1 0 := by
+    unfold outBound
+    rw [abs_zero, zero_add]
+    exact div_nonneg zero_le_one (by linarith)
+  have hE : errBound A unitRoundoff_f32 underflowErr_f32 1 0 ≤ 0.12 := by
+    unfold errBound
+    rw [unitRoundoff_f32_eq, underflowErr_f32_eq]
+    norm_num
+    have hk : |A| * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) ≤
+        0.999001 * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) := by
+      gcongr
+    have hkB : |A| * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) * outBound A 1 0 ≤
+        0.999001 * (2 ^ 24)⁻¹ * (2 + (2 ^ 24)⁻¹) * 1001.01 :=
+      mul_le_mul hk hB hB0 (by positivity)
+    rw [div_le_iff₀ (by norm_num at hk ⊢; linarith)]
+    norm_num at hk hkB ⊢
+    linarith
+  refine ⟨hstab, hB, hE, ?_⟩
+  rw [maxFinite_f32_eq]
+  have hu : unitRoundoff_f32 ≤ 1 := by rw [unitRoundoff_f32_eq]; norm_num
+  have hη : underflowErr_f32 ≤ 1 := by rw [underflowErr_f32_eq]; norm_num
+  have hu0 : 0 ≤ unitRoundoff_f32 := by rw [unitRoundoff_f32_eq]; norm_num
+  nlinarith
+
 end conjure_dsp_lib.one_pole
 
 end

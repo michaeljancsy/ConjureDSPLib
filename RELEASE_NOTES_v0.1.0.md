@@ -21,8 +21,8 @@ conjure-dsp-lib = { git = "https://github.com/michaeljancsy/ConjureDSPLib", tag 
 - Biquad and SVF: a whole-block error bound given a contraction for the stored coefficients, under
   finiteness, input-size and no-overflow conditions (`biquad.process_f64_block_error`,
   `svf.process_f64_block_error`). For the stored `f32` coefficients of a 20 Hz SVF low-pass with
-  Q = 0.7071 at 48 kHz (that `CoeffsF32::low_pass` stores them is worked out outside Lean, not proved), with
-  inputs at most 1 and a start from zero, the SVF's bound is proved to be at most 0.0126
+  Q = 0.7071 at 48 kHz (that `CoeffsF32::low_pass` stores them is worked out outside Lean, not
+  proved), with inputs at most 1 and a start from zero, the SVF's bound is proved to be at most 0.0126
   (`svf.lowPass20Hz_bounds_f32`). For the stored `f32` coefficients of an RBJ-cookbook
   Butterworth biquad low-pass at 48 kHz (that they are the cookbook's is worked out outside Lean,
   not proved), the biquad bound's condition with `biquad.complexPolesContraction` is proved to fail

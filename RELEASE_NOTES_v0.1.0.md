@@ -55,6 +55,5 @@ Butterworth low-pass's at 48 kHz is worked out outside Lean, not proved).
 Aeneas fork at the pinned commit, then run `AENEAS_DIR=/path/to/aeneas scripts/check.sh`; see
 [the README](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/README.md#checking-the-proofs-yourself).
 
-**Licence:** Apache-2.0. If you redistribute the crate or a product that includes it, pass on the
-attribution in
+**Licence:** Apache-2.0. The attribution notices to pass on under section 4(d) are in
 [NOTICE](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/NOTICE).

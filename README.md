@@ -77,7 +77,7 @@ Per-sample code does no memory allocation, takes no locks and makes no system ca
 The theorems are about the Lean translation of the Rust code, under the assumptions in the next
 section. "Never fails" means the translated function always returns normally: no panic, no
 out-of-bounds index, no arithmetic overflow on indices, and it terminates. The exact statement and
-every condition of each theorem are in [proofs/README.md](proofs/README.md); this summary is no
+every condition of each theorem are in [proofs/README.md](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/README.md); this summary is no
 substitute for them.
 
 | Module | What is proved, under the conditions in proofs/README.md |
@@ -119,7 +119,7 @@ Things to know before relying on the error bounds:
   (`biquad.lowPass82Hz_smallness_fails_f32`). That these stored values are the cookbook's
   coefficients is worked out outside Lean, not proved.
 - Worked examples with numbers, for the one-pole, the smoother, the biquad and the SVF, are in
-  [proofs/README.md](proofs/README.md).
+  [proofs/README.md](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/README.md).
 
 <details>
 <summary>Key theorems and definitions</summary>
@@ -144,7 +144,7 @@ In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` count
 ## What is assumed, not proved
 
 In brief; the full list is in
-["What is assumed, not proved"](proofs/README.md#what-is-assumed-not-proved).
+["What is assumed, not proved"](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/README.md#what-is-assumed-not-proved).
 
 - **Translation.** Charon and Aeneas translate the Rust code into Lean faithfully. The Aeneas used
   is a fork: the `conjure` branch of
@@ -239,10 +239,10 @@ the Rust that moves source lines or columns, even in a comment, means regenerati
 
 ## Licence
 
-Licensed under the [Apache License, Version 2.0](LICENSE-APACHE). If you distribute this crate, or
-a product that includes it, the licence (section 4(d)) requires you to pass on the attribution in
-the [NOTICE](NOTICE) file: in a NOTICE file you distribute, in your documentation, or wherever your
-product shows third-party notices.
+Licensed under the [Apache License, Version 2.0](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/LICENSE-APACHE). The
+[NOTICE](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/NOTICE) file holds the attribution notices that section 4(d) of
+the licence says must be passed on with works you distribute, in one of the places that section
+lists.
 
 ## Status
 

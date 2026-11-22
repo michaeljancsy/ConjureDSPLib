@@ -20,6 +20,12 @@ roundings on the step's output and new state by `α + β·Sb` when the state is 
 size and the input at most `M`, and no intermediate result overflows, with
 `α = localErrBase_f64` and `β = localErrSlope_f64`. `block_error_real` in `Block.lean` turns that
 into the whole-block bound.
+
+`process_f64_block_error_of_inputs` replaces the no-overflow condition by finite inputs and
+`stepValueBound_f64 c C M s ≤ maxFinite_f64`: `stepFinite_f64` shows that a step whose state is
+within `Sb` and input within `M` does not overflow when `stepValueBound` at that `Sb` is at most
+the largest finite value, and `noOverflow_f64_of_inputs` carries the state bound through the
+block with `block_step`.
 -/
 
 @[expose] public section
@@ -84,6 +90,20 @@ noncomputable abbrev stateErrBound_f64 (c : CoeffsF64) (C : Contraction (realCoe
     (M : ℝ) (s : StateF64) : ℝ :=
   stateErrBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
     (realState_f64 s)
+
+/-- `Sb` for binary64: `computedStateBound` with `α = localErrBase_f64 c M`,
+`β = localErrSlope_f64 c`, the real values of the stored coefficients and the real value of the
+stored starting state `s`. -/
+noncomputable abbrev computedStateBound_f64 (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
+    (M : ℝ) (s : StateF64) : ℝ :=
+  computedStateBound (realCoeffs_f64 c) C M (localErrBase_f64 c M) (localErrSlope_f64 c)
+    (realState_f64 s)
+
+/-- `V` for binary64: `stepValueBound` with binary64's `η`, the real values of the stored
+coefficients, inputs at most `M`, and `Sb = computedStateBound_f64 c C M s`. -/
+noncomputable abbrev stepValueBound_f64 (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
+    (M : ℝ) (s : StateF64) : ℝ :=
+  stepValueBound (realCoeffs_f64 c) underflowErr_f64 M (computedStateBound_f64 c C M s)
 
 /-- **One step's roundings in binary64.** If the coefficients and state are finite, the step
 does not overflow, both state values are at most `Sb` in size and the input at most `M`, then
@@ -189,6 +209,144 @@ theorem process_f64_block_error (c : CoeffsF64) (C : Contraction (realCoeffs_f64
   rintro r ⟨hbuf, hst⟩
   rw [hbuf, hst]
   exact hblock
+
+/-- **One step does not overflow.** If the coefficients, both state values and the input are
+finite, both state values are at most `Sb` in size, the input at most `M`, and
+`V = stepValueBound` (with binary64's `η` and the real values of the stored coefficients) is at
+most the largest finite binary64 value, then the step is `StepFinite_f64`. -/
+theorem stepFinite_f64 (c : CoeffsF64) (s : StateF64) (x : Float) (Sb M : ℝ)
+    (hc : CoeffsFinite_f64 c) (hs1 : s.s1.isFinite = true) (hs2 : s.s2.isFinite = true)
+    (hx : x.isFinite = true) (hS1 : |real_f64 s.s1| ≤ Sb) (hS2 : |real_f64 s.s2| ≤ Sb)
+    (hX : |real_f64 x| ≤ M)
+    (hcap : stepValueBound (realCoeffs_f64 c) underflowErr_f64 M Sb ≤ maxFinite_f64) :
+    StepFinite_f64 c s x := by
+  obtain ⟨hb0, hb1, hb2, ha1, ha2⟩ := hc
+  obtain ⟨v0, v1, v2, rest⟩ := step_values_le (realCoeffs_f64 c) (u := unitRoundoff_f64)
+    (P0 := real_f64 (c.b0 * x)) (Y := real_f64 (c.b0 * x + s.s1)) (P1 := real_f64 (c.b1 * x))
+    (Q1 := real_f64 (c.a1 * (c.b0 * x + s.s1)))
+    (D1 := real_f64 (c.b1 * x - c.a1 * (c.b0 * x + s.s1))) (P2 := real_f64 (c.b2 * x))
+    (Q2 := real_f64 (c.a2 * (c.b0 * x + s.s1)))
+    (Model.unitRoundoffAt_pos _).le (Model.unitRoundoffAt_lt_one _).le
+    (Model.underflowErrorAt_pos _).le hX hS1 hS2
+  -- Each operation in turn: its exact value is at most `V`, so it is finite, so its rounding is
+  -- within `u·|e| + η`, which bounds the next operation's exact value.
+  have hp0 := isFinite_mul_f64 _ _ hb0 hx (v0.trans hcap)
+  obtain ⟨vy, rest⟩ := rest (abs_real_mul_sub_le_f64 _ _ hb0 hx hp0)
+  have hy := isFinite_add_f64 _ _ hp0 hs1 (vy.trans hcap)
+  obtain ⟨vq1, vq2, r1, r2⟩ := rest (abs_real_add_sub_le_f64 _ _ hp0 hs1 hy)
+  have hp1 := isFinite_mul_f64 _ _ hb1 hx (v1.trans hcap)
+  have hq1 := isFinite_mul_f64 _ _ ha1 hy (vq1.trans hcap)
+  obtain ⟨vd1, r1⟩ := r1 (abs_real_mul_sub_le_f64 _ _ hb1 hx hp1)
+    (abs_real_mul_sub_le_f64 _ _ ha1 hy hq1)
+  have hd1 := isFinite_sub_f64 _ _ hp1 hq1 (vd1.trans hcap)
+  have ht1 := isFinite_add_f64 _ _ hd1 hs2
+    ((r1 (abs_real_sub_sub_le_f64 _ _ hp1 hq1 hd1)).trans hcap)
+  have hp2 := isFinite_mul_f64 _ _ hb2 hx (v2.trans hcap)
+  have hq2 := isFinite_mul_f64 _ _ ha2 hy (vq2.trans hcap)
+  have ht2 := isFinite_sub_f64 _ _ hp2 hq2
+    ((r2 (abs_real_mul_sub_le_f64 _ _ hb2 hx hp2) (abs_real_mul_sub_le_f64 _ _ ha2 hy hq2)).trans
+      hcap)
+  exact ⟨hx, hp0, hy, hp1, hq1, hd1, ht1, hp2, hq2, ht2⟩
+
+/-- **No overflow, from the inputs alone.** Let `C` be a `Contraction` for the real values of the
+stored coefficients, with `κ = roundGain` and `inputGain` of those values. Suppose the
+coefficients are finite, `ρ·R + K·inputGain·M ≤ R`, `ρ·Ê + K·L·κ ≤ Ê` with
+`L = localErrBase_f64 c M + localErrSlope_f64 c · Sb`, `cInf·(R + Ê) ≤ Sb`, and
+`V = stepValueBound` (binary64's `η`, inputs at most `M`, state values at most `Sb`) is at most
+the largest finite binary64 value. Start from a state `s` with both values finite, and a real
+state `r` that measures at most `R`, with `s`'s real value minus `r` measuring at most `Ê` (for
+the filter's own start, `r` is `s`'s real value). If every input is finite and at most `M` in
+size, then no step overflows (`NoOverflow_f64`). -/
+theorem noOverflow_f64_of_inputs (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
+    (hc : CoeffsFinite_f64 c) (Sb M R Ê : ℝ)
+    (hR : C.ρ * R + C.K * inputGain (realCoeffs_f64 c) * M ≤ R)
+    (hE : C.ρ * Ê + C.K * ((localErrBase_f64 c M + localErrSlope_f64 c * Sb) *
+        roundGain (realCoeffs_f64 c)) ≤ Ê)
+    (hS : C.cInf * (R + Ê) ≤ Sb)
+    (hcap : stepValueBound (realCoeffs_f64 c) underflowErr_f64 M Sb ≤ maxFinite_f64) :
+    ∀ (xs : List Float) (s : StateF64) (r : ℝ × ℝ), s.s1.isFinite = true →
+      s.s2.isFinite = true → (∀ x ∈ xs, x.isFinite = true ∧ |real_f64 x| ≤ M) →
+      C.N r.1 r.2 ≤ R → C.N (real_f64 s.s1 - r.1) (real_f64 s.s2 - r.2) ≤ Ê →
+      NoOverflow_f64 c s xs := by
+  intro xs
+  induction xs with
+  | nil => intro _ _ _ _ _ _ _; trivial
+  | cons x xs ih =>
+    intro s r hs1 hs2 hin hr he
+    obtain ⟨hx, hX⟩ := hin x (by simp)
+    -- The computed state is within `Sb`, so the step does not overflow.
+    obtain ⟨hS1, hS2⟩ := block_state_le _ C hS hr he
+    have hstep := stepFinite_f64 c s x Sb M hc hs1 hs2 hx hS1 hS2 hX hcap
+    -- Its roundings are within `L`, so both bounds carry on to the next step.
+    obtain ⟨hdy, hd₁, hd₂⟩ := tdf2_f64_localErr c s x Sb M hc hs1 hs2 hstep hS1 hS2 hX
+    obtain ⟨-, hr', he'⟩ := block_step _ C hR hE hX hr he hdy hd₁ hd₂
+    let cr := realCoeffs_f64 c
+    exact ⟨hstep, ih _ (cr.b1 * real_f64 x - cr.a1 * (cr.b0 * real_f64 x + r.1) + r.2,
+      cr.b2 * real_f64 x - cr.a2 * (cr.b0 * real_f64 x + r.1)) hstep.2.2.2.2.2.2.1
+      hstep.2.2.2.2.2.2.2.2.2 (fun z hz => hin z (List.mem_cons_of_mem _ hz)) hr' he'⟩
+
+/-- **Whole-block error of the f64 biquad, with conditions on the inputs only.** Let `C` be a
+`Contraction` for the real values of the stored coefficients (`realCoeffs_f64 c`), `0 ≤ M`, with
+`β = localErrSlope_f64 c` and `κ = roundGain (realCoeffs_f64 c)`. If the coefficients, the
+starting state and every input are finite, every input's real value is at most `M`,
+`cInf·K·κ·β < 1 − ρ`, and `stepValueBound_f64 c C M s` is at most the largest finite binary64
+value (about 1.8 × 10³⁰⁸), then no step overflows (`NoOverflow_f64`), and the conclusion of
+`filt_f64_block_error` holds: the outputs of `filt_f64` and of `filt_real` (run on the real
+values of the inputs from `realState_f64 s`) have the same length, every output's real value is
+within `cInf·Ê + L` of the corresponding exact output, and each final state value's real value
+within `cInf·Ê` of the exact one, where `Ê = stateErrBound_f64 c C M s` and
+`L = localErrBound_f64 c C M s`. -/
+theorem filt_f64_block_error_of_inputs (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
+    (s : StateF64) (xs : List Float) (M : ℝ) (hc : CoeffsFinite_f64 c)
+    (hs1 : s.s1.isFinite = true) (hs2 : s.s2.isFinite = true)
+    (hin : ∀ x ∈ xs, x.isFinite = true ∧ |real_f64 x| ≤ M) (hM0 : 0 ≤ M)
+    (hsmall : C.cInf * C.K * roundGain (realCoeffs_f64 c) * localErrSlope_f64 c < 1 - C.ρ)
+    (hcap : stepValueBound_f64 c C M s ≤ maxFinite_f64) :
+    let Ê := stateErrBound_f64 c C M s
+    let L := localErrBound_f64 c C M s
+    let F := filt_real (realCoeffs_f64 c) (realState_f64 s) (xs.map real_f64)
+    NoOverflow_f64 c s xs ∧
+      List.Forall₂ (fun y e => |real_f64 y - e| ≤ C.cInf * Ê + L) (filt_f64 c s xs).2 F.2 ∧
+      |real_f64 (filt_f64 c s xs).1.s1 - F.1.1| ≤ C.cInf * Ê ∧
+      |real_f64 (filt_f64 c s xs).1.s2 - F.1.2| ≤ C.cInf * Ê := by
+  intro Ê L F
+  obtain ⟨hR, hE, hS, hr, he⟩ := block_constants (realCoeffs_f64 c) C M _ _ (realState_f64 s)
+    hM0
+    (localErrBase_nonneg _ (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hM0)
+    (localErrSlope_nonneg _ (Model.unitRoundoffAt_pos _).le) hsmall
+  have hno := noOverflow_f64_of_inputs c C hc _ M _ _ hR hE hS hcap xs s (realState_f64 s)
+    hs1 hs2 hin hr he
+  exact ⟨hno, filt_f64_block_error c C s xs M hc hs1 hs2 hno hM0 (fun x hx => (hin x hx).2)
+    hsmall⟩
+
+/-- **Whole-block error of the Rust biquad `process_f64`, with conditions on the inputs only.**
+Under the conditions of `filt_f64_block_error_of_inputs` (with `state` as the starting state and
+the buffer as the inputs: the coefficients, `state` and every sample finite, every sample's real
+value at most `M`, `0 ≤ M`, `cInf·K·κ·β < 1 − ρ`, and `stepValueBound_f64 c C M state` at most
+the largest finite binary64 value), no step overflows (`NoOverflow_f64`), `process_f64` never
+fails, the buffer it returns has one sample per exact output, each sample's real value is within
+`cInf·Ê + L` of the corresponding output of `filt_real` (run on the real values of the inputs
+from `realState_f64 state`), and each value of the state it leaves is within `cInf·Ê` of the
+exact final state's, where `Ê = stateErrBound_f64 c C M state` and
+`L = localErrBound_f64 c C M state`. -/
+theorem process_f64_block_error_of_inputs (c : CoeffsF64) (C : Contraction (realCoeffs_f64 c))
+    (state : StateF64) (buf : Slice Float) (M : ℝ) (hc : CoeffsFinite_f64 c)
+    (hs1 : state.s1.isFinite = true) (hs2 : state.s2.isFinite = true)
+    (hin : ∀ x ∈ buf.val, x.isFinite = true ∧ |real_f64 x| ≤ M) (hM0 : 0 ≤ M)
+    (hsmall : C.cInf * C.K * roundGain (realCoeffs_f64 c) * localErrSlope_f64 c < 1 - C.ρ)
+    (hcap : stepValueBound_f64 c C M state ≤ maxFinite_f64) :
+    let Ê := stateErrBound_f64 c C M state
+    let L := localErrBound_f64 c C M state
+    let F := filt_real (realCoeffs_f64 c) (realState_f64 state) (buf.val.map real_f64)
+    NoOverflow_f64 c state buf.val ∧
+      process_f64 c state buf ⦃ fun r =>
+        List.Forall₂ (fun y e => |real_f64 y - e| ≤ C.cInf * Ê + L) r.2.val F.2 ∧
+          |real_f64 r.1.s1 - F.1.1| ≤ C.cInf * Ê ∧ |real_f64 r.1.s2 - F.1.2| ≤ C.cInf * Ê ⦄ := by
+  intro Ê L F
+  have hno := (filt_f64_block_error_of_inputs c C state buf.val M hc hs1 hs2 hin hM0 hsmall
+    hcap).1
+  exact ⟨hno, process_f64_block_error c C state buf M hc hs1 hs2 hno hM0
+    (fun x hx => (hin x hx).2) hsmall⟩
 
 end conjure_dsp_lib.biquad
 

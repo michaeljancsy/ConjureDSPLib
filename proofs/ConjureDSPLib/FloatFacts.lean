@@ -98,6 +98,15 @@ theorem isFinite_add_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite
     (isFinite_ofFloat x hx) (isFinite_ofFloat y hy) ⟨le_refl 0, le_refl 0, by simp⟩ ?_
   exact le_of_eq_of_le (by ring) h
 
+/-- The difference of two finite `Float`s is finite when the exact difference is at most the
+largest finite value in size. -/
+theorem isFinite_sub_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (h : |real_f64 x - real_f64 y| ≤ maxFinite_f64) : (x - y).isFinite = true := by
+  rw [← isFinite_ofFloat_iff, ofFloat_sub_of_isFinite x y hx hy]
+  refine isFinite_sub_of_mixedError (x₀ := real_f64 x - real_f64 y) (r := 0) (a := 0)
+    (isFinite_ofFloat x hx) (isFinite_ofFloat y hy) ⟨le_refl 0, le_refl 0, by simp⟩ ?_
+  exact le_of_eq_of_le (by ring) h
+
 /-- The product of two finite `Float`s is finite when the exact product is at most the largest
 finite value in size. -/
 theorem isFinite_mul_f64 (x y : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
@@ -113,6 +122,15 @@ theorem isFinite_add_f32 (x y : Float32) (hx : x.isFinite = true) (hy : y.isFini
     (h : |real_f32 x + real_f32 y| ≤ maxFinite_f32) : (x + y).isFinite = true := by
   rw [← isFinite_ofFloat32_iff, ofFloat32_add_of_isFinite x y hx hy]
   refine isFinite_add_of_mixedError (x₀ := real_f32 x + real_f32 y) (r := 0) (a := 0)
+    (isFinite_ofFloat32 x hx) (isFinite_ofFloat32 y hy) ⟨le_refl 0, le_refl 0, by simp⟩ ?_
+  exact le_of_eq_of_le (by ring) h
+
+/-- The difference of two finite `Float32`s is finite when the exact difference is at most the
+largest finite value in size. -/
+theorem isFinite_sub_f32 (x y : Float32) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (h : |real_f32 x - real_f32 y| ≤ maxFinite_f32) : (x - y).isFinite = true := by
+  rw [← isFinite_ofFloat32_iff, ofFloat32_sub_of_isFinite x y hx hy]
+  refine isFinite_sub_of_mixedError (x₀ := real_f32 x - real_f32 y) (r := 0) (a := 0)
     (isFinite_ofFloat32 x hx) (isFinite_ofFloat32 y hy) ⟨le_refl 0, le_refl 0, by simp⟩ ?_
   exact le_of_eq_of_le (by ring) h
 

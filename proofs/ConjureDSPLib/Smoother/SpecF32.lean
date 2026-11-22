@@ -1,6 +1,6 @@
 module
 
-public import ConjureDSPLib.Code.ConjureDspLib
+public import ConjureDSPLib.Code.Funs
 
 /-!
 # The smoother in f32: what the translated Rust does

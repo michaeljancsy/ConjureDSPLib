@@ -1,19 +1,24 @@
 module
 
-public import ConjureDSPLib.Code.ConjureDspLib
+public import ConjureDSPLib.Code.Funs
 
 /-!
 # The state-variable filter in f32: what the translated Rust does
 
-About `CoeffsF32.new`, `step_f32` and `process_f32` from `src/svf.rs`, as Aeneas translated
-them. This file proves:
+About `CoeffsF32.new`, its design functions (`lowpass` to `high_shelf`), `step_f32` and
+`process_f32` from `src/svf.rs`, as Aeneas translated them. This file proves:
 
 1. `CoeffsF32.new_eq`: the Rust constructor never fails, keeps `g`, `k` and the output mix, and
    computes `d` as exactly `1 / (1 + g * (g + k))` in Lean's `Float32` (IEEE binary32), in that
    order.
-2. `step_f32_eq`: one Rust step is exactly `svfStep_f32` in binary32, in the Rust code's order,
+2. `CoeffsF32.lowpass_eq`, `highpass_eq`, `bandpass_eq`, `notch_eq`, `allpass_eq`, `bell_eq`,
+   `low_shelf_eq`, `high_shelf_eq`: each design function never fails and returns exactly the
+   coefficients of its formula, in binary32, in the Rust code's order, with libm's functions as
+   the unknown functions `libm.tanfModel`, `libm.powfModel` and `libm.sqrtfModel`. Nothing
+   about the resulting frequency responses is proved.
+3. `step_f32_eq`: one Rust step is exactly `svfStep_f32` in binary32, in the Rust code's order,
    and never fails.
-3. `process_f32_spec`: the Rust block loop never fails and produces exactly the outputs and final
+4. `process_f32_spec`: the Rust block loop never fails and produces exactly the outputs and final
    state of `filt_f32`, which applies `svfStep_f32` to each sample in turn.
 -/
 
@@ -29,6 +34,135 @@ theorem CoeffsF32.new_eq (g k m_hp m_bp m_lp : Float32) :
     CoeffsF32.new g k m_hp m_bp m_lp =
       ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := m_hp, m_bp := m_bp,
            m_lp := m_lp } := rfl
+
+/-- Low-pass design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order:
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (0, 0, 1)`. `libm.tanfModel` is an unknown function
+(`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.lowpass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.lowpass cutoff_hz sample_rate_hz q =
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let k := 1 / q
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 0, m_bp := 0,
+           m_lp := 1 } := by
+  simp only [CoeffsF32.lowpass, libm.math.tanf.tanf, bind_ok]
+  rfl
+
+/-- High-pass design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order:
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (1, 0, 0)`. `libm.tanfModel` is an unknown function
+(`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.highpass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.highpass cutoff_hz sample_rate_hz q =
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let k := 1 / q
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := 0,
+           m_lp := 0 } := by
+  simp only [CoeffsF32.highpass, libm.math.tanf.tanf, bind_ok]
+  rfl
+
+/-- Band-pass design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order:
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (0, k, 0)`. `libm.tanfModel` is an unknown function
+(`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.bandpass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.bandpass cutoff_hz sample_rate_hz q =
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let k := 1 / q
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 0, m_bp := k,
+           m_lp := 0 } := by
+  simp only [CoeffsF32.bandpass, libm.math.tanf.tanf, bind_ok]
+  rfl
+
+/-- Notch design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order:
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (1, 0, 1)`. `libm.tanfModel` is an unknown function
+(`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.notch_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.notch cutoff_hz sample_rate_hz q =
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let k := 1 / q
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := 0,
+           m_lp := 1 } := by
+  simp only [CoeffsF32.notch, libm.math.tanf.tanf, bind_ok]
+  rfl
+
+/-- All-pass design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order:
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (1, -k, 1)`. `libm.tanfModel` is an unknown function
+(`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.allpass_eq (cutoff_hz sample_rate_hz q : Float32) :
+    CoeffsF32.allpass cutoff_hz sample_rate_hz q =
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let k := 1 / q
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := -k,
+           m_lp := 1 } := by
+  simp only [CoeffsF32.allpass, libm.math.tanf.tanf, bind_ok]
+  rfl
+
+/-- Bell design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order: `A = libm.powfModel 10 (gain_db / 40)`,
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)`,
+`k = 1 / (q * A)`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (1, k * A * A, 1)`.
+`libm.tanfModel` and `libm.powfModel` are unknown functions (`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.bell_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
+    CoeffsF32.bell cutoff_hz sample_rate_hz q gain_db =
+      let A := libm.powfModel 10 (gain_db / 40)
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz)
+      let k := 1 / (q * A)
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := k * A * A,
+           m_lp := 1 } := by
+  simp only [CoeffsF32.bell, libm.math.powf.powf, libm.math.tanf.tanf, bind_ok]
+  rfl
+
+/-- Low-shelf design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order: `A = libm.powfModel 10 (gain_db / 40)`,
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) / libm.sqrtfModel A`,
+`k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (1, k * A, A * A)`.
+`libm.tanfModel`, `libm.powfModel` and `libm.sqrtfModel` are unknown functions
+(`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.low_shelf_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
+    CoeffsF32.low_shelf cutoff_hz sample_rate_hz q gain_db =
+      let A := libm.powfModel 10 (gain_db / 40)
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) /
+          libm.sqrtfModel A
+      let k := 1 / q
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := 1, m_bp := k * A,
+           m_lp := A * A } := by
+  simp only [CoeffsF32.low_shelf, libm.math.powf.powf, libm.math.tanf.tanf,
+    libm.math.sqrt.sqrtf, bind_ok]
+  rfl
+
+/-- High-shelf design: never fails, and returns exactly these coefficients, each operation in
+binary32 in this order: `A = libm.powfModel 10 (gain_db / 40)`,
+`g = libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) * libm.sqrtfModel A`,
+`k = 1 / q`, `d = 1 / (1 + g * (g + k))` and the mix
+`(m_hp, m_bp, m_lp) = (A * A, k * A, 1)`.
+`libm.tanfModel`, `libm.powfModel` and `libm.sqrtfModel` are unknown functions
+(`Code/FunsExternal.lean`). -/
+theorem CoeffsF32.high_shelf_eq (cutoff_hz sample_rate_hz q gain_db : Float32) :
+    CoeffsF32.high_shelf cutoff_hz sample_rate_hz q gain_db =
+      let A := libm.powfModel 10 (gain_db / 40)
+      let g := libm.tanfModel (core.f32.consts.PI * cutoff_hz / sample_rate_hz) *
+          libm.sqrtfModel A
+      let k := 1 / q
+      ok { g := g, k := k, d := 1 / (1 + g * (g + k)), m_hp := A * A, m_bp := k * A,
+           m_lp := 1 } := by
+  simp only [CoeffsF32.high_shelf, libm.math.powf.powf, libm.math.tanf.tanf,
+    libm.math.sqrt.sqrtf, bind_ok]
+  rfl
 
 /-- One trapezoidal state-variable-filter step in binary32, high-pass signal first: the output
 and the new state, computed in the same order as the Rust code. -/

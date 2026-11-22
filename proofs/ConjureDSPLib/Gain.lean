@@ -1,6 +1,6 @@
 module
 
-public import ConjureDSPLib.Code.ConjureDspLib
+public import ConjureDSPLib.Code.Funs
 
 /-!
 # Gain

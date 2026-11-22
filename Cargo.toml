@@ -9,6 +9,9 @@ repository = "https://github.com/michaeljancsy/ConjureDSPLib"
 publish = false
 
 [dependencies]
+# Pure-Rust maths (tan, pow, sqrt) for designing filter coefficients. Pinned exactly; default
+# features off, so no architecture-specific code paths: the same results on every platform.
+libm = { version = "=0.2.16", default-features = false }
 
 [lints.rust]
 unsafe_code = "forbid"

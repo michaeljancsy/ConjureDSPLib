@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build and check the Lean proofs about this crate, in order:
 #   1. Charon: Rust -> LLBC
-#   2. Aeneas: LLBC -> Lean (proofs/ConjureDSPLib/Code/), which must match the last commit
+#   2. Aeneas: LLBC -> Lean (proofs/ConjureDSPLib/Code/Types.lean and Funs.lean), which must match
+#      the last commit
 #   3. lake build
 #   4. axiom check (proofs/AxiomCheck.lean): every module file built; only propext,
 #      Classical.choice and Quot.sound; no sorry; no axioms of our own
@@ -122,7 +123,17 @@ mkdir -p target
   --dest-file target/conjure_dsp_lib.llbc
 
 step "2. Aeneas"
-"$AENEAS_BIN" -backend lean target/conjure_dsp_lib.llbc -dest proofs/ConjureDSPLib/Code
+# Split files: Code/Types.lean and Code/Funs.lean. Funs.lean imports Code/FunsExternal.lean, the
+# hand-written models of the external functions the crate calls (libm's tan, pow, sqrt). Aeneas
+# also writes Code/FunsExternal_Template.lean, which declares those functions as axioms; it is
+# moved out of the Lean library to target/ so it is neither built nor committed (compare it with
+# FunsExternal.lean when the crate calls a new external function; lake build fails until
+# FunsExternal.lean defines it).
+"$AENEAS_BIN" -backend lean target/conjure_dsp_lib.llbc -dest proofs -subdir ConjureDSPLib/Code \
+  -split-files
+if [ -f proofs/ConjureDSPLib/Code/FunsExternal_Template.lean ]; then
+  mv proofs/ConjureDSPLib/Code/FunsExternal_Template.lean target/FunsExternal_Template.lean
+fi
 if ! git diff --quiet HEAD -- proofs/ConjureDSPLib/Code \
    || [ -n "$(git ls-files --others --exclude-standard -- proofs/ConjureDSPLib/Code)" ]; then
   git status --short -- proofs/ConjureDSPLib/Code

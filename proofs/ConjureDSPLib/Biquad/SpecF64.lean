@@ -1,6 +1,6 @@
 module
 
-public import ConjureDSPLib.Code.ConjureDspLib
+public import ConjureDSPLib.Code.Funs
 
 /-!
 # The biquad filter in f64: what the translated Rust does

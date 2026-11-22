@@ -13,7 +13,8 @@
 # Tool locations (defaults in brackets):
 #   AENEAS_DIR     clean checkout of michaeljancsy/aeneas at the commit in proofs/PINS, with the
 #                  Aeneas binary built from it and Charon in its charon/ folder
-#                  [~/Projects/ConjureDSP/toolchains/aeneas-<first 8 characters of the commit>]
+#                  [the author's local layout: ~/Projects/ConjureDSP/toolchains/aeneas-<first 8
+#                  characters of the commit>; anyone else should set AENEAS_DIR]
 #   CHARON_BIN     Charon binary at the commit in proofs/PINS [$AENEAS_DIR/charon/bin/charon]
 #   LAKE_PACKAGES  optional folder of already-built Lake packages (Mathlib, FloatLib, ...). It is
 #                  linked as proofs/.lake/packages and as $AENEAS_DIR/backends/lean/.lake/packages,
@@ -33,7 +34,7 @@ source proofs/PINS
 step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
-command -v python3 >/dev/null 2>&1 || fail "python3 is needed (install Apple's command-line tools)"
+command -v python3 >/dev/null 2>&1 || fail "python3 is needed (install it with your system's package manager)"
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
   || fail "run this from a git checkout of ConjureDSPLib (it compares generated Lean with the last commit)"
 

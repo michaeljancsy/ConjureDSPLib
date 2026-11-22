@@ -1,4 +1,4 @@
-//! Shared DSP maths for ConjureDSP plug-ins.
+//! Audio DSP building blocks with Lean proofs about the code.
 //!
 //! Functions here take numbers and buffers and return numbers or fill buffers. Per-sample code
 //! does no memory allocation, takes no locks and makes no system calls. Allocation and system
@@ -8,7 +8,7 @@
 //! (`unsafe_code = "forbid"` in `Cargo.toml`), so it cannot call foreign code or use inline
 //! assembly; `libm` is relied on to do the same. That it takes no locks is a property of the code
 //! (it uses no atomics or other synchronization); the compiler does not enforce it. A panic would
-//! run the plug-in's panic handler, which can allocate, lock and make system calls; that the
+//! run the program's panic handler, which can allocate, lock and make system calls; that the
 //! functions never panic is proved of the translated code (`proofs/README.md`). None of this is
 //! otherwise proved in Lean. The crate's one dependency is `libm` (pinned exactly, default
 //! features off), for `tan`, `pow` and `sqrt` in filter design.

@@ -1,70 +1,249 @@
 # ConjureDSPLib
 
-The shared DSP maths used by every ConjureDSP plug-in, in Rust, with Lean proofs about the code.
+A small `no_std` Rust library of audio DSP building blocks: gain, two one-pole filters, a biquad, a
+state-variable filter and a delay line, each in `f32` and `f64`.
 
-It takes numbers and buffers and returns numbers or fills buffers. Per-sample code does no
-memory allocation, takes no locks and makes no system calls. The build, together with one
-property of the code, rules out allocation and system calls (the crate is `no_std`, has no
-`extern crate alloc` or `extern crate std`, which the compiler does not forbid, and forbids
-`unsafe` code; `libm` is relied on to do the same). That it takes no locks is a property of the
-code (it uses no atomics or other synchronization), not enforced by the compiler. A panic would
-run the plug-in's panic handler, which can allocate, lock and make system calls; that the
-functions never panic is proved of the translated code. None of this is otherwise proved in Lean.
-It knows nothing about plug-in formats, hosts, threads, parameters, saved state or the user
-interface: those live in the plug-in framework. ConjureDSPLib never depends on the plug-in framework.
+What sets it apart is a set of machine-checked [Lean 4](https://lean-lang.org) proofs about the
+code. For each function they state exactly which floating-point operations it performs and that it
+never fails (no panic, no out-of-bounds index). They also bound how far the filters' outputs can be
+from exact arithmetic, and the gain ramp's gains from the exact straight line, under stated
+conditions and assumptions.
 
-## Proofs
+The proofs are about a translation of the Rust into Lean by
+[Charon](https://github.com/AeneasVerif/charon) and [Aeneas](https://github.com/AeneasVerif/aeneas),
+and hold under stated conditions and the assumptions listed [below](#what-is-assumed-not-proved).
 
-The `proofs/` folder holds Lean proofs about this crate's code. The Rust is translated to Lean
-with Aeneas, using the `conjure` branch of
-[michaeljancsy/aeneas](https://github.com/michaeljancsy/aeneas). The exact Aeneas, Lean and
-Mathlib versions are pinned.
+## What's in it
 
-For each function, a proof can establish:
-- that it never panics;
-- that it computes exactly a stated sequence of floating-point operations, in a stated order, and,
-  for some functions, that in exact arithmetic this equals the textbook algorithm (for example the
-  biquad, `biquad.filt_real_eq_df1_real_zero`);
-- how far its floating-point result can be from the exact real-number answer.
+Every module has `f32` and `f64` versions (functions end in `_f32` / `_f64`, types in `F32` /
+`F64`).
 
-`proofs/README.md` lists which functions are proved, and what is assumed but not proved (for
-example, that Charon and Aeneas translate the Rust faithfully, and that `libm`'s `tan`, `pow` and
-`sqrt` always return; their accuracy is not assumed or proved).
+- `gain`: multiply by a fixed gain (`apply`), or by a gain that moves in a straight line across a
+  block (`ramp`).
+- `one_pole`: one-pole feedback filter, `y[n] = x[n] + a·y[n-1]`.
+- `smoother`: one-pole smoother, `y[n] = y[n-1] + (1 - a)·(x[n] - y[n-1])`, for gliding toward a
+  target.
+- `biquad`: second-order filter in transposed direct form II, with coefficients you supply.
+- `svf`: trapezoidal state-variable filter, with design functions for eight shapes (low-pass,
+  high-pass, band-pass, notch, all-pass, bell, low shelf, high shelf), whose formulas follow
+  A. Simper (Cytomic).
+- `delay`: delay line of a whole number of samples (no interpolation), in a buffer the caller owns.
 
-## Building and checking
+## How to use it
 
-`scripts/check.sh` runs everything a pull request must pass: a check of the Rust version,
-`cargo fmt --check`, `cargo clippy`, `cargo test`, `cargo doc`, then `scripts/prove.sh`, which
-runs Charon, Aeneas, `lake build` in `proofs/`, an axiom check (only `propext`,
-`Classical.choice` and `Quot.sound`; no `sorry`; no public theorem statement that names Lean's NaN
-constants or Aeneas's `bitsOf`, `signBit` or `copysignBits` helpers), and a `leanchecker` kernel replay.
+Add it from crates.io:
 
-The exact tool versions are in `proofs/PINS`, and `scripts/prove.sh` refuses to run with any
-others. It finds Aeneas through `AENEAS_DIR` (a checkout at the pinned commit, with the Aeneas
-binary built and Charon in its `charon/` folder) and can reuse already-built Mathlib and FloatLib
-packages through `LAKE_PACKAGES`. The comments at the top of the script give the defaults. Run
-`scripts/prove.sh` once before running `lake build` by hand in `proofs/`: it makes the link to
+```toml
+[dependencies]
+conjure-dsp-lib = "0.1"
+```
+
+For example, a low-pass filter on one channel:
+
+```rust
+use conjure_dsp_lib::svf;
+
+// A 1 kHz low-pass at 48 kHz, Q = 0.7071, in f32.
+let coeffs = svf::CoeffsF32::low_pass(1_000.0, 48_000.0, 0.7071);
+let mut state = svf::StateF32::default(); // one per channel, kept between blocks
+
+let mut block = [0.0_f32; 64]; // your audio
+svf::process_f32(&coeffs, &mut state, &mut block); // filters in place
+```
+
+The crate declares a minimum Rust version of 1.93 (`rust-version` in `Cargo.toml`); this
+repository's own checks use exactly Rust 1.93.1 (`rust-toolchain.toml`). Its one dependency is
+`libm`, pinned exactly to 0.2.16 with default features off.
+
+The documentation of each module (`cargo doc --open`) gives exact behaviour, including edge cases
+such as empty blocks, an empty delay buffer and changing the delay between calls.
+
+## Real-time use
+
+Per-sample code does no memory allocation, takes no locks and makes no system calls.
+
+- **Allocation and system calls** are ruled out by the build together with one property of the
+  code: the crate is `no_std` and has no `extern crate alloc` or `extern crate std` (the compiler
+  does not forbid adding them), and it forbids `unsafe` code when the crate itself is built (as
+  `scripts/check.sh` does). `libm` is relied on to do the same.
+- **Locks:** that it takes none is a property of the code (it uses no atomics or other
+  synchronization), not enforced by the compiler.
+- **Panics:** a panic would run the program's panic handler, which can allocate, lock and make
+  system calls. That the functions never panic is proved of the translated code.
+- None of this is otherwise proved in Lean.
+
+## What is proved, in brief
+
+The theorems are about the Lean translation of the Rust code, under the assumptions in the next
+section. "Never fails" means the translated function always returns normally: no panic, no
+out-of-bounds index, no arithmetic overflow on indices, and it terminates. The exact statement and
+every condition of each theorem are in [proofs/README.md](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/README.md); this summary is no
+substitute for them.
+
+| Module | What is proved, under the conditions in proofs/README.md |
+|---|---|
+| every module (†) | Never fails; computes exactly the stated operations, in the code's order |
+| `gain` | Ramp: each gain within a stated bound of the ideal line; finite gains never move the wrong way |
+| `one_pole` | Error bound for every output of a block of any length, against exact arithmetic |
+| `smoother` | The same; and, for a steady input, how far from it the state can be after `n` steps |
+| `biquad` | From a zero state (or one matching a given history), equals the textbook recurrence in exact arithmetic; whole-block error bound (*) |
+| `svf` | Design functions compute exactly the stated operations (libm modelled, see below); whole-block error bound (*) |
+| `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing |
+
+(†) Every public DSP function. For the SVF design functions, "never fails" assumes libm's
+functions never panic.
+
+(*) Given a contraction for the stored coefficients: a way of measuring the filter's two state
+values under which each step, without input, multiplies the measure by at most a fixed factor
+below 1, with constants linking the measure to the two values (`biquad.Contraction` and
+`svf.Contraction`, both the structure `two_state.Contraction` in
+`proofs/ConjureDSPLib/TwoState.lean`), and further conditions.
+One is supplied for biquads whose poles are inside the unit circle (complex, distinct real or
+repeated real), and for the SVF with complex poles.
+
+Things to know before relying on the error bounds:
+
+- They compare the code with the same filter run in exact arithmetic on the stored floats:
+  coefficients, starting state and inputs as already rounded. Rounding a decimal coefficient to a
+  float is not covered.
+- For the smoother, the coefficient compared against is `1 - a` as computed in floating point. It
+  is exactly `1 - a` when `a` is between 1/2 and 2 (`smoother.coeff_f64_exact`); outside that
+  range, the effect of its rounding is not proved.
+- They are worst cases, and can be too large to be useful, or prove nothing. Take the stored `f32`
+  coefficients of an RBJ-cookbook Butterworth low-pass at 48 kHz, finite inputs at most 1 in size,
+  a start from zero, and `biquad.complexPolesContraction`. At 1 kHz each output is within 0.0542
+  (−25.3 dB) of exact arithmetic (`biquad.lowPass1kHz_bounds_f32` with
+  `biquad.process_f32_block_error_of_inputs`). At 100 Hz the bound is at
+  least 17, larger than the inputs themselves, so of no practical use
+  (`biquad.lowPass100Hz_bounds_f32`). At 82 Hz the bound's condition is false, so it says nothing
+  (`biquad.lowPass82Hz_smallness_fails_f32`). That these stored values are the cookbook's
+  coefficients is worked out outside Lean, not proved.
+- Worked examples with numbers, for the one-pole, the smoother, the biquad and the SVF, are in
+  [proofs/README.md](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/README.md).
+
+<details>
+<summary>Key theorems and definitions</summary>
+
+In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` counterpart.
+
+- `gain`: `gain.apply_f64_eq`, `gain.ramp_f64_spec`, `gain.rampGain_f64_error`,
+  `gain.rampGain_f64_mono`.
+- `one_pole`: `one_pole.process_f64_spec`, `one_pole.process_f64_block_error`,
+  `one_pole.process_f64_block_error_of_inputs`.
+- `smoother`: `smoother.process_f64_spec`, `smoother.process_f64_block_error`,
+  `smoother.process_f64_settle_of_inputs`.
+- `biquad`: `biquad.process_f64_spec`, `biquad.process_f64_block_error`; in exact arithmetic,
+  `biquad.filt_real_eq_df1_real_zero` (the textbook recurrence) and
+  `biquad.complexPolesContraction`.
+- `svf`: `svf.process_f64_spec`, `svf.CoeffsF64.low_pass_eq` (and one for each other shape),
+  `svf.process_f64_block_error`; in exact arithmetic, `svf.complexPolesContraction`.
+- `delay`: `delay.process_f64_ok`, `delay.process_f64_spec`, `delay.process_f64_append`.
+
+</details>
+
+## What is assumed, not proved
+
+In brief; the full list is in
+["What is assumed, not proved"](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/proofs/README.md#what-is-assumed-not-proved).
+
+- **Translation.** Charon and Aeneas translate the Rust code into Lean faithfully. The Aeneas used
+  is a fork: the `conjure` branch of
+  [michaeljancsy/aeneas](https://github.com/michaeljancsy/aeneas), at the commit pinned in
+  `proofs/PINS`. Its float model has a single NaN; no theorem here states anything about NaN bit
+  patterns or NaN signs.
+- **Rounding.** Rust's `f32`/`f64` operations are the same IEEE 754 round-to-nearest operations
+  as Lean's `Float32`/`Float`. The processor runs in its default mode: round to nearest, subnormal
+  results kept (no flush-to-zero) and subnormal inputs read as they are (no denormals-are-zero), in
+  IEEE single and double precision (not x87 extended precision). Hosts and plug-ins often turn on
+  flush-to-zero; the error bounds are not proved for that mode.
+- **No fused multiply-add.** Every multiply and add is rounded separately. Rust does not fuse them
+  unless the code asks for `mul_add`, and this code does not.
+- **libm.** The one dependency, `libm` 0.2.16, is not translated. Its `tan`, `pow` and `sqrt`
+  (and `tanf`, `powf`, `sqrtf`) are modelled as unknown functions that always return, and return
+  the same float for the same arguments. The proofs hold whatever values these functions return,
+  so they don't depend on `libm`'s accuracy; that accuracy is not proved here either. That libm
+  gives the same results on every platform is not proved.
+- **Filter design.** The frequency responses of the SVF design functions' coefficients are not
+  proved, nor that those coefficients are stable or meet the error bounds' conditions at every
+  cutoff (the low-pass examples in `proofs/README.md` are proved for stated coefficient values;
+  that the design functions store those values is worked out outside Lean, not proved).
+- **Trusted base.** Lean's kernel, Mathlib, FloatLib (which relates Lean's floats to real numbers)
+  and Aeneas's Lean library. Every theorem depends only on the axioms `propext`,
+  `Classical.choice` and `Quot.sound`, with no `sorry`. Every declaration in the `ConjureDSPLib`
+  modules is replayed through Lean's kernel by `leanchecker`; Mathlib, FloatLib and Aeneas's
+  library are trusted as compiled, not replayed.
+
+## Scope
+
+- Not a plug-in framework: nothing about plug-in formats, hosts, threads, parameters, saved state
+  or user interfaces.
+- Not a complete DSP library: no FFT, no resampling, no interpolating delay, no SIMD.
+- No performance claims.
+- Not checked for every input: nothing is validated at run time. For example, the SVF design
+  functions are meant for `0 < cutoff_hz < sample_rate_hz / 2`, `q > 0` and a finite `gain_db`,
+  and outside those ranges their results may be infinite or NaN.
+- The proofs cover the translated code under the assumptions above. They say nothing about the
+  machine code a compiler produces.
+
+## Checking the proofs yourself
+
+`scripts/check.sh` runs everything: a check of the Rust version, `cargo fmt --check`,
+`cargo clippy`, `cargo test`, `cargo doc`, then `scripts/prove.sh`. That script runs Charon and
+Aeneas, checks that the generated Lean matches the committed copy, runs `lake build` in `proofs/`,
+an axiom check (only `propext`, `Classical.choice` and `Quot.sound`; no `sorry`; no public theorem
+statement outside the generated code names Lean's NaN constants or Aeneas's NaN-bits helpers
+directly) and a `leanchecker` kernel replay. It needs `bash`, `git` (run it from a git checkout)
+and `python3`.
+
+`scripts/check.sh` and `scripts/prove.sh` refuse to run with tool versions other than those in
+`proofs/PINS` (Rust is checked by `check.sh`, the rest by `prove.sh`):
+
+| Tool | Version |
+|---|---|
+| Aeneas | `conjure` branch of [michaeljancsy/aeneas](https://github.com/michaeljancsy/aeneas), commit `5433b097…` |
+| Charon | commit `de8736f7…` (the commit Aeneas's `charon-pin` names) |
+| Lean | v4.35.0 (`proofs/lean-toolchain`) |
+| Mathlib | v4.35.0 |
+| FloatLib | [lean-dojo/FloatLib](https://github.com/lean-dojo/FloatLib), commit `acba2057…` |
+| Rust | 1.93.1 |
+
+`proofs/PINS` has the full commit hashes. To set up:
+
+1. Install Rust with `rustup` (it picks up `rust-toolchain.toml`) and Lean with `elan` (it picks up
+   `proofs/lean-toolchain`).
+2. Clone the Aeneas fork, check out the commit in `proofs/PINS`, and build Aeneas (which needs
+   OCaml and opam) with Charon in its `charon/` folder at the pinned Charon commit, as the Aeneas
+   repository's own instructions describe. The script checks that the Aeneas checkout has no
+   changes to tracked files, that the Aeneas binary reports the pinned commit and was not built
+   from a modified tree, and that Charon reports the pinned commit named in Aeneas's `charon-pin`.
+3. Set `AENEAS_DIR` to that checkout; it is required, because the script's built-in default will
+   not exist on your machine. `CHARON_BIN` defaults to `$AENEAS_DIR/charon/bin/charon`.
+4. Optionally set `LAKE_PACKAGES` to a folder of already-built Lake packages (Mathlib, FloatLib
+   and their dependencies) at the revisions in `proofs/lake-manifest.json`, so nothing is
+   downloaded or rebuilt; the script refuses a folder at other revisions. Without it, Lake fetches
+   and builds them.
+5. Run:
+
+```sh
+AENEAS_DIR=/path/to/aeneas scripts/check.sh
+```
+
+Run `scripts/prove.sh` once before running `lake build` by hand in `proofs/`: it makes the link to
 Aeneas that the Lean project needs.
 
-After the axiom check, `leanchecker` replays every declaration in the `ConjureDSPLib` modules
-through Lean's kernel, so a proof that skipped the kernel is still caught. The Aeneas, FloatLib
-and Mathlib libraries are trusted as compiled, not replayed.
+The Lean translation of the crate, `proofs/ConjureDSPLib/Code/`, is generated and committed, and
+the script fails if it no longer matches. Its comments include source positions, so any edit to
+the Rust that moves source lines or columns, even in a comment, means regenerating it
+(`ALLOW_REGENERATED=1 scripts/prove.sh`) and committing it. One file there,
+`Code/FunsExternal.lean`, is written by hand: the models of the `libm` functions.
 
-To move to a newer Aeneas: check out the new `conjure` commit in a folder named
-`toolchains/aeneas-<first 8 characters of the commit>` (where `scripts/prove.sh` looks by
-default; otherwise set `AENEAS_DIR`), build it, change `AENEAS_COMMIT` in
-`proofs/PINS` (and `CHARON_COMMIT` if Aeneas's `charon-pin` changed), run `scripts/check.sh`,
-commit any regenerated Lean, and update "What is assumed, not proved" in `proofs/README.md` if
-the fork's float model changed.
+## Licence
 
-The Lean translation of the crate, `proofs/ConjureDSPLib/Code/`, is generated by Aeneas and
-committed. The script regenerates it and fails if it no longer matches the last commit. The
-generated comments include source line numbers, so any edit to the Rust, even to a comment above
-a function, means regenerating it (`ALLOW_REGENERATED=1 scripts/prove.sh`) and committing it.
+Licensed under the [Apache License, Version 2.0](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/LICENSE-APACHE). The
+[NOTICE](https://github.com/michaeljancsy/ConjureDSPLib/blob/v0.1.0/NOTICE) file holds the attribution notices that section 4(d) of
+the licence says must be passed on with works you distribute, in one of the places that section
+lists.
 
-One file there, `Code/FunsExternal.lean`, is written by hand: it models the `libm` functions the
-crate calls; see `proofs/README.md`.
+## Status
 
-## License
-
-Dual-licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+Version 0.1.0, the first public release. The API may change.

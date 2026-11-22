@@ -473,8 +473,9 @@ What is listed here is observed or expected behaviour, not proved.
   `Code/FunsExternal.lean` as unknown functions that always return a float and return the same
   float for the same arguments: `libm.tanModel_f64` and the others are Lean `opaque` constants,
   which no proof can look inside (they are not axioms). So the proofs assume that these functions
-  never panic, always return, and return the same float for the same arguments; nothing about their
-  accuracy, or which float they return, is assumed or proved. Nothing about the frequency
+  never panic, always return, and return the same float for the same arguments. The proofs hold
+  whatever float they return, so they don't depend on their accuracy, which is not proved here
+  either. Nothing about the frequency
   responses of the coefficients the SVF design functions compute is proved.
 - The processor does `f32`/`f64` arithmetic in its default mode: round to nearest, with subnormal
   results kept (no flush-to-zero) and subnormal inputs read as they are (no denormals-are-zero),

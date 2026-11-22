@@ -84,9 +84,9 @@ def inputGain (c : CoeffsReal) : ℝ := |c.b1 - c.a1 * c.b0| + |c.b2 - c.a2 * c.
 `|w₁| + |w₂|`, where `w` is that step's contribution to the state error. -/
 def roundGain (c : CoeffsReal) : ℝ := 2 + |c.a1| + |c.a2|
 
-/-- The computed state is within `Sb`: if the exact state `r` measures at most `R`, the error
-`s - r` (computed minus exact state) measures at most `Ê`, and `cInf·(R + Ê) ≤ Sb`, then both
-computed state values are at most `Sb` in size. -/
+/-- The computed state is within `Sb`: if the exact state `(r₁, r₂)` measures at most `R`, the
+error `(s₁ - r₁, s₂ - r₂)` (computed minus exact state) measures at most `Ê`, and
+`cInf·(R + Ê) ≤ Sb`, then both computed state values `s₁`, `s₂` are at most `Sb` in size. -/
 theorem block_state_le (c : CoeffsReal) (C : Contraction c) {Sb R Ê s₁ s₂ r₁ r₂ : ℝ}
     (hS : C.cInf * (R + Ê) ≤ Sb) (hr : C.N r₁ r₂ ≤ R) (he : C.N (s₁ - r₁) (s₂ - r₂) ≤ Ê) :
     |s₁| ≤ Sb ∧ |s₂| ≤ Sb := by
@@ -491,8 +491,8 @@ noncomputable def stepValueBound (c : CoeffsReal) (η M Sb : ℝ) : ℝ :=
     Sb + 5 * η
 
 /-- **One step's exact operation values, on real numbers.** With the names of `step_localErr`
-(`P0 ≈ b0·X`, `Y ≈ P0 + S1`, `P1 ≈ b1·X`, `Q1 ≈ a1·Y`, `D1 ≈ P1 - Q1`, `T1 ≈ D1 + S2`,
-`P2 ≈ b2·X`, `Q2 ≈ a2·Y`, `T2 ≈ P2 - Q2`, each rounding within `u·|e| + η` of its exact operation
+(`P0 ≈ b0·X`, `Y ≈ P0 + S1`, `P1 ≈ b1·X`, `Q1 ≈ a1·Y`, `D1 ≈ P1 - Q1`, `P2 ≈ b2·X`,
+`Q2 ≈ a2·Y`, each rounding within `u·|e| + η` of its exact operation
 `e`): if `0 ≤ u ≤ 1`, `0 ≤ η`, `|X| ≤ M` and `|S1|, |S2| ≤ Sb`, then the exact value of each of
 the nine operations, computed from the earlier rounded results, is at most
 `V = stepValueBound c η M Sb` in size. Each bound assumes only the roundings that come before

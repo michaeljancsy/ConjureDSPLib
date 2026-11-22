@@ -158,7 +158,8 @@ theorem filt_f32_withinLocalErr (c : CoeffsF32) (hc : CoeffsFinite_f32 c) (Sb M 
       ih _ ht1 ht2 hrest⟩
 
 /-- **Whole-block error of the f32 biquad.** Let `C` be a `Contraction` for the real values of the
-stored coefficients (`realCoeffs_f32 c`), `0 ≤ M`, every input's real value at most `M`, with
+stored coefficients (`realCoeffs_f32 c`), `0 ≤ M`, every input's real value at most `M` in size,
+with
 `β = localErrSlope_f32 c` and `κ = roundGain (realCoeffs_f32 c)`. If the coefficients and the
 starting state are finite, no step overflows (`NoOverflow_f32`), and `cInf·K·κ·β < 1 − ρ`, then
 the outputs of `filt_f32` and of `filt_real` (run on the real values of the inputs from
@@ -211,9 +212,9 @@ theorem process_f32_block_error (c : CoeffsF32) (C : Contraction (realCoeffs_f32
   exact hblock
 
 /-- **One step does not overflow.** If the coefficients, both state values and the input are
-finite, both state values are at most `Sb` in size, the input at most `M`, and
-`V = stepValueBound` (with binary32's `η` and the real values of the stored coefficients) is at
-most the largest finite binary32 value, then the step is `StepFinite_f32`. -/
+finite, both state values are at most `Sb` in size, the input at most `M` in size, and
+`V = stepValueBound (realCoeffs_f32 c) η M Sb` (with binary32's `η`) is at most the largest
+finite binary32 value, then none of the step's nine operations overflows (`StepFinite_f32`). -/
 theorem stepFinite_f32 (c : CoeffsF32) (s : StateF32) (x : Float32) (Sb M : ℝ)
     (hc : CoeffsFinite_f32 c) (hs1 : s.s1.isFinite = true) (hs2 : s.s2.isFinite = true)
     (hx : x.isFinite = true) (hS1 : |real_f32 s.s1| ≤ Sb) (hS2 : |real_f32 s.s2| ≤ Sb)
@@ -249,9 +250,10 @@ theorem stepFinite_f32 (c : CoeffsF32) (s : StateF32) (x : Float32) (Sb M : ℝ)
   exact ⟨hx, hp0, hy, hp1, hq1, hd1, ht1, hp2, hq2, ht2⟩
 
 /-- **No overflow, from the inputs alone.** Let `C` be a `Contraction` for the real values of the
-stored coefficients, with `κ = roundGain` and `inputGain` of those values. Suppose the
-coefficients are finite, `ρ·R + K·inputGain·M ≤ R`, `ρ·Ê + K·L·κ ≤ Ê` with
-`L = localErrBase_f32 c M + localErrSlope_f32 c · Sb`, `cInf·(R + Ê) ≤ Sb`, and
+stored coefficients, with `G = inputGain` and `κ = roundGain` of those values, and
+`α = localErrBase_f32 c M`, `β = localErrSlope_f32 c`. Suppose the coefficients are finite, and
+the numbers `Sb`, `R`, `Ê` satisfy `ρ·R + K·G·M ≤ R`, `ρ·Ê + K·κ·(α + β·Sb) ≤ Ê`,
+`cInf·(R + Ê) ≤ Sb`, and
 `V = stepValueBound` (binary32's `η`, inputs at most `M`, state values at most `Sb`) is at most
 the largest finite binary32 value. Start from a state `s` with both values finite, and a real
 state `r` that measures at most `R`, with `s`'s real value minus `r` measuring at most `Ê` (for
@@ -288,7 +290,7 @@ theorem noOverflow_f32_of_inputs (c : CoeffsF32) (C : Contraction (realCoeffs_f3
 /-- **Whole-block error of the f32 biquad, with conditions on the inputs only.** Let `C` be a
 `Contraction` for the real values of the stored coefficients (`realCoeffs_f32 c`), `0 ≤ M`, with
 `β = localErrSlope_f32 c` and `κ = roundGain (realCoeffs_f32 c)`. If the coefficients, the
-starting state and every input are finite, every input's real value is at most `M`,
+starting state and every input are finite, every input's real value is at most `M` in size,
 `cInf·K·κ·β < 1 − ρ`, and `stepValueBound_f32 c C M s` is at most the largest finite binary32
 value (about 3.4 × 10³⁸), then no step overflows (`NoOverflow_f32`), and the conclusion of
 `filt_f32_block_error` holds: the outputs of `filt_f32` and of `filt_real` (run on the real
@@ -322,9 +324,9 @@ theorem filt_f32_block_error_of_inputs (c : CoeffsF32) (C : Contraction (realCoe
 /-- **Whole-block error of the Rust biquad `process_f32`, with conditions on the inputs only.**
 Under the conditions of `filt_f32_block_error_of_inputs` (with `state` as the starting state and
 the buffer as the inputs: the coefficients, `state` and every sample finite, every sample's real
-value at most `M`, `0 ≤ M`, `cInf·K·κ·β < 1 − ρ`, and `stepValueBound_f32 c C M state` at most
-the largest finite binary32 value), no step overflows (`NoOverflow_f32`), `process_f32` never
-fails, the buffer it returns has one sample per exact output, each sample's real value is within
+value at most `M` in size, `0 ≤ M`, `cInf·K·κ·β < 1 − ρ`, and `stepValueBound_f32 c C M state`
+at most the largest finite binary32 value), no step overflows (`NoOverflow_f32`), `process_f32`
+never fails, the buffer it returns has one sample per exact output, each sample's real value is within
 `cInf·Ê + L` of the corresponding output of `filt_real` (run on the real values of the inputs
 from `realState_f32 state`), and each value of the state it leaves is within `cInf·Ê` of the
 exact final state's, where `Ê = stateErrBound_f32 c C M state` and

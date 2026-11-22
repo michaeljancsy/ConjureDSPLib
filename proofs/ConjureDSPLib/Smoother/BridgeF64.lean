@@ -60,9 +60,9 @@ theorem coeff_f64_error (a : Float) (ha : a.isFinite = true) (hc : (1 - a).isFin
   have h := abs_real_sub_sub_le_f64 1 a one_isFinite_f64 ha hc
   rwa [real_f64_one] at h
 
-/-- **The stored coefficient is exact for `1/2 ≤ A ≤ 2`, f64.** When `a` is finite and its value
-`v` satisfies `1/2 ≤ v ≤ 2` (for example a slow smoother's `a` near 1), `1 - a` is computed with
-no rounding error: its value is exactly `1 - v` (Sterbenz's lemma). -/
+/-- **The stored coefficient is exact when the value of `a` is between 1/2 and 2, f64.** When `a`
+is finite and its value `v` satisfies `1/2 ≤ v ≤ 2` (for example a slow smoother's `a` near 1),
+`1 - a` is computed with no rounding error: its value is exactly `1 - v` (Sterbenz's lemma). -/
 theorem coeff_f64_exact (a : Float) (ha : a.isFinite = true) (h1 : 1 / 2 ≤ real_f64 a)
     (h2 : real_f64 a ≤ 2) : real_f64 (1 - a) = 1 - real_f64 a := by
   have hc : (1 - a).isFinite = true :=

@@ -99,7 +99,7 @@ theorem process_f32_block_error (a state : Float32) (buf : Slice Float32) (M : �
   rw [hbuf, hst]
   exact hblock
 
-/-- **No overflow, from the inputs alone.** Let `C` be the value of the coefficient `c`, `A = 1 - C`,
+/-- **No overflow, from the inputs alone.** Let `C` be the value of the stored `c`, `A = 1 - C`,
 and `u`, `η` binary32's rounding constants. Suppose `c` and every input are finite, every input is
 at most `M` in size, and the bounds `B` and `E` satisfy the two inequalities of `block_step`.
 Start from any finite state `s` within `E` of a real state `r` with `|r| ≤ B` (for the smoother's

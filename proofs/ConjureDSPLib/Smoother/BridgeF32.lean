@@ -60,9 +60,9 @@ theorem coeff_f32_error (a : Float32) (ha : a.isFinite = true) (hc : (1 - a).isF
   have h := abs_real_sub_sub_le_f32 1 a one_isFinite_f32 ha hc
   rwa [real_f32_one] at h
 
-/-- **The stored coefficient is exact for `1/2 ≤ A ≤ 2`, f32.** When `a` is finite and its value
-`v` satisfies `1/2 ≤ v ≤ 2` (for example a slow smoother's `a` near 1), `1 - a` is computed with
-no rounding error: its value is exactly `1 - v` (Sterbenz's lemma). -/
+/-- **The stored coefficient is exact when the value of `a` is between 1/2 and 2, f32.** When `a`
+is finite and its value `v` satisfies `1/2 ≤ v ≤ 2` (for example a slow smoother's `a` near 1),
+`1 - a` is computed with no rounding error: its value is exactly `1 - v` (Sterbenz's lemma). -/
 theorem coeff_f32_exact (a : Float32) (ha : a.isFinite = true) (h1 : 1 / 2 ≤ real_f32 a)
     (h2 : real_f32 a ≤ 2) : real_f32 (1 - a) = 1 - real_f32 a := by
   have hc : (1 - a).isFinite = true :=

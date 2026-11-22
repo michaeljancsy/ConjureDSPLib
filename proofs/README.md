@@ -32,7 +32,7 @@ index, no arithmetic overflow on indices, and it terminates.
 | (the smoother, exact arithmetic) | `smoother.tendsto_filt_real_replicate` | `Smoother/Exact.lean` | In exact arithmetic, when `\|A\| < 1`: for any starting state `r` and input `X`, the final state after `X` is held for `n` samples tends to `X` as `n` grows. |
 | `smoother::process_f64` | `smoother.coeff_f64_error`, `smoother.coeff_f64_exact` | `Smoother/BridgeF64.lean` | The coefficient `c = 1 - a`, computed once per block in binary64: when `a` and `1 - a` are finite, the value of `c` is within `u·\|1 - a\| + η` of `1 - a` (here `a` stands for its value); when the value of `a` is between 1/2 and 2, `c` is exactly `1 - a` (Sterbenz's lemma). |
 | `smoother::step_f64` | `smoother.step_f64_error` | `Smoother/BridgeF64.lean` | When `c`, `state`, `x`, the rounded difference `x - state`, the rounded product `c * (x - state)` and the result are all finite (no overflow): one step `state + c * (x - state)`, with its three roundings (the difference, the product and the sum), is within `stepErr (1 - C) u η S X` of the exact step `S + C·(X - S)`, where `C`, `S`, `X` are the values of `c`, `state`, `x`. Written out, with `d = u·\|X - S\| + η` (the difference's error) and `p = u·\|C\|·(\|X - S\| + d) + η + \|C\|·d` (the product's), the bound is `u·(\|S + C·(X - S)\| + p) + η + p`. |
-| `smoother::process_f32` | `smoother.coeff_f32_error`, `smoother.coeff_f32_exact` | `Smoother/BridgeF32.lean` | The same in binary32 (`u = 2⁻²⁴`). |
+| `smoother::process_f32` | `smoother.coeff_f32_error`, `smoother.coeff_f32_exact` | `Smoother/BridgeF32.lean` | The same as the `process_f64` coefficient row, in binary32 (`u = 2⁻²⁴`). |
 | `smoother::step_f32` | `smoother.step_f32_error` | `Smoother/BridgeF32.lean` | The same in binary32. |
 | `smoother::process_f64` | `smoother.process_f64_block_error` (and `filt_f64_block_error`, the same about `filt_f64`) | `Smoother/BlockF64.lean` | **Whole-block error.** Under the conditions below: never fails, and every output sample and the final state are within `E` of the exact smoother `smoother.filt_real A` with the stored coefficient (`A = 1 - C`, `C` the value of the stored `c = 1 - a`), run on the same stored inputs from the same stored start, for a block of any length. |
 | `smoother::process_f32` | `smoother.process_f32_block_error` (and `filt_f32_block_error`) | `Smoother/BlockF32.lean` | The same in binary32. |
@@ -266,8 +266,8 @@ proved, with `M = 1`, `S = 0` and every real `A` with `0 ≤ A` at most the row'
 `W = B + E` and `G = (1 + u)·(1 + W) + η`, `G + W + (1 + u)·|1 - A|·G + η` is at most the largest
 finite value of the precision (`smoother.sizeCondition_of_le_099_f32`, `_0999_f32`, `_099_f64`,
 `_0999_f64`; in those theorems `|1 - A|` is `|C|`). They rest on `smoother.sizeCondition_le_24`
-in `Smoother/Block.lean`: the left-hand side is at most 24 when `0 ≤ u ≤ 1`, `0 ≤ η ≤ 1`,
-`0 ≤ A ≤ 1` and `0 ≤ E ≤ 1`.
+in `Smoother/Block.lean`: the left-hand side, with `B = 1`, is at most 24 when `0 ≤ u ≤ 1`,
+`0 ≤ η ≤ 1`, `0 ≤ A ≤ 1` and `0 ≤ E ≤ 1`.
 
 For the biquad, the theorems below take an RBJ-cookbook Butterworth low-pass (`Q = 0.7071`) at
 48 kHz, with `M = 1` (inputs at most 1 in size) and a start from zero, for stored coefficients
@@ -473,8 +473,9 @@ What is listed here is observed or expected behaviour, not proved.
   (`process_f64_block_error`, `process_f32_block_error` and their `_of_inputs` forms). In
   floating point the smoother need not land exactly on a steady input `X`; what is proved is how
   far off it can be: after `n` samples, within `|A|^n·|S - X| + E` of `X`
-  (`process_f64_settle_of_inputs`, `process_f32_settle_of_inputs`), with `E` at most the values
-  for the values of `a` in the smoother table above, inputs at most 1 and a start from 0. The theorems in `Smoother/Exact.lean` are in exact arithmetic only.
+  (`process_f64_settle_of_inputs`, `process_f32_settle_of_inputs`), with `E` at most the bounds
+  shown for the values of `a` in the smoother table above, inputs at most 1 and a start from 0.
+  The theorems in `Smoother/Exact.lean` are in exact arithmetic only.
 - Not proved for the smoother: how much the exact smoother's outputs change when its coefficient
   is the rounded `c` rather than `1 - a` (this matters only when the value of `a` is outside 1/2
   to 2, where `c` can be rounded; `coeff_f64_error` / `coeff_f32_error` bound only the

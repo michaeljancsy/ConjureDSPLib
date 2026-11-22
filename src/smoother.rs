@@ -17,11 +17,11 @@
 //! `|A| + errGrowth A u < 1` (in `proofs/README.md`), which implies `|A| < 1`, and, for a bound
 //! `M >= |x|`, an explicit size condition on `M`, the start and `E` (given in `proofs/README.md`)
 //! holds, then after `n` samples of `x` the state is within `|A|^n * |start - x| + E` of `x`,
-//! where `E` is a rounding bound given there. For example, with `a = 0.999`, `|x| <= 1` and `start = 0`, `E <= 1.12e-13`
-//! in `f64` and `E <= 6e-5` in `f32`, and the stability and size conditions hold
-//! (`smoother.table_row_le_of_le_0999_f64`, `smoother.sizeCondition_of_le_0999_f64` and their
-//! `f32` versions; this uses the value each precision stores for 0.999, worked out outside Lean,
-//! not proved).
+//! where `E` is a rounding bound given there. For example, with `a = 0.999`, `|x| <= 1` and
+//! `start = 0`, `E <= 1.12e-13` in `f64` and `E <= 6e-5` in `f32`, and the stability and size
+//! conditions hold (`smoother.table_row_le_of_le_0999_f64`, `sizeCondition_of_le_0999_f64` and
+//! their `f32` versions; this uses the value each precision stores for 0.999, worked out outside
+//! Lean, not proved).
 //!
 //! **Stability.** In exact arithmetic it is stable for `|a| < 1`, and `0 <= a < 1` gives a glide
 //! with no overshoot (`a < 0` makes it alternate around the target).

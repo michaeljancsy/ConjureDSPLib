@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ~/toolchains/aeneas
-          key: aeneas-${{ runner.os }}-${{ env.AENEAS_COMMIT }}-charon-${{ env.CHARON_COMMIT }}-v1
+          key: aeneas-${{ runner.os }}-${{ env.AENEAS_COMMIT }}-charon-${{ env.CHARON_COMMIT }}-v2
 
       - name: Clone Aeneas and Charon at the pinned commits
         if: steps.tools.outputs.cache-hit != 'true'
@@ -90,13 +90,7 @@ jobs:
           # (charon/charon-ml) and the test runner, which `make` also builds, have opam files of
           # their own.
           opam install ./src ./charon ./tests/test_runner --deps-only --yes
-          # Aeneas embeds `git describe --always --dirty` as its version. That commit carries an
-          # annotated tag, so plain `git describe` prints only the tag name; --long adds the
-          # commit (`<tag>-0-g<commit>`, with -dirty if tracked files changed), which is what
-          # prove.sh checks. AENEAS_VERSION is how Aeneas's build takes a version from outside.
-          AENEAS_VERSION="$(git describe --long --dirty --abbrev=8)"
-          echo "Aeneas version: $AENEAS_VERSION"
-          AENEAS_VERSION="$AENEAS_VERSION" opam exec -- make
+          opam exec -- make
           bin/aeneas -version
 
       - name: Save Aeneas and Charon

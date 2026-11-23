@@ -51,11 +51,16 @@ got="$(git -C "$AENEAS_DIR" rev-parse HEAD)"
 [ "$got" = "$AENEAS_COMMIT" ] || fail "Aeneas checkout is at $got, PINS says $AENEAS_COMMIT"
 [ -z "$(git -C "$AENEAS_DIR" status --porcelain --untracked-files=no)" ] \
   || fail "the Aeneas checkout at $AENEAS_DIR has local changes"
+# Aeneas reports `git describe --always --dirty` of the tree it was built from. Accept the same
+# description of this (clean) checkout, which is the tag name on a clone that has the tag on the
+# pinned commit, or any description naming the commit (`<older tag>-<n>-g<commit>`).
 got="$("$AENEAS_BIN" -version)"
+described="$(git -C "$AENEAS_DIR" describe --always --dirty)"
 case "$got" in
   *-dirty*) fail "the Aeneas binary was built from a modified tree: $got" ;;
-  *"-g${AENEAS_COMMIT:0:8}"*) ;;
-  *) fail "the Aeneas binary reports '$got', not commit ${AENEAS_COMMIT:0:8}; rebuild it" ;;
+  "aeneas $described" | *"-g${AENEAS_COMMIT:0:8}"*) ;;
+  *) fail "the Aeneas binary reports '$got'; this checkout is '$described' (commit \
+${AENEAS_COMMIT:0:8}); rebuild it" ;;
 esac
 got="$("$CHARON_BIN" version)"
 case "$got" in *"$CHARON_COMMIT"*) ;; *) fail "Charon reports '$got', PINS says $CHARON_COMMIT" ;; esac

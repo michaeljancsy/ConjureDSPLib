@@ -195,6 +195,9 @@ statement outside the generated code names Lean's NaN constants or Aeneas's NaN-
 directly) and a `leanchecker` kernel replay. It needs `bash`, `git` (run it from a git checkout)
 and `python3`.
 
+GitHub Actions also runs the whole of `scripts/check.sh` weekly and on demand (`proofs.yml`), and
+the Rust checks on every pull request (`rust.yml`).
+
 `scripts/check.sh` and `scripts/prove.sh` refuse to run with tool versions other than those in
 `proofs/PINS` (Rust is checked by `check.sh`, the rest by `prove.sh`):
 

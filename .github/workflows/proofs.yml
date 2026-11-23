@@ -1,0 +1,160 @@
+# Builds the pinned Charon and Aeneas, then runs scripts/check.sh: the Rust checks and the
+# proofs (scripts/prove.sh: Charon, Aeneas, lake build, axiom check, leanchecker kernel replay).
+# Tool versions come from proofs/PINS; prove.sh refuses any other.
+name: Proofs
+
+on:
+  schedule:
+    - cron: "0 5 * * 1" # Mondays, 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  proofs:
+    # A fixed image, so cached tool builds always run on the system they were built on.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read proofs/PINS
+        run: |
+          grep -E '^[A-Z_]+=' proofs/PINS | tee -a "$GITHUB_ENV"
+          echo "AENEAS_DIR=$HOME/toolchains/aeneas" | tee -a "$GITHUB_ENV"
+
+      # Charon's build, the Rust nightly, opam and Mathlib need more disk than the runner has free.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      # The Aeneas checkout with bin/aeneas built, and Charon in its charon/ folder with
+      # charon/bin/charon built. Keyed on the pinned commits.
+      - name: Restore Aeneas and Charon
+        id: tools
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/toolchains/aeneas
+          key: aeneas-ubuntu-24.04-${{ env.AENEAS_COMMIT }}-charon-${{ env.CHARON_COMMIT }}-v2
+
+      - name: Clone Aeneas and Charon at the pinned commits
+        if: steps.tools.outputs.cache-hit != 'true'
+        run: |
+          # All commits and tags (file contents fetched on demand), so that `git describe` can
+          # name the commit.
+          git clone --filter=blob:none "$AENEAS_REPO" "$AENEAS_DIR"
+          git -C "$AENEAS_DIR" checkout --detach "$AENEAS_COMMIT"
+          pin="$(tail -n 1 "$AENEAS_DIR/charon-pin")"
+          echo "Aeneas's charon-pin: $pin"
+          [ "$pin" = "$CHARON_COMMIT" ] \
+            || { echo "FAIL: Aeneas's charon-pin is $pin, proofs/PINS says $CHARON_COMMIT" >&2; exit 1; }
+          # As Aeneas's README and scripts/check-charon-install.sh describe.
+          git clone --filter=blob:none https://github.com/AeneasVerif/charon \
+            "$AENEAS_DIR/charon"
+          git -C "$AENEAS_DIR/charon" checkout --detach "$pin"
+          git -C "$AENEAS_DIR/charon" submodule update --init --recursive
+
+      - name: Build Charon
+        if: steps.tools.outputs.cache-hit != 'true'
+        working-directory: ${{ env.AENEAS_DIR }}/charon
+        run: |
+          # The Rust nightly named in Charon's rust-toolchain file. Charon's build runs `cargo fmt`.
+          (cd charon && rustup toolchain install && rustup component add rustfmt)
+          # Charon's README: `make build-charon-rust` builds bin/charon.
+          make build-charon-rust
+          bin/charon version
+
+      - name: Set up OCaml
+        if: steps.tools.outputs.cache-hit != 'true'
+        uses: ocaml/setup-ocaml@ff66428f72b64472e749b22e0ad4dded4b2ddca6 # v3.9.1
+        with:
+          ocaml-compiler: "5.3"
+
+      - name: Build Aeneas
+        if: steps.tools.outputs.cache-hit != 'true'
+        working-directory: ${{ env.AENEAS_DIR }}
+        env:
+          # setup-ocaml makes a local switch in the workspace; this step runs in another folder.
+          OPAMSWITCH: ${{ github.workspace }}
+        run: |
+          # Aeneas's README: `opam install src --deps-only`, then `make`. Charon's OCaml library
+          # (charon/charon-ml) and the test runner, which `make` also builds, have opam files of
+          # their own.
+          opam install ./src ./charon ./tests/test_runner --deps-only --yes
+          opam exec -- make
+          bin/aeneas -version
+
+      - name: Save Aeneas and Charon
+        if: steps.tools.outputs.cache-hit != 'true'
+        run: |
+          # Build folders are not needed to run the tools: bin/aeneas, charon/bin/charon and
+          # charon/bin/charon-driver are copies.
+          rm -rf "$AENEAS_DIR/charon/charon/target" "$AENEAS_DIR/charon/_build" \
+            "$AENEAS_DIR/src/_build" "$AENEAS_DIR/tests/test_runner/_build"
+          du -sh "$AENEAS_DIR"
+
+      - name: Save Aeneas and Charon to the cache
+        if: steps.tools.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/toolchains/aeneas
+          key: ${{ steps.tools.outputs.cache-primary-key }}
+
+      - name: Install Rust toolchains
+        run: |
+          # The crate's toolchain, from rust-toolchain.toml.
+          rustup toolchain install
+          # Charon's nightly, from its rust-toolchain file (Charon runs its driver with it).
+          (cd "$AENEAS_DIR/charon/charon" && rustup toolchain install)
+
+      - name: Install Lean (elan, proofs/lean-toolchain)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/v4.4.0/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      # Mathlib, FloatLib and the rest, and the build of Aeneas's Lean library. Keyed on the
+      # Lake manifest, Lean and Aeneas. The proofs themselves are always built from scratch.
+      - name: Restore Lake packages
+        id: lake
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            proofs/.lake/packages
+            ~/toolchains/aeneas/backends/lean/.lake
+          key: >-
+            lake-ubuntu-24.04-${{ env.LEAN }}-${{ hashFiles('proofs/lake-manifest.json') }}-aeneas-${{
+            env.AENEAS_COMMIT }}-v1
+
+      - name: Download Mathlib's prebuilt cache
+        working-directory: proofs
+        run: |
+          # The same link prove.sh makes, so that Lake can find Aeneas's Lean library.
+          mkdir -p .toolchain
+          ln -sfn "$AENEAS_DIR" .toolchain/aeneas
+          lake exe cache get
+
+      - name: scripts/check.sh
+        run: scripts/check.sh
+
+      - name: Save Lake packages to the cache
+        if: steps.lake.outputs.cache-hit != 'true' && !cancelled()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            proofs/.lake/packages
+            ~/toolchains/aeneas/backends/lean/.lake
+          key: ${{ steps.lake.outputs.cache-primary-key }}

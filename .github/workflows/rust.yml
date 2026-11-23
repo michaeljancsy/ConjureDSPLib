@@ -1,0 +1,53 @@
+# The Rust checks of scripts/check.sh (everything it runs before scripts/prove.sh).
+# The proofs are checked by proofs.yml.
+name: Rust
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # With no arguments, rustup installs the toolchain rust-toolchain.toml names, with the
+      # components it lists.
+      - name: Install the Rust toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Rust version (proofs/PINS)
+        run: |
+          RUST="$(sed -n 's/^RUST=//p' proofs/PINS)"
+          rustc --version
+          case "$(rustc --version)" in
+            "rustc $RUST "*) ;;
+            *) echo "FAIL: rustc is not $RUST (see rust-toolchain.toml)" >&2; exit 1 ;;
+          esac
+
+      - name: cargo fmt --check
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test
+
+      - name: cargo doc
+        run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet

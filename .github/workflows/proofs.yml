@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read proofs/PINS
         run: |
@@ -44,7 +44,7 @@ jobs:
       # charon/bin/charon built. Keyed on the pinned commits.
       - name: Restore Aeneas and Charon
         id: tools
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/toolchains/aeneas
           key: aeneas-${{ runner.os }}-${{ env.AENEAS_COMMIT }}-charon-${{ env.CHARON_COMMIT }}-v1
@@ -82,6 +82,9 @@ jobs:
       - name: Build Aeneas
         if: steps.tools.outputs.cache-hit != 'true'
         working-directory: ${{ env.AENEAS_DIR }}
+        env:
+          # setup-ocaml makes a local switch in the workspace; this step runs in another folder.
+          OPAMSWITCH: ${{ github.workspace }}
         run: |
           # Aeneas's README: `opam install src --deps-only`, then `make`. Charon's OCaml library
           # (charon/charon-ml) and the test runner, which `make` also builds, have opam files of
@@ -105,7 +108,7 @@ jobs:
             "$AENEAS_DIR/src/_build" "$AENEAS_DIR/tests/test_runner/_build"
           du -sh "$AENEAS_DIR"
       - if: steps.tools.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/toolchains/aeneas
           key: ${{ steps.tools.outputs.cache-primary-key }}
@@ -127,7 +130,7 @@ jobs:
       # Lake manifest, Lean and Aeneas. The proofs themselves are always built from scratch.
       - name: Restore Lake packages
         id: lake
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             proofs/.lake/packages
@@ -146,7 +149,7 @@ jobs:
         run: scripts/check.sh
 
       - if: steps.lake.outputs.cache-hit != 'true' && !cancelled()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             proofs/.lake/packages

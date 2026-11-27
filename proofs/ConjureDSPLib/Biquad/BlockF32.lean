@@ -34,9 +34,8 @@ these theorems for `complexPolesContraction`, from above and below, and into fai
 condition `cInf·K·κ·β < 1 − ρ`; `realPolesContraction_block_bounds_of_rat_f32` does the same
 from rational bounds on `d = √(a1² − 4·a2)` for `realPolesContraction`, and
 `closePolesContraction_block_bounds_of_rat_f32` for `closePolesContraction`, whose constants are
-rational when `ε` is. The last sections apply
-them to RBJ-cookbook low-pass coefficients at chosen cutoffs (the biquad table and cutoff facts in
-`proofs/README.md`).
+rational when `ε` is. The last sections apply them to RBJ-cookbook low-pass coefficients at chosen
+cutoffs (the biquad table and cutoff facts in `proofs/README.md`).
 -/
 
 @[expose] public section

@@ -58,7 +58,10 @@ takes `v₁` to `p·v₁ + w` and `w` to `p·w + δ·v₁` (`closePoleCoord_upda
 `ε·|v₁| + |w|` shrinks by `ρ = |p| + max(ε, |δ|/ε)` for any chosen `ε > 0`
 (`closePolesContraction`, when this `ρ < 1`), with `cInf = 1/ε` and `K = 1`. Unlike the
 `cInf = 1/d` of `realPolesContraction`, this `cInf` does not grow as the poles merge; the price is
-that `ρ` is above the larger pole size. For real poles, `|δ| = (d/2)²` (`poleGap_sq`).
+that `ρ` is at least the larger pole size (worked out outside Lean, not proved). For real poles,
+`|δ| = (d/2)²` (`poleGap_sq`). Worked out outside Lean, not proved: `ρ < 1` needs
+`|p| + √|δ| < 1`, which for complex poles is stricter than both poles being inside the unit
+circle, and `cInf = 1/ε` is always above `1/(1 − |p|)`.
 
 When 1 is a pole (`1 + a1 + a2 = 0`) the state-update map leaves the pair `(1, -a2)` unchanged
 (`update_one_neg_a2_of_pole_one`), so no `Contraction` exists (`isEmpty_contraction_of_pole_one`).
@@ -628,7 +631,9 @@ theorem one_div_mul_repeatedPoleNorm (c : CoeffsReal) {ε : ℝ} (hε : 0 < ε) 
 `ε·|v₁| + |p·v₁ + v₂|` with `p = -a1/2`, with this `ρ`, `cInf = 1/ε` and `K = 1`. The
 state-update map takes `w = p·v₁ + v₂` to `p·w + δ·v₁` with `δ = a1²/4 - a2`
 (`closePoleCoord_update`). `cInf` does not depend on the distance between the poles, unlike that
-of `realPolesContraction` (`1/d`) or `complexPolesContraction` (which grows like `1/ω`). When
+of `realPolesContraction` (`1/d`) or `complexPolesContraction` (which grows like `1/ω`). Worked
+out outside Lean, not proved: `ρ < 1` needs `|p| + √|δ| < 1`, which for complex poles is stricter
+than both poles being inside the unit circle, and `cInf = 1/ε` is always above `1/(1 − |p|)`. When
 `a1² = 4·a2` (`δ = 0`) this `ρ` is `|a1|/2 + ε`, as for `repeatedPoleContraction`, with a smaller
 `cInf`. -/
 noncomputable def closePolesContraction (c : CoeffsReal) {ε : ℝ} (hε : 0 < ε)
@@ -705,14 +710,6 @@ noncomputable def closePolesContraction (c : CoeffsReal) {ε : ℝ} (hε : 0 < �
       rw [abs_mul, abs_div, abs_neg, abs_two]
     have h4 := mul_le_mul_of_nonneg_right hεp (abs_nonneg v₁)
     nlinarith
-
-/-- For `closePolesContraction`, `cInf = 1/ε`, `K = 1` and
-`ρ = |a1|/2 + max(ε, |a1²/4 - a2|/ε)`. -/
-theorem closePolesContraction_constants (c : CoeffsReal) {ε : ℝ} (hε : 0 < ε)
-    (h1 : |c.a1| / 2 + max ε (|c.a1 ^ 2 / 4 - c.a2| / ε) < 1) :
-    (closePolesContraction c hε h1).cInf = 1 / ε ∧ (closePolesContraction c hε h1).K = 1 ∧
-      (closePolesContraction c hε h1).ρ = |c.a1| / 2 + max ε (|c.a1 ^ 2 / 4 - c.a2| / ε) :=
-  ⟨rfl, rfl, rfl⟩
 
 /-! ## A pole at 1 -/
 

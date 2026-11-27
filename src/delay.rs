@@ -157,10 +157,10 @@ pub fn process_f32(
 /// sample written `d` writes ago (worked out outside Lean, not proved: it also needs
 /// `delay.write_f64_rotate` and at least `d` earlier writes). When `d >= 1`, reading and then
 /// writing one sample gives the same output, buffer and position as `process_f64` on that one
-/// sample (`delay.read_write_f64_eq_process`). A delay of 0 reads `buffer[p]` (`delay.read_f64_spec`),
-/// the sample `write_f64` then overwrites (`delay.write_f64_spec`), not the sample being
-/// written: so for delays of 1 to `D` samples, use a buffer of `D + 1` samples, as for
-/// `process_f64`.
+/// sample (`delay.read_write_f64_eq_process`). A delay of 0 reads `buffer[p]`
+/// (`delay.read_f64_spec`), the sample `write_f64` then overwrites (`delay.write_f64_spec`), not
+/// the sample being written: so for delays of 1 to `D` samples, use a buffer of `D + 1` samples,
+/// as for `process_f64`.
 pub fn read_f64(buffer: &[f64], position: usize, delay_samples: usize) -> f64 {
     let len = buffer.len();
     if len == 0 {

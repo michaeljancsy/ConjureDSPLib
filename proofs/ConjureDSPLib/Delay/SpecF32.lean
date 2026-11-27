@@ -422,7 +422,8 @@ theorem read_f32_spec (buffer : Slice Float32) (position delay_samples : Std.Usi
 /-- **Reading in time order.** For `L = buffer.length > 0` and `d = min delay_samples (L - 1)`
 with `d ≥ 1`: `read_f32` never fails, and returns element `L - d` of `buffer.rotate position`,
 the buffer read in time order (oldest first) from `position`. When `position` is where the next
-write goes, that is the sample written `d` writes ago (worked out outside Lean, not proved: it also needs `write_f32_rotate` and at least `d` earlier writes). -/
+write goes, that is the sample written `d` writes ago (worked out outside Lean, not proved: it
+also needs `write_f32_rotate` and at least `d` earlier writes). -/
 theorem read_f32_rotate (buffer : Slice Float32) (position delay_samples : Std.Usize)
     (hL : 0 < buffer.length) (hd : 1 ≤ min delay_samples.val (buffer.length - 1)) :
     read_f32 buffer position delay_samples ⦃ y =>

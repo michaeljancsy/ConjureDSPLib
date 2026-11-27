@@ -416,7 +416,7 @@ def biquad.process_f32
   biquad.process_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
-    Source: 'src/delay.rs', lines 93:4-105:5
+    Source: 'src/delay.rs', lines 95:4-107:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f64_loop.body
@@ -445,7 +445,7 @@ def delay.process_f64_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop 0:
-    Source: 'src/delay.rs', lines 93:4-105:5
+    Source: 'src/delay.rs', lines 95:4-107:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f64_loop
@@ -459,7 +459,7 @@ def delay.process_f64_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f64]:
-    Source: 'src/delay.rs', lines 72:0-107:1
+    Source: 'src/delay.rs', lines 74:0-109:1
     Visibility: public -/
 def delay.process_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -482,7 +482,7 @@ def delay.process_f64
     delay.process_f64_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop body 0:
-    Source: 'src/delay.rs', lines 132:4-144:5
+    Source: 'src/delay.rs', lines 134:4-146:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f32_loop.body
@@ -511,7 +511,7 @@ def delay.process_f32_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop 0:
-    Source: 'src/delay.rs', lines 132:4-144:5
+    Source: 'src/delay.rs', lines 134:4-146:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f32_loop
@@ -525,7 +525,7 @@ def delay.process_f32_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f32]:
-    Source: 'src/delay.rs', lines 111:0-146:1
+    Source: 'src/delay.rs', lines 113:0-148:1
     Visibility: public -/
 def delay.process_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -548,7 +548,7 @@ def delay.process_f32
     delay.process_f32_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::read_f64]:
-    Source: 'src/delay.rs', lines 160:0-174:1
+    Source: 'src/delay.rs', lines 164:0-178:1
     Visibility: public -/
 def delay.read_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize) :
@@ -570,7 +570,7 @@ def delay.read_f64
     Slice.index_usize buffer r
 
 /-- [conjure_dsp_lib::delay::write_f64]:
-    Source: 'src/delay.rs', lines 182:0-191:1
+    Source: 'src/delay.rs', lines 186:0-195:1
     Visibility: public -/
 def delay.write_f64
   (buffer : Slice Float) (position : Std.Usize) (x : Float) :
@@ -590,7 +590,7 @@ def delay.write_f64
          ok (buffer1, next)
 
 /-- [conjure_dsp_lib::delay::read_f32]:
-    Source: 'src/delay.rs', lines 195:0-209:1
+    Source: 'src/delay.rs', lines 199:0-213:1
     Visibility: public -/
 def delay.read_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize) :
@@ -612,7 +612,7 @@ def delay.read_f32
     Slice.index_usize buffer r
 
 /-- [conjure_dsp_lib::delay::write_f32]:
-    Source: 'src/delay.rs', lines 213:0-222:1
+    Source: 'src/delay.rs', lines 217:0-226:1
     Visibility: public -/
 def delay.write_f32
   (buffer : Slice Float32) (position : Std.Usize) (x : Float32) :

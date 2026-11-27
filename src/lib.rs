@@ -21,7 +21,7 @@
 //! module are short (`step`, `process`, `apply`) and repeat across modules.
 //! Types carry the precision as a capitalized suffix: `biquad::CoeffsF32`.
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod biquad;
 pub mod delay;

@@ -64,6 +64,51 @@ pub fn process_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
     }
 }
 
+/// One sample of the filter, in `f64`, with one fused multiply-add: `a.mul_add(state, x)`, which
+/// is `a * state + x` rounded once. This is how clang compiles `x + a * state` on Apple silicon
+/// (its default `-ffp-contract=on`). Needs the `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_fma_f64(a: f64, state: f64, x: f64) -> f64 {
+    a.mul_add(state, x)
+}
+
+/// [`process_f64`] with [`step_fma_f64`] for each sample. Needs the `std` feature. An empty block
+/// leaves `state` unchanged (`one_pole.process_fma_f64_spec`).
+#[cfg(feature = "std")]
+pub fn process_fma_f64(a: f64, state: &mut f64, buf: &mut [f64]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = step_fma_f64(a, *state, buf[i]);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
+/// One sample of the filter, in `f32`, with one fused multiply-add: `a.mul_add(state, x)`, which
+/// is `a * state + x` rounded once. Needs the `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_fma_f32(a: f32, state: f32, x: f32) -> f32 {
+    a.mul_add(state, x)
+}
+
+/// [`process_f32`] with [`step_fma_f32`] for each sample. Needs the `std` feature. An empty block
+/// leaves `state` unchanged (`one_pole.process_fma_f32_spec`).
+#[cfg(feature = "std")]
+pub fn process_fma_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = step_fma_f32(a, *state, buf[i]);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,4 +182,84 @@ mod tests {
 
     one_pole_tests!(f64_tests, f64, step_f64, process_f64);
     one_pole_tests!(f32_tests, f32, step_f32, process_f32);
+}
+
+#[cfg(all(test, feature = "std"))]
+mod fma_tests {
+    use super::*;
+
+    /// The same tests for both precisions.
+    macro_rules! one_pole_fma_tests {
+        ($name:ident, $t:ty, $step:ident, $process:ident, $step_fma:ident, $process_fma:ident,
+         $tol:expr) => {
+            mod $name {
+                use super::*;
+
+                const INPUT: [$t; 8] = [0.1, -0.2, 0.3, 1.0, -1.0, 0.7, 0.0, -0.4];
+
+                #[test]
+                fn step_is_one_mul_add() {
+                    // The documented grouping, written out by hand.
+                    for &(a, s, x) in &[(0.9, -0.5, 0.1), (0.3, 1.0e-3, 0.7), (-0.99, 2.0, -1.0)] {
+                        let (a, s, x): ($t, $t, $t) = (a, s, x);
+                        assert_eq!($step_fma(a, s, x).to_bits(), a.mul_add(s, x).to_bits());
+                    }
+                }
+
+                #[test]
+                fn process_matches_step() {
+                    let a: $t = 0.9;
+                    let mut buf = INPUT;
+                    let mut state: $t = -0.5;
+                    $process_fma(a, &mut state, &mut buf);
+                    let mut y: $t = -0.5;
+                    for (out, x) in buf.iter().zip(INPUT) {
+                        y = a.mul_add(y, x);
+                        assert_eq!(out.to_bits(), y.to_bits());
+                    }
+                    assert_eq!(state.to_bits(), y.to_bits());
+                }
+
+                #[test]
+                fn close_to_unfused() {
+                    let a: $t = 0.95;
+                    let mut fused = INPUT;
+                    let mut plain = INPUT;
+                    let (mut s1, mut s2): ($t, $t) = (0.25, 0.25);
+                    $process_fma(a, &mut s1, &mut fused);
+                    $process(a, &mut s2, &mut plain);
+                    for (f, p) in fused.iter().zip(plain) {
+                        assert!((f - p).abs() <= $tol, "{f} vs {p}");
+                    }
+                    assert!((s1 - s2).abs() <= $tol);
+                }
+
+                #[test]
+                fn empty_block_leaves_state_alone() {
+                    let mut state: $t = 0.3;
+                    $process_fma(0.9, &mut state, &mut []);
+                    assert_eq!(state, 0.3);
+                }
+            }
+        };
+    }
+
+    one_pole_fma_tests!(
+        f64_tests,
+        f64,
+        step_f64,
+        process_f64,
+        step_fma_f64,
+        process_fma_f64,
+        1e-13
+    );
+    one_pole_fma_tests!(
+        f32_tests,
+        f32,
+        step_f32,
+        process_f32,
+        step_fma_f32,
+        process_fma_f32,
+        1e-4
+    );
 }

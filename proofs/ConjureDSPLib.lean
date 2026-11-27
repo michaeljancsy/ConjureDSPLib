@@ -4,6 +4,7 @@ public import ConjureDSPLib.Code.Types
 public import ConjureDSPLib.Code.FunsExternal
 public import ConjureDSPLib.Code.Funs
 public import ConjureDSPLib.FloatFacts
+public import ConjureDSPLib.FmaFacts
 public import ConjureDSPLib.Gain.SpecF64
 public import ConjureDSPLib.Gain.SpecF32
 public import ConjureDSPLib.Gain.Line
@@ -18,6 +19,8 @@ public import ConjureDSPLib.OnePole.Block
 public import ConjureDSPLib.OnePole.BlockF64
 public import ConjureDSPLib.OnePole.BlockF32
 public import ConjureDSPLib.OnePole.Exact
+public import ConjureDSPLib.OnePole.FmaF64
+public import ConjureDSPLib.OnePole.FmaF32
 public import ConjureDSPLib.Smoother.SpecF64
 public import ConjureDSPLib.Smoother.SpecF32
 public import ConjureDSPLib.Smoother.Exact

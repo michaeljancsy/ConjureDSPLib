@@ -12,6 +12,15 @@ categories = ["multimedia::audio", "no-std::no-alloc", "mathematics"]
 # The proofs, scripts and generated Lean are not needed to use the crate.
 include = ["/src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-APACHE", "/NOTICE"]
 
+[features]
+# Adds the fused multiply-add functions (`step_fma_f64`, `process_fma_f64` and the others), which
+# call `f64::mul_add` and `f32::mul_add`. Those are in `std`, not `core`, on stable Rust, so this
+# feature links the standard library. Off by default; it adds functions and changes nothing else.
+std = []
+
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 # Pure-Rust maths (tan, pow, sqrt) for designing filter coefficients. Pinned exactly; default
 # features off, so libm uses its portable Rust code rather than CPU-specific instructions. That it

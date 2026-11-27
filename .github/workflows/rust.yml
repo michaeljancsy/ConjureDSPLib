@@ -48,8 +48,14 @@ jobs:
       - name: cargo clippy
         run: cargo clippy --all-targets -- -D warnings
 
+      - name: cargo clippy (std feature)
+        run: cargo clippy --all-targets --features std -- -D warnings
+
       - name: cargo test
         run: cargo test
 
+      - name: cargo test (std feature)
+        run: cargo test --features std
+
       - name: cargo doc
-        run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet
+        run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet --features std

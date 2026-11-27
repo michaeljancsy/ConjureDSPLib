@@ -7,7 +7,7 @@ public import Mathlib.Data.List.Rotate
 # The delay line: facts shared by both precisions
 
 Facts about natural numbers, lists and Aeneas's `Result` that `SpecF64.lean` and `SpecF32.lean`
-both use. None mentions a float.
+both use, for `process`, `read` and `write`. None mentions a float.
 -/
 
 @[expose] public section
@@ -85,6 +85,59 @@ theorem outputs_append {α : Type} (R a₁ a₂ o₁ o₂ o : List α) (L d : �
       congr 1
       omega
     · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by omega)]
+
+/-- The read index of `read_f64` / `read_f32`, written with `mod`: for `L > 0`, with
+`d = min D (L - 1)` and `w = p mod L`, `(p + L - d) mod L` is `w - d` when `d ≤ w`, and
+`w + (L - d)` otherwise. -/
+theorem read_index_eq (L p D d w : ℕ) (hL : 0 < L) (hd : d = min D (L - 1)) (hw : w = p % L) :
+    (p + L - min D (L - 1)) % L = if d ≤ w then w - d else w + (L - d) := by
+  rw [← hd]
+  subst hw
+  have hdL : d < L := by omega
+  obtain ⟨q, t, hq, rfl⟩ : ∃ q t, q < L ∧ p = q + L * t :=
+    ⟨p % L, p / L, Nat.mod_lt _ hL, (Nat.mod_add_div p L).symm⟩
+  have hmod : (q + L * t) % L = q := by rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hq]
+  rw [hmod]
+  have e : q + L * t + L - d = (q + L - d) + L * t := by
+    generalize L * t = m
+    omega
+  rw [e, Nat.add_mul_mod_self_left]
+  split_ifs with h
+  · rw [show q + L - d = (q - d) + L by omega, Nat.add_mod_right, Nat.mod_eq_of_lt (by omega)]
+  · rw [Nat.mod_eq_of_lt (by omega)]
+    omega
+
+/-- Writing `x` at index `p mod L` of a list of length `L > 0` and reading the result in time
+order from `(p + 1) mod L` gives the list read in time order from `p`, followed by `x`, without
+its first (oldest) element. -/
+theorem rotate_set_eq_drop {α : Type} (l : List α) (p : ℕ) (x : α) (hL : 0 < l.length) :
+    (l.set (p % l.length) x).rotate ((p + 1) % l.length) = (l.rotate p ++ [x]).drop 1 := by
+  have hq : p % l.length < l.length := Nat.mod_lt _ hL
+  have htake : (l.take (p % l.length)).length = p % l.length := by
+    simp only [List.length_take]
+    omega
+  rw [List.set_eq_take_append_cons_drop]
+  simp only [hq, ↓reduceIte]
+  rw [← List.rotate_mod l p,
+    List.rotate_eq_drop_append_take hq.le, List.drop_eq_getElem_cons hq, succ_mod_eq p _ hL]
+  split_ifs with h
+  · have hnil : l.drop (p % l.length + 1) = [] := List.drop_eq_nil_of_le (by omega)
+    simp [hnil]
+  · rw [List.rotate_eq_drop_append_take
+      (l := l.take (p % l.length) ++ x :: l.drop (p % l.length + 1)) (n := p % l.length + 1) (by
+        simp only [List.length_append, List.length_cons, List.length_drop, htake]
+        omega)]
+    have h1 : (l.take (p % l.length)).drop (p % l.length + 1) = [] :=
+      List.drop_eq_nil_of_le (by rw [htake]; omega)
+    have h2 : (l.take (p % l.length)).take (p % l.length + 1) = l.take (p % l.length) :=
+      List.take_of_length_le (by rw [htake]; omega)
+    rw [List.drop_append (l₁ := l.take (p % l.length)),
+      List.take_append (l₁ := l.take (p % l.length)), h1, h2, htake, Nat.add_sub_cancel_left]
+    -- Both sides are `l.drop (p % l.length + 1) ++ (l.take (p % l.length) ++ [x])` once `drop 1`
+    -- and `take 1` of a cons are computed; plain `simp` would fold `l[i] :: l.drop (i + 1)` back
+    -- into `l.drop i`.
+    simp only [List.nil_append, List.append_assoc]
+    rfl
 
 end conjure_dsp_lib.delay
 

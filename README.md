@@ -22,12 +22,14 @@ Every module has `f32` and `f64` versions (functions end in `_f32` / `_f64`, typ
   block (`ramp`).
 - `one_pole`: one-pole feedback filter, `y[n] = x[n] + a·y[n-1]`.
 - `smoother`: one-pole smoother, `y[n] = y[n-1] + (1 - a)·(x[n] - y[n-1])`, for gliding toward a
-  target.
+  target; `step_coeff` and `process_coeff` take the fraction `c = 1 - a` directly.
 - `biquad`: second-order filter in transposed direct form II, with coefficients you supply.
 - `svf`: trapezoidal state-variable filter, with design functions for eight shapes (low-pass,
   high-pass, band-pass, notch, all-pass, bell, low shelf, high shelf), whose formulas follow
   A. Simper (Cytomic).
-- `delay`: delay line of a whole number of samples (no interpolation), in a buffer the caller owns.
+- `delay`: delay line of a whole number of samples (no interpolation), in a buffer the caller owns;
+  a block at a time (`process`), or one sample at a time, reading before writing, for feedback
+  (`read`, `write`).
 
 With the optional cargo feature `std`, `one_pole`, `biquad` and `svf` also have fused multiply-add
 versions (`step_fma_f64`, `process_fma_f64` and the `_f32` ones); see
@@ -146,7 +148,7 @@ substitute for them.
 | `smoother` | The same; and, for a steady input, how far from it the state can be after `n` steps |
 | `biquad` | From a zero state (or one matching a given history), equals the textbook recurrence in exact arithmetic; whole-block error bound (*) |
 | `svf` | Design functions compute exactly the stated operations (libm modelled, see below); whole-block error bound (*) |
-| `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing |
+| `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing; reading then writing one sample matches a one-sample block when the delay used is at least 1 (a delay of at least 1 and a buffer of at least 2 samples) |
 | fused `one_pole`, `biquad`, `svf` (`std` feature) | Never fail; compute exactly the stated fused operations; the same whole-block error bound as the unfused version, with the same constants ((*) for the biquad and the SVF) |
 
 (†) Every public DSP function. For the SVF design functions, "never fails" assumes libm's
@@ -167,7 +169,8 @@ Things to know before relying on the error bounds:
   float is not covered.
 - For the smoother, the coefficient compared against is `1 - a` as computed in floating point. It
   is exactly `1 - a` when `a` is between 1/2 and 2 (`smoother.coeff_f64_exact`); outside that
-  range, the effect of its rounding is not proved.
+  range, the effect of its rounding is not proved. `process_coeff` uses the coefficient as given,
+  and its bounds are against that coefficient (`smoother.process_coeff_f64_block_error`).
 - They are worst cases, and can be too large to be useful, or prove nothing. Take the stored `f32`
   coefficients of an RBJ-cookbook Butterworth low-pass at 48 kHz, finite inputs at most 1 in size,
   a start from zero, and `biquad.complexPolesContraction`. At 1 kHz each output is within 0.0542
@@ -190,13 +193,17 @@ In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` count
 - `one_pole`: `one_pole.process_f64_spec`, `one_pole.process_f64_block_error`,
   `one_pole.process_f64_block_error_of_inputs`.
 - `smoother`: `smoother.process_f64_spec`, `smoother.process_f64_block_error`,
-  `smoother.process_f64_settle_of_inputs`.
+  `smoother.process_f64_settle_of_inputs`; with the coefficient given directly,
+  `smoother.process_coeff_f64_spec`, `smoother.process_coeff_f64_block_error`,
+  `smoother.process_f64_eq_process_coeff`.
 - `biquad`: `biquad.process_f64_spec`, `biquad.process_f64_block_error`; in exact arithmetic,
   `biquad.filt_real_eq_df1_real_zero` (the textbook recurrence) and
   `biquad.complexPolesContraction`.
 - `svf`: `svf.process_f64_spec`, `svf.CoeffsF64.low_pass_eq` (and one for each other shape),
   `svf.process_f64_block_error`; in exact arithmetic, `svf.complexPolesContraction`.
-- `delay`: `delay.process_f64_ok`, `delay.process_f64_spec`, `delay.process_f64_append`.
+- `delay`: `delay.process_f64_ok`, `delay.process_f64_spec`, `delay.process_f64_append`;
+  one sample at a time, `delay.read_f64_spec`, `delay.write_f64_spec`,
+  `delay.read_write_f64_eq_process`.
 - Fused functions: `real_fma_f64` and `abs_real_fma_sub_le_f64` (one fused multiply-add rounds
   once), `one_pole.process_fma_f64_spec`, `one_pole.process_fma_f64_block_error_of_inputs`,
   `biquad.process_fma_f64_spec`, `biquad.process_fma_f64_block_error_of_inputs`,

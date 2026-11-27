@@ -528,7 +528,7 @@ def biquad.process_fma_f32
   biquad.process_fma_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
-    Source: 'src/delay.rs', lines 72:4-84:5
+    Source: 'src/delay.rs', lines 95:4-107:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f64_loop.body
@@ -557,7 +557,7 @@ def delay.process_f64_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop 0:
-    Source: 'src/delay.rs', lines 72:4-84:5
+    Source: 'src/delay.rs', lines 95:4-107:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f64_loop
@@ -571,7 +571,7 @@ def delay.process_f64_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f64]:
-    Source: 'src/delay.rs', lines 51:0-86:1
+    Source: 'src/delay.rs', lines 74:0-109:1
     Visibility: public -/
 def delay.process_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -594,7 +594,7 @@ def delay.process_f64
     delay.process_f64_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop body 0:
-    Source: 'src/delay.rs', lines 111:4-123:5
+    Source: 'src/delay.rs', lines 134:4-146:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f32_loop.body
@@ -623,7 +623,7 @@ def delay.process_f32_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop 0:
-    Source: 'src/delay.rs', lines 111:4-123:5
+    Source: 'src/delay.rs', lines 134:4-146:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f32_loop
@@ -637,7 +637,7 @@ def delay.process_f32_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f32]:
-    Source: 'src/delay.rs', lines 90:0-125:1
+    Source: 'src/delay.rs', lines 113:0-148:1
     Visibility: public -/
 def delay.process_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -658,6 +658,90 @@ def delay.process_f32
                    let i ← len - d
                    w + i
     delay.process_f32_loop buffer audio len w r 0#usize
+
+/-- [conjure_dsp_lib::delay::read_f64]:
+    Source: 'src/delay.rs', lines 164:0-178:1
+    Visibility: public -/
+def delay.read_f64
+  (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize) :
+  Result Float
+  := do
+  let len := Slice.len buffer
+  if len = 0#usize
+  then ok (Float.ofBits 0)
+  else
+    let d ← if delay_samples < len
+              then ok delay_samples
+              else len - 1#usize
+    let w ← position % len
+    let r ← if d <= w
+              then w - d
+              else do
+                   let i ← len - d
+                   w + i
+    Slice.index_usize buffer r
+
+/-- [conjure_dsp_lib::delay::write_f64]:
+    Source: 'src/delay.rs', lines 186:0-195:1
+    Visibility: public -/
+def delay.write_f64
+  (buffer : Slice Float) (position : Std.Usize) (x : Float) :
+  Result ((Slice Float) × Std.Usize)
+  := do
+  let len := Slice.len buffer
+  if len = 0#usize
+  then ok (buffer, position)
+  else
+    let w ← position % len
+    let (_, index_mut_back) ← Slice.index_mut_usize buffer w
+    let next ← w + 1#usize
+    if next = len
+    then let buffer1 := index_mut_back x
+         ok (buffer1, 0#usize)
+    else let buffer1 := index_mut_back x
+         ok (buffer1, next)
+
+/-- [conjure_dsp_lib::delay::read_f32]:
+    Source: 'src/delay.rs', lines 199:0-213:1
+    Visibility: public -/
+def delay.read_f32
+  (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize) :
+  Result Float32
+  := do
+  let len := Slice.len buffer
+  if len = 0#usize
+  then ok (Float32.ofBits 0)
+  else
+    let d ← if delay_samples < len
+              then ok delay_samples
+              else len - 1#usize
+    let w ← position % len
+    let r ← if d <= w
+              then w - d
+              else do
+                   let i ← len - d
+                   w + i
+    Slice.index_usize buffer r
+
+/-- [conjure_dsp_lib::delay::write_f32]:
+    Source: 'src/delay.rs', lines 217:0-226:1
+    Visibility: public -/
+def delay.write_f32
+  (buffer : Slice Float32) (position : Std.Usize) (x : Float32) :
+  Result ((Slice Float32) × Std.Usize)
+  := do
+  let len := Slice.len buffer
+  if len = 0#usize
+  then ok (buffer, position)
+  else
+    let w ← position % len
+    let (_, index_mut_back) ← Slice.index_mut_usize buffer w
+    let next ← w + 1#usize
+    if next = len
+    then let buffer1 := index_mut_back x
+         ok (buffer1, 0#usize)
+    else let buffer1 := index_mut_back x
+         ok (buffer1, next)
 
 /-- [conjure_dsp_lib::gain::apply_f64]:
     Source: 'src/gain.rs', lines 6:0-8:1
@@ -959,7 +1043,7 @@ def one_pole.process_fma_f32
   one_pole.process_fma_f32_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::smoother::step_f64]:
-    Source: 'src/smoother.rs', lines 56:0-58:1
+    Source: 'src/smoother.rs', lines 66:0-68:1
     Visibility: public -/
 def smoother.step_f64
   (a : Float) (state : Float) (target : Float) : Result Float := do
@@ -967,7 +1051,7 @@ def smoother.step_f64
     a) (Float.sub target state)))
 
 /-- [conjure_dsp_lib::smoother::process_f64]: loop body 0:
-    Source: 'src/smoother.rs', lines 68:4-73:5
+    Source: 'src/smoother.rs', lines 78:4-83:5
     Visibility: public -/
 @[rust_loop_body]
 def smoother.process_f64_loop.body
@@ -986,7 +1070,7 @@ def smoother.process_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::smoother::process_f64]: loop 0:
-    Source: 'src/smoother.rs', lines 68:4-73:5
+    Source: 'src/smoother.rs', lines 78:4-83:5
     Visibility: public -/
 @[rust_loop]
 def smoother.process_f64_loop
@@ -998,7 +1082,7 @@ def smoother.process_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::smoother::process_f64]:
-    Source: 'src/smoother.rs', lines 64:0-74:1
+    Source: 'src/smoother.rs', lines 74:0-84:1
     Visibility: public -/
 @[reducible]
 def smoother.process_f64
@@ -1009,7 +1093,7 @@ def smoother.process_f64
     (Float.ofBits 4607182418800017408) a) 0#usize
 
 /-- [conjure_dsp_lib::smoother::step_f32]:
-    Source: 'src/smoother.rs', lines 80:0-82:1
+    Source: 'src/smoother.rs', lines 90:0-92:1
     Visibility: public -/
 def smoother.step_f32
   (a : Float32) (state : Float32) (target : Float32) : Result Float32 := do
@@ -1017,7 +1101,7 @@ def smoother.step_f32
     a) (Float32.sub target state)))
 
 /-- [conjure_dsp_lib::smoother::process_f32]: loop body 0:
-    Source: 'src/smoother.rs', lines 92:4-97:5
+    Source: 'src/smoother.rs', lines 102:4-107:5
     Visibility: public -/
 @[rust_loop_body]
 def smoother.process_f32_loop.body
@@ -1037,7 +1121,7 @@ def smoother.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::smoother::process_f32]: loop 0:
-    Source: 'src/smoother.rs', lines 92:4-97:5
+    Source: 'src/smoother.rs', lines 102:4-107:5
     Visibility: public -/
 @[rust_loop]
 def smoother.process_f32_loop
@@ -1049,7 +1133,7 @@ def smoother.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::smoother::process_f32]:
-    Source: 'src/smoother.rs', lines 88:0-98:1
+    Source: 'src/smoother.rs', lines 98:0-108:1
     Visibility: public -/
 @[reducible]
 def smoother.process_f32
@@ -1058,6 +1142,105 @@ def smoother.process_f32
   := do
   smoother.process_f32_loop state buf (Float32.sub (Float32.ofBits 1065353216)
     a) 0#usize
+
+/-- [conjure_dsp_lib::smoother::step_coeff_f64]:
+    Source: 'src/smoother.rs', lines 116:0-118:1
+    Visibility: public -/
+def smoother.step_coeff_f64
+  (c : Float) (state : Float) (target : Float) : Result Float := do
+  ok (Float.add state (Float.mul c (Float.sub target state)))
+
+/-- [conjure_dsp_lib::smoother::process_coeff_f64]: loop body 0:
+    Source: 'src/smoother.rs', lines 129:4-134:5
+    Visibility: public -/
+@[rust_loop_body]
+def smoother.process_coeff_f64_loop.body
+  (c : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
+  Result (ControlFlow (Float × (Slice Float) × Std.Usize) (Float × (Slice
+    Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let s ←
+      Slice.update buf i (Float.add state (Float.mul c (Float.sub fl state)))
+    let i2 ← i + 1#usize
+    ok (cont (Float.add state (Float.mul c (Float.sub fl state)), s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::smoother::process_coeff_f64]: loop 0:
+    Source: 'src/smoother.rs', lines 129:4-134:5
+    Visibility: public -/
+@[rust_loop]
+def smoother.process_coeff_f64_loop
+  (c : Float) (state : Float) (buf : Slice Float) (i : Std.Usize) :
+  Result (Float × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => smoother.process_coeff_f64_loop.body c state1
+      buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::smoother::process_coeff_f64]:
+    Source: 'src/smoother.rs', lines 126:0-135:1
+    Visibility: public -/
+@[reducible]
+def smoother.process_coeff_f64
+  (c : Float) (state : Float) (buf : Slice Float) :
+  Result (Float × (Slice Float))
+  := do
+  smoother.process_coeff_f64_loop c state buf 0#usize
+
+/-- [conjure_dsp_lib::smoother::step_coeff_f32]:
+    Source: 'src/smoother.rs', lines 141:0-143:1
+    Visibility: public -/
+def smoother.step_coeff_f32
+  (c : Float32) (state : Float32) (target : Float32) : Result Float32 := do
+  ok (Float32.add state (Float32.mul c (Float32.sub target state)))
+
+/-- [conjure_dsp_lib::smoother::process_coeff_f32]: loop body 0:
+    Source: 'src/smoother.rs', lines 153:4-158:5
+    Visibility: public -/
+@[rust_loop_body]
+def smoother.process_coeff_f32_loop.body
+  (c : Float32) (state : Float32) (buf : Slice Float32) (i : Std.Usize) :
+  Result (ControlFlow (Float32 × (Slice Float32) × Std.Usize) (Float32 ×
+    (Slice Float32)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let s ←
+      Slice.update buf i (Float32.add state (Float32.mul c (Float32.sub fl
+        state)))
+    let i2 ← i + 1#usize
+    ok (cont (Float32.add state (Float32.mul c (Float32.sub fl state)), s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::smoother::process_coeff_f32]: loop 0:
+    Source: 'src/smoother.rs', lines 153:4-158:5
+    Visibility: public -/
+@[rust_loop]
+def smoother.process_coeff_f32_loop
+  (c : Float32) (state : Float32) (buf : Slice Float32) (i : Std.Usize) :
+  Result (Float32 × (Slice Float32))
+  := do
+  loop
+    (fun (state1, buf1, i1) => smoother.process_coeff_f32_loop.body c state1
+      buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::smoother::process_coeff_f32]:
+    Source: 'src/smoother.rs', lines 150:0-159:1
+    Visibility: public -/
+@[reducible]
+def smoother.process_coeff_f32
+  (c : Float32) (state : Float32) (buf : Slice Float32) :
+  Result (Float32 × (Slice Float32))
+  := do
+  smoother.process_coeff_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::svf::{impl core::clone::Clone for conjure_dsp_lib::svf::CoeffsF64}::clone]:
     Source: 'src/svf.rs', lines 75:9-75:14

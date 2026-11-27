@@ -1,6 +1,7 @@
 module
 
 public import ConjureDSPLib.Code.Funs
+public import ConjureDSPLib.Delay.Basic
 
 /-!
 # The smoother in f32: what the translated Rust does
@@ -148,18 +149,13 @@ theorem process_coeff_f32_spec (c state : Float32) (buf : Slice Float32) :
   simp only [UScalar.ofNatCore_val_eq, List.take_zero, List.drop_zero, List.nil_append] at h
   exact h
 
-private theorem exists_ok_of_spec_f32 {α : Type} {m : Result α} {P : α → Prop} (h : m ⦃ P ⦄) :
-    ∃ x, m = ok x ∧ P x := by
-  revert h
-  cases m <;> simp
-
 /-- `process_f32 a` is `process_coeff_f32` with the coefficient `1 - a` computed in binary32:
 the same result (outputs and final state), for every `a`, state and block. -/
 theorem process_f32_eq_process_coeff (a state : Float32) (buf : Slice Float32) :
     process_f32 a state buf = process_coeff_f32 (1 - a) state buf := by
-  obtain ⟨⟨s1, b1⟩, e1, h1a, h1b⟩ := exists_ok_of_spec_f32 (process_f32_spec a state buf)
+  obtain ⟨⟨s1, b1⟩, e1, h1a, h1b⟩ := delay.exists_ok_of_spec (process_f32_spec a state buf)
   obtain ⟨⟨s2, b2⟩, e2, h2a, h2b⟩ :=
-    exists_ok_of_spec_f32 (process_coeff_f32_spec (1 - a) state buf)
+    delay.exists_ok_of_spec (process_coeff_f32_spec (1 - a) state buf)
   rw [e1, e2]
   have hs : s1 = s2 := h1b.trans h2b.symm
   have hb : b1 = b2 := (Slice.eq_iff _ _).mpr (h1a.trans h2a.symm)

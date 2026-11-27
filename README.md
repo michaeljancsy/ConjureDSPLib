@@ -90,7 +90,7 @@ substitute for them.
 | `smoother` | The same; and, for a steady input, how far from it the state can be after `n` steps |
 | `biquad` | From a zero state (or one matching a given history), equals the textbook recurrence in exact arithmetic; whole-block error bound (*) |
 | `svf` | Design functions compute exactly the stated operations (libm modelled, see below); whole-block error bound (*) |
-| `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing; reading then writing one sample matches a one-sample block when the delay is at least 1 |
+| `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing; reading then writing one sample matches a one-sample block when the delay used is at least 1 (a delay of at least 1 and a buffer of at least 2 samples) |
 
 (†) Every public DSP function. For the SVF design functions, "never fails" assumes libm's
 functions never panic.

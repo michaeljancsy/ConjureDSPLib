@@ -116,7 +116,9 @@ theorem rotate_set_eq_drop {α : Type} (l : List α) (p : ℕ) (x : α) (hL : 0 
   have htake : (l.take (p % l.length)).length = p % l.length := by
     simp only [List.length_take]
     omega
-  rw [List.set_eq_take_append_cons_drop, if_pos hq, ← List.rotate_mod l p,
+  rw [List.set_eq_take_append_cons_drop]
+  simp only [hq, ↓reduceIte]
+  rw [← List.rotate_mod l p,
     List.rotate_eq_drop_append_take hq.le, List.drop_eq_getElem_cons hq, succ_mod_eq p _ hL]
   split_ifs with h
   · have hnil : l.drop (p % l.length + 1) = [] := List.drop_eq_nil_of_le (by omega)

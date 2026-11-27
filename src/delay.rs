@@ -49,8 +49,10 @@
 //! feedback, use `read` and then `write` on each sample, with the same `buffer` and `position`:
 //!
 //! 1. `read(buffer, position, delay_samples)` returns `buffer[(p + L - d) mod L]` and changes
-//!    nothing (`read_f64_spec`); for `d >= 1` that is the sample written `d` writes ago
-//!    (`read_f64_rotate`);
+//!    nothing (`read_f64_spec`); for `d >= 1` that is element `L - d` of the buffer read oldest
+//!    first from `position` (`read_f64_rotate`), the sample written `d` writes ago (worked out
+//!    outside Lean, not proved: it also needs `write_f64_rotate` and at least `d` earlier
+//!    writes);
 //! 2. the caller computes the sample `x` to store, for example the input plus a fraction of what
 //!    `read` returned;
 //! 3. `write(buffer, position, x)` stores `x` at `buffer[p]` and moves `position` on by one, back
@@ -150,10 +152,12 @@ pub fn process_f32(
 /// `d = min(delay_samples, L - 1)`, the same clamping as `process_f64` (see the module
 /// documentation). With an empty `buffer` it returns `0.0`. It never panics.
 ///
-/// Called before `write_f64` at the same `position`, it returns the sample written `d` writes
-/// ago when `d >= 1` (`delay.read_f64_rotate`), and reading and then writing one sample gives
-/// the same output, buffer and position as `process_f64` on that one sample
-/// (`delay.read_write_f64_eq_process`). A delay of 0 reads `buffer[p]` (`delay.read_f64_spec`),
+/// When `d >= 1`, it returns element `L - d` of the buffer read oldest first from `position`
+/// (`delay.read_f64_rotate`), which, called before `write_f64` at the same `position`, is the
+/// sample written `d` writes ago (worked out outside Lean, not proved: it also needs
+/// `delay.write_f64_rotate` and at least `d` earlier writes). When `d >= 1`, reading and then
+/// writing one sample gives the same output, buffer and position as `process_f64` on that one
+/// sample (`delay.read_write_f64_eq_process`). A delay of 0 reads `buffer[p]` (`delay.read_f64_spec`),
 /// the sample `write_f64` then overwrites (`delay.write_f64_spec`), not the sample being
 /// written: so for delays of 1 to `D` samples, use a buffer of `D + 1` samples, as for
 /// `process_f64`.
@@ -178,7 +182,7 @@ pub fn read_f64(buffer: &[f64], position: usize, delay_samples: usize) -> f64 {
 /// reaches `L`, so that afterwards `position < L`. With an empty `buffer` it does nothing:
 /// `position` is left unchanged. It never panics. The new `buffer` and `position` are exactly
 /// those `process_f64` leaves after a one-sample block holding `x`, whatever its delay
-/// (`delay.read_write_f64_eq_process`).
+/// (`delay.write_f64_eq_process_state`).
 pub fn write_f64(buffer: &mut [f64], position: &mut usize, x: f64) {
     let len = buffer.len();
     if len == 0 {

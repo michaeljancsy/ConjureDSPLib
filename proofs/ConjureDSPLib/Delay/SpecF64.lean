@@ -36,7 +36,7 @@ This file proves:
    the same buffer and position.
 9. `read_f64_spec`, `read_f64_rotate`, `read_f64_empty_buffer`, `read_f64_ok`: `read_f64`
    never fails, and returns element `(p + L - d) mod L` of the buffer (for `L > 0`), which for
-   `d ≥ 1` is the sample written `d` writes ago; with an empty buffer it returns `0`.
+   `d ≥ 1` is element `L - d` of `buf.rotate p`; with an empty buffer it returns `0`.
 10. `write_f64_spec`, `write_f64_rotate`, `write_f64_empty_buffer`, `write_f64_ok`:
    `write_f64` never fails, stores `x` at `p mod L` and moves the position on to `(p + 1) mod L`
    (for `L > 0`); with an empty buffer it changes nothing.
@@ -401,7 +401,8 @@ theorem read_f64_spec (buffer : Slice Float) (position delay_samples : Std.Usize
       intro r hr
       obtain ⟨hr1, hr2⟩ := hr
       refine ⟨by omega, ?_⟩
-      rw [read_index_eq _ _ _ _ _ hL hdv hw', if_pos hr2, hr1]
+      rw [read_index_eq _ _ _ _ _ hL hdv hw', hr1]
+      simp only [hr2, ↓reduceIte]
     · have hdw : ¬ d.val ≤ w.val := by scalar_tac
       apply WP.spec_bind (Usize.sub_spec (x := buffer.len) (y := d) (by scalar_tac))
       intro i hi
@@ -409,7 +410,8 @@ theorem read_f64_spec (buffer : Slice Float) (position delay_samples : Std.Usize
       apply WP.spec_mono (Usize.add_spec (x := w) (y := i) (by scalar_tac))
       intro r hr
       refine ⟨by omega, ?_⟩
-      rw [read_index_eq _ _ _ _ _ hL hdv hw', if_neg hdw]
+      rw [read_index_eq _ _ _ _ _ hL hdv hw']
+      simp only [hdw, ↓reduceIte]
       omega
   rintro r ⟨hrL, hridx⟩
   apply WP.spec_mono (Slice.index_usize_spec buffer r hrL)
@@ -417,11 +419,10 @@ theorem read_f64_spec (buffer : Slice Float) (position delay_samples : Std.Usize
   rw [hridx, hy]
   exact List.getElem?_eq_getElem hrL
 
-/-- **The sample written `d` writes ago.** For `L = buffer.length > 0` and
-`d = min delay_samples (L - 1)` with `d ≥ 1`: `read_f64` never fails, and returns element
-`L - d` of `buffer.rotate position`, the buffer read in time order (oldest first) from
-`position`. When `position` is where the next write goes (as after `write_f64` or
-`process_f64`), that is the sample written `d` writes ago: element `L - 1` is the latest. -/
+/-- **Reading in time order.** For `L = buffer.length > 0` and `d = min delay_samples (L - 1)`
+with `d ≥ 1`: `read_f64` never fails, and returns element `L - d` of `buffer.rotate position`,
+the buffer read in time order (oldest first) from `position`. When `position` is where the next
+write goes, that is the sample written `d` writes ago (worked out outside Lean, not proved: it also needs `write_f64_rotate` and at least `d` earlier writes). -/
 theorem read_f64_rotate (buffer : Slice Float) (position delay_samples : Std.Usize)
     (hL : 0 < buffer.length) (hd : 1 ≤ min delay_samples.val (buffer.length - 1)) :
     read_f64 buffer position delay_samples ⦃ y =>
@@ -472,7 +473,6 @@ theorem write_f64_spec (buffer : Slice Float) (position : Std.Usize) (x : Float)
   apply WP.spec_bind (Slice.index_mut_usize_spec buffer w hwL)
   rintro ⟨fl, back⟩ ⟨-, hback⟩
   subst hback
-  try dsimp only
   apply WP.spec_bind (Usize.add_spec (x := w) (y := 1#usize) (by scalar_tac))
   intro next hnext
   have hsucc := succ_mod_eq position.val buffer.length hL
@@ -481,18 +481,18 @@ theorem write_f64_spec (buffer : Slice Float) (position : Std.Usize) (x : Float)
   · rename_i h
     have h1 : w.val + 1 = buffer.length := by
       have h' := congrArg UScalar.val h
-      have h1' : (1#usize).val = 1 := by first | rfl | simp
+      have h1' : (1#usize).val = 1 := by simp
       omega
     simp only [WP.spec_ok, WP.uncurry'_pair]
     refine ⟨by rw [Slice.set_val_eq, hw'], ?_⟩
-    rw [hsucc, if_pos h1]
-    all_goals simp
+    simp [hsucc, h1]
   · rename_i h
     have h1 : ¬ w.val + 1 = buffer.length := fun e => h (UScalar.eq_of_val_eq (by scalar_tac))
     simp only [WP.spec_ok, WP.uncurry'_pair]
     refine ⟨by rw [Slice.set_val_eq, hw'], ?_⟩
-    rw [hsucc, if_neg h1]
-    all_goals scalar_tac
+    rw [hsucc]
+    simp only [h1, ↓reduceIte]
+    scalar_tac
 
 /-- **The history after a write.** For `L = buffer.length > 0`: `write_f64` never fails, and the
 new buffer read in time order from the new position is the old one read from the old position,

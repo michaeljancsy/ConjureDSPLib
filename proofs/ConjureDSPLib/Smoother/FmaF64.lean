@@ -76,8 +76,8 @@ theorem filt_fma_f64_set_step (c s : Float) (l : List Float) (j : ℕ) (hj : j <
 
 /-- The loop of `process_fma_f64`, started at position `i` with `c` already computed, leaves the
 first `i` samples alone and smooths the rest. -/
-theorem process_fma_f64_loop_spec (state : Float) (buf : Slice Float) (c : Float) (i : Std.Usize)
-    (hi : i.val ≤ buf.length) :
+theorem process_fma_f64_loop_spec (state : Float) (buf : Slice Float) (c : Float)
+    (i : Std.Usize) (hi : i.val ≤ buf.length) :
     process_fma_f64_loop state buf c i ⦃ fun r =>
       r.2.val = buf.val.take i.val ++ (filt_fma_f64 c state (buf.val.drop i.val)).2 ∧
       r.1 = (filt_fma_f64 c state (buf.val.drop i.val)).1 ⦄ := by
@@ -390,7 +390,8 @@ theorem process_fma_f64_block_error_of_inputs (a state : Float) (buf : Slice Flo
 /-- **Whole-block error of the fused `process_coeff_fma_f64`, with conditions on the inputs
 only.** The statement of `process_coeff_f64_block_error_of_inputs`, word for word, for the fused
 function. -/
-theorem process_coeff_fma_f64_block_error_of_inputs (c state : Float) (buf : Slice Float) (M : ℝ)
+theorem process_coeff_fma_f64_block_error_of_inputs (c state : Float) (buf : Slice Float)
+    (M : ℝ)
     (hc : c.isFinite = true) (hs : state.isFinite = true)
     (hin : ∀ x ∈ buf.val, x.isFinite = true ∧ |real_f64 x| ≤ M) (hM0 : 0 ≤ M)
     (hstab : |1 - real_f64 c| + errGrowth (1 - real_f64 c) unitRoundoff_f64 < 1)

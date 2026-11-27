@@ -570,7 +570,8 @@ What is listed here is observed or expected behaviour, not proved.
   only, `OnePole/`, `Smoother/`) proves what the filter does in exact arithmetic;
   `Textbook.lean` (real numbers only) shows the code's form of a filter equals the textbook formula;
   `Contraction.lean` (real numbers only) builds a `Contraction` for biquads with complex poles,
-  distinct real poles, a repeated real pole, or poles close together when its `ρ < 1`
+  distinct real poles or a repeated real pole inside the unit circle, or with poles close together
+  when its `ρ < 1`
   (`Biquad/`), or for the SVF with complex poles or from a biquad one (`Svf/`); `Basic.lean`
   (`Delay/`) holds facts about lists, natural numbers and Aeneas's `Result` that both precisions'
   files use; `Line.lean` (real numbers only, `Gain/`) holds the gain ramp's straight line and the

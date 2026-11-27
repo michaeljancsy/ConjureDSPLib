@@ -31,8 +31,8 @@
 //! inequalities hold exactly when both poles are inside the unit circle
 //! (`biquad.realPoles_lt_one_iff`); and for poles inside the unit circle, the proofs supply the
 //! `Contraction` the error-bound theorems need (`biquad.complexPolesContraction`,
-//! `biquad.realPolesContraction`, `biquad.repeatedPoleContraction`, in
-//! `Biquad/Contraction.lean`).
+//! `biquad.realPolesContraction`, `biquad.repeatedPoleContraction`,
+//! `biquad.closePolesContraction`, in `Biquad/Contraction.lean`).
 //!
 //! For RBJ-cookbook low-pass and high-pass coefficients at very low cutoffs (a few hertz), `f32`
 //! coefficients can put a pole on or outside the unit circle (worked out outside Lean, not proved;

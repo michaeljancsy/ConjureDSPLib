@@ -122,8 +122,9 @@ so a C or C++ SVF gets a different `d` from this crate's unfused `CoeffsF64::new
 filter matches only if `d` is computed unfused there too.
 
 The proofs show that each fused function computes exactly this grouping, never fails, and meets
-the same whole-block error bounds as its unfused version, with the same constants. The
-`_of_inputs` theorems have exactly the unfused ones' conditions; the others replace the
+the same whole-block error bounds (and, for the smoother, the same settling bounds) as its unfused
+version, with the same constants. The `_of_inputs` and settling theorems have exactly the unfused
+ones' conditions; the others replace the
 no-overflow condition `NoOverflow_*` by `NoOverflowFma_*`, which is about the fused function's
 own intermediate results. Tighter bounds for the fused versions are not proved.
 

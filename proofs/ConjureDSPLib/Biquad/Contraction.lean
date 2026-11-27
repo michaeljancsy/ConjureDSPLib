@@ -50,6 +50,19 @@ When `a1² = 4·a2` both poles are `p = -a1/2`. The state-update map is then not
 out outside Lean, not proved); `repeatedPoleContraction` uses `ε·|v₁| + |p·v₁ + v₂|` for a
 chosen `ε > 0`, with `ρ = |p| + ε`, `cInf = 1 + 1/ε` and `K = 1`, when `|p| + ε < 1`.
 
+## Close poles
+
+The same measure works when the poles are only close together, real or complex. With
+`p = -a1/2` (the mean of the poles), `w = p·v₁ + v₂` and `δ = a1²/4 - a2`, the state-update map
+takes `v₁` to `p·v₁ + w` and `w` to `p·w + δ·v₁` (`closePoleCoord_update`), so
+`ε·|v₁| + |w|` shrinks by `ρ = |p| + max(ε, |δ|/ε)` for any chosen `ε > 0`
+(`closePolesContraction`, when this `ρ < 1`), with `cInf = 1/ε` and `K = 1`. Unlike the
+`cInf = 1/d` of `realPolesContraction`, this `cInf` does not grow as the poles merge; the price is
+that `ρ` is at least the larger pole size (worked out outside Lean, not proved). For real poles,
+`|δ| = (d/2)²` (`poleGap_sq`). Worked out outside Lean, not proved: `ρ < 1` needs
+`|p| + √|δ| < 1`, which for complex poles is stricter than both poles being inside the unit
+circle, and `cInf = 1/ε` is always above `1/(1 − |p|)`.
+
 When 1 is a pole (`1 + a1 + a2 = 0`) the state-update map leaves the pair `(1, -a2)` unchanged
 (`update_one_neg_a2_of_pole_one`), so no `Contraction` exists (`isEmpty_contraction_of_pole_one`).
 -/
@@ -593,6 +606,109 @@ noncomputable def repeatedPoleContraction (c : CoeffsReal) (h : c.a1 ^ 2 = 4 * c
       refine (abs_add_le _ _).trans ?_
       rw [abs_mul, abs_div, abs_neg, abs_two]
     have := abs_nonneg v₁
+    nlinarith
+
+/-! ## Close poles -/
+
+/-- **The state-update map in the coordinates `(v₁, p·v₁ + v₂)`**, with `p = -a1/2` (the mean of
+the two poles) and `δ = a1²/4 - a2`, for any coefficients: the new pair `(-a1·v₁ + v₂, -a2·v₁)`
+has first entry `p·v₁ + w` and coordinate `p·(-a1·v₁ + v₂) + (-a2·v₁) = p·w + δ·v₁`, where
+`w = p·v₁ + v₂`. -/
+theorem closePoleCoord_update (c : CoeffsReal) (v₁ v₂ : ℝ) :
+    -c.a1 * v₁ + v₂ = -c.a1 / 2 * v₁ + (-c.a1 / 2 * v₁ + v₂) ∧
+      -c.a1 / 2 * (-c.a1 * v₁ + v₂) + -c.a2 * v₁ =
+        -c.a1 / 2 * (-c.a1 / 2 * v₁ + v₂) + (c.a1 ^ 2 / 4 - c.a2) * v₁ :=
+  ⟨by ring, by ring⟩
+
+/-- `1/ε` times the measure `repeatedPoleNorm c ε`, expanded: `|v₁| + (1/ε)·|p·v₁ + v₂|`. -/
+theorem one_div_mul_repeatedPoleNorm (c : CoeffsReal) {ε : ℝ} (hε : 0 < ε) (v₁ v₂ : ℝ) :
+    1 / ε * repeatedPoleNorm c ε v₁ v₂ = |v₁| + 1 / ε * |-c.a1 / 2 * v₁ + v₂| := by
+  unfold repeatedPoleNorm
+  rw [mul_add, ← mul_assoc, one_div_mul_cancel hε.ne', one_mul]
+
+/-- **A `Contraction` for biquads whose poles are close together**, real or complex, for any
+`ε > 0` with `ρ = |a1|/2 + max(ε, |a1²/4 - a2|/ε) < 1`: the measure `repeatedPoleNorm c ε`,
+`ε·|v₁| + |p·v₁ + v₂|` with `p = -a1/2`, with this `ρ`, `cInf = 1/ε` and `K = 1`. The
+state-update map takes `w = p·v₁ + v₂` to `p·w + δ·v₁` with `δ = a1²/4 - a2`
+(`closePoleCoord_update`). `cInf` does not depend on the distance between the poles, unlike that
+of `realPolesContraction` (`1/d`) or `complexPolesContraction` (which grows like `1/ω`). Worked
+out outside Lean, not proved: `ρ < 1` needs `|p| + √|δ| < 1`, which for complex poles is stricter
+than both poles being inside the unit circle, and `cInf = 1/ε` is always above `1/(1 − |p|)`. When
+`a1² = 4·a2` (`δ = 0`) this `ρ` is `|a1|/2 + ε`, as for `repeatedPoleContraction`, with a smaller
+`cInf`. -/
+noncomputable def closePolesContraction (c : CoeffsReal) {ε : ℝ} (hε : 0 < ε)
+    (h1 : |c.a1| / 2 + max ε (|c.a1 ^ 2 / 4 - c.a2| / ε) < 1) : Contraction c where
+  N := repeatedPoleNorm c ε
+  ρ := |c.a1| / 2 + max ε (|c.a1 ^ 2 / 4 - c.a2| / ε)
+  cInf := 1 / ε
+  K := 1
+  nonneg _ _ := by unfold repeatedPoleNorm; positivity
+  add_le u₁ u₂ v₁ v₂ := by
+    unfold repeatedPoleNorm
+    have e : -c.a1 / 2 * (u₁ + v₁) + (u₂ + v₂) =
+        (-c.a1 / 2 * u₁ + u₂) + (-c.a1 / 2 * v₁ + v₂) := by ring
+    rw [e]
+    have := abs_add_le (-c.a1 / 2 * u₁ + u₂) (-c.a1 / 2 * v₁ + v₂)
+    have := abs_add_le u₁ v₁
+    nlinarith
+  contract v₁ v₂ := by
+    rw [one_mul, zero_mul, add_zero]
+    obtain ⟨e1, e2⟩ := closePoleCoord_update c v₁ v₂
+    unfold repeatedPoleNorm
+    rw [e2, e1]
+    have hp : |-c.a1 / 2| = |c.a1| / 2 := by rw [abs_div, abs_neg, abs_two]
+    set w := -c.a1 / 2 * v₁ + v₂
+    set δ := c.a1 ^ 2 / 4 - c.a2
+    set m := max ε (|δ| / ε)
+    have h3 : |-c.a1 / 2 * v₁ + w| ≤ |c.a1| / 2 * |v₁| + |w| := by
+      refine (abs_add_le _ _).trans ?_; rw [abs_mul, hp]
+    have h4 : |-c.a1 / 2 * w + δ * v₁| ≤ |c.a1| / 2 * |w| + |δ| * |v₁| := by
+      refine (abs_add_le _ _).trans ?_; rw [abs_mul, abs_mul, hp]
+    have hm1 : ε ≤ m := le_max_left _ _
+    have hm2 : |δ| ≤ m * ε := by
+      have : |δ| / ε ≤ m := le_max_right _ _
+      rwa [div_le_iff₀ hε] at this
+    have h5 := mul_le_mul_of_nonneg_left h3 hε.le
+    have h6 := mul_le_mul_of_nonneg_right hm1 (abs_nonneg w)
+    have h7 := mul_le_mul_of_nonneg_right hm2 (abs_nonneg v₁)
+    calc ε * |-c.a1 / 2 * v₁ + w| + |-c.a1 / 2 * w + δ * v₁|
+        ≤ ε * (|c.a1| / 2 * |v₁| + |w|) + (|c.a1| / 2 * |w| + |δ| * |v₁|) := add_le_add h5 h4
+      _ ≤ (|c.a1| / 2 + m) * (ε * |v₁| + |w|) := by nlinarith
+  ρ_nonneg := by
+    have := le_max_left ε (|c.a1 ^ 2 / 4 - c.a2| / ε)
+    have := abs_nonneg c.a1
+    linarith
+  ρ_lt_one := h1
+  cInf_nonneg := by positivity
+  K_nonneg := by norm_num
+  le_fst v₁ v₂ := by
+    show |v₁| ≤ 1 / ε * repeatedPoleNorm c ε v₁ v₂
+    rw [one_div_mul_repeatedPoleNorm c hε]
+    have : 0 ≤ 1 / ε * |-c.a1 / 2 * v₁ + v₂| := by positivity
+    linarith
+  le_snd v₁ v₂ := by
+    show |v₂| ≤ 1 / ε * repeatedPoleNorm c ε v₁ v₂
+    rw [one_div_mul_repeatedPoleNorm c hε]
+    have hm := le_max_left ε (|c.a1 ^ 2 / 4 - c.a2| / ε)
+    have ha := abs_nonneg c.a1
+    have hp1 : |c.a1| / 2 ≤ 1 := by linarith
+    have hε1 : 1 ≤ 1 / ε := by rw [le_div_iff₀ hε, one_mul]; linarith
+    have h3 : |v₂| ≤ |-c.a1 / 2 * v₁ + v₂| + |c.a1| / 2 * |v₁| := by
+      calc |v₂| = |(-c.a1 / 2 * v₁ + v₂) - (-c.a1 / 2 * v₁)| := by ring_nf
+        _ ≤ |-c.a1 / 2 * v₁ + v₂| + |-c.a1 / 2 * v₁| := abs_sub _ _
+        _ = |-c.a1 / 2 * v₁ + v₂| + |c.a1| / 2 * |v₁| := by
+          rw [abs_mul, abs_div, abs_neg, abs_two]
+    have h4 := mul_le_mul_of_nonneg_right hε1 (abs_nonneg (-c.a1 / 2 * v₁ + v₂))
+    have h5 := mul_le_mul_of_nonneg_right hp1 (abs_nonneg v₁)
+    linarith
+  le_sum v₁ v₂ := by
+    unfold repeatedPoleNorm
+    have hm := le_max_left ε (|c.a1 ^ 2 / 4 - c.a2| / ε)
+    have hεp : ε + |c.a1| / 2 ≤ 1 := by linarith
+    have h3 : |-c.a1 / 2 * v₁ + v₂| ≤ |c.a1| / 2 * |v₁| + |v₂| := by
+      refine (abs_add_le _ _).trans ?_
+      rw [abs_mul, abs_div, abs_neg, abs_two]
+    have h4 := mul_le_mul_of_nonneg_right hεp (abs_nonneg v₁)
     nlinarith
 
 /-! ## A pole at 1 -/

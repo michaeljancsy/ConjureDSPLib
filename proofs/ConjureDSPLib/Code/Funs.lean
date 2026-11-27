@@ -416,7 +416,7 @@ def biquad.process_f32
   biquad.process_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::biquad::step_fma_f64]:
-    Source: 'src/biquad.rs', lines 188:0-193:1
+    Source: 'src/biquad.rs', lines 189:0-194:1
     Visibility: public -/
 def biquad.step_fma_f64
   (c : biquad.CoeffsF64) (state : biquad.StateF64) (x : Float) :
@@ -428,7 +428,7 @@ def biquad.step_fma_f64
   ok (y, { s1 := (Float.add fl state.s2), s2 := fl1 })
 
 /-- [conjure_dsp_lib::biquad::process_fma_f64]: loop body 0:
-    Source: 'src/biquad.rs', lines 201:4-204:5
+    Source: 'src/biquad.rs', lines 202:4-205:5
     Visibility: public -/
 @[rust_loop_body]
 def biquad.process_fma_f64_loop.body
@@ -448,7 +448,7 @@ def biquad.process_fma_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::biquad::process_fma_f64]: loop 0:
-    Source: 'src/biquad.rs', lines 201:4-204:5
+    Source: 'src/biquad.rs', lines 202:4-205:5
     Visibility: public -/
 @[rust_loop]
 def biquad.process_fma_f64_loop
@@ -462,7 +462,7 @@ def biquad.process_fma_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::biquad::process_fma_f64]:
-    Source: 'src/biquad.rs', lines 198:0-205:1
+    Source: 'src/biquad.rs', lines 199:0-206:1
     Visibility: public -/
 @[reducible]
 def biquad.process_fma_f64
@@ -472,7 +472,7 @@ def biquad.process_fma_f64
   biquad.process_fma_f64_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::biquad::step_fma_f32]:
-    Source: 'src/biquad.rs', lines 221:0-226:1
+    Source: 'src/biquad.rs', lines 223:0-228:1
     Visibility: public -/
 def biquad.step_fma_f32
   (c : biquad.CoeffsF32) (state : biquad.StateF32) (x : Float32) :
@@ -484,7 +484,7 @@ def biquad.step_fma_f32
   ok (y, { s1 := (Float32.add fl state.s2), s2 := fl1 })
 
 /-- [conjure_dsp_lib::biquad::process_fma_f32]: loop body 0:
-    Source: 'src/biquad.rs', lines 234:4-237:5
+    Source: 'src/biquad.rs', lines 236:4-239:5
     Visibility: public -/
 @[rust_loop_body]
 def biquad.process_fma_f32_loop.body
@@ -504,7 +504,7 @@ def biquad.process_fma_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::biquad::process_fma_f32]: loop 0:
-    Source: 'src/biquad.rs', lines 234:4-237:5
+    Source: 'src/biquad.rs', lines 236:4-239:5
     Visibility: public -/
 @[rust_loop]
 def biquad.process_fma_f32_loop
@@ -518,7 +518,7 @@ def biquad.process_fma_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::biquad::process_fma_f32]:
-    Source: 'src/biquad.rs', lines 231:0-238:1
+    Source: 'src/biquad.rs', lines 233:0-240:1
     Visibility: public -/
 @[reducible]
 def biquad.process_fma_f32
@@ -861,14 +861,14 @@ def one_pole.process_f32
   one_pole.process_f32_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_fma_f64]:
-    Source: 'src/one_pole.rs', lines 77:0-79:1
+    Source: 'src/one_pole.rs', lines 78:0-80:1
     Visibility: public -/
 def one_pole.step_fma_f64
   (a : Float) (state : Float) (x : Float) : Result Float := do
   ok (std.f64.mul_add a state x)
 
 /-- [conjure_dsp_lib::one_pole::process_fma_f64]: loop body 0:
-    Source: 'src/one_pole.rs', lines 87:4-92:5
+    Source: 'src/one_pole.rs', lines 88:4-93:5
     Visibility: public -/
 @[rust_loop_body]
 def one_pole.process_fma_f64_loop.body
@@ -887,7 +887,7 @@ def one_pole.process_fma_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::one_pole::process_fma_f64]: loop 0:
-    Source: 'src/one_pole.rs', lines 87:4-92:5
+    Source: 'src/one_pole.rs', lines 88:4-93:5
     Visibility: public -/
 @[rust_loop]
 def one_pole.process_fma_f64_loop
@@ -900,7 +900,7 @@ def one_pole.process_fma_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::one_pole::process_fma_f64]:
-    Source: 'src/one_pole.rs', lines 84:0-93:1
+    Source: 'src/one_pole.rs', lines 85:0-94:1
     Visibility: public -/
 @[reducible]
 def one_pole.process_fma_f64
@@ -910,14 +910,14 @@ def one_pole.process_fma_f64
   one_pole.process_fma_f64_loop a state buf 0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_fma_f32]:
-    Source: 'src/one_pole.rs', lines 99:0-101:1
+    Source: 'src/one_pole.rs', lines 102:0-104:1
     Visibility: public -/
 def one_pole.step_fma_f32
   (a : Float32) (state : Float32) (x : Float32) : Result Float32 := do
   ok (std.f32.mul_add a state x)
 
 /-- [conjure_dsp_lib::one_pole::process_fma_f32]: loop body 0:
-    Source: 'src/one_pole.rs', lines 109:4-114:5
+    Source: 'src/one_pole.rs', lines 112:4-117:5
     Visibility: public -/
 @[rust_loop_body]
 def one_pole.process_fma_f32_loop.body
@@ -936,7 +936,7 @@ def one_pole.process_fma_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::one_pole::process_fma_f32]: loop 0:
-    Source: 'src/one_pole.rs', lines 109:4-114:5
+    Source: 'src/one_pole.rs', lines 112:4-117:5
     Visibility: public -/
 @[rust_loop]
 def one_pole.process_fma_f32_loop
@@ -949,7 +949,7 @@ def one_pole.process_fma_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::one_pole::process_fma_f32]:
-    Source: 'src/one_pole.rs', lines 106:0-115:1
+    Source: 'src/one_pole.rs', lines 109:0-118:1
     Visibility: public -/
 @[reducible]
 def one_pole.process_fma_f32
@@ -1821,7 +1821,7 @@ def svf.process_f32
   svf.process_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::svf::step_fma_f64]:
-    Source: 'src/svf.rs', lines 378:0-385:1
+    Source: 'src/svf.rs', lines 381:0-388:1
     Visibility: public -/
 def svf.step_fma_f64
   (c : svf.CoeffsF64) (state : svf.StateF64) (x : Float) :
@@ -1841,7 +1841,7 @@ def svf.step_fma_f64
   ok (fl4, { s1 := fl1, s2 := fl2 })
 
 /-- [conjure_dsp_lib::svf::process_fma_f64]: loop body 0:
-    Source: 'src/svf.rs', lines 393:4-396:5
+    Source: 'src/svf.rs', lines 396:4-399:5
     Visibility: public -/
 @[rust_loop_body]
 def svf.process_fma_f64_loop.body
@@ -1861,7 +1861,7 @@ def svf.process_fma_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::svf::process_fma_f64]: loop 0:
-    Source: 'src/svf.rs', lines 393:4-396:5
+    Source: 'src/svf.rs', lines 396:4-399:5
     Visibility: public -/
 @[rust_loop]
 def svf.process_fma_f64_loop
@@ -1874,7 +1874,7 @@ def svf.process_fma_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::svf::process_fma_f64]:
-    Source: 'src/svf.rs', lines 390:0-397:1
+    Source: 'src/svf.rs', lines 393:0-400:1
     Visibility: public -/
 @[reducible]
 def svf.process_fma_f64
@@ -1884,7 +1884,7 @@ def svf.process_fma_f64
   svf.process_fma_f64_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::svf::step_fma_f32]:
-    Source: 'src/svf.rs', lines 417:0-424:1
+    Source: 'src/svf.rs', lines 423:0-430:1
     Visibility: public -/
 def svf.step_fma_f32
   (c : svf.CoeffsF32) (state : svf.StateF32) (x : Float32) :
@@ -1906,7 +1906,7 @@ def svf.step_fma_f32
   ok (fl4, { s1 := fl1, s2 := fl2 })
 
 /-- [conjure_dsp_lib::svf::process_fma_f32]: loop body 0:
-    Source: 'src/svf.rs', lines 432:4-435:5
+    Source: 'src/svf.rs', lines 438:4-441:5
     Visibility: public -/
 @[rust_loop_body]
 def svf.process_fma_f32_loop.body
@@ -1926,7 +1926,7 @@ def svf.process_fma_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::svf::process_fma_f32]: loop 0:
-    Source: 'src/svf.rs', lines 432:4-435:5
+    Source: 'src/svf.rs', lines 438:4-441:5
     Visibility: public -/
 @[rust_loop]
 def svf.process_fma_f32_loop
@@ -1939,7 +1939,7 @@ def svf.process_fma_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::svf::process_fma_f32]:
-    Source: 'src/svf.rs', lines 429:0-436:1
+    Source: 'src/svf.rs', lines 435:0-442:1
     Visibility: public -/
 @[reducible]
 def svf.process_fma_f32

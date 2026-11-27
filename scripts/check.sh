@@ -11,5 +11,6 @@ printf '== cargo clippy\n';        cargo clippy --all-targets -- -D warnings
 printf '== cargo clippy (std)\n';  cargo clippy --all-targets --features std -- -D warnings
 printf '== cargo test\n';          cargo test
 printf '== cargo test (std)\n';    cargo test --features std
-printf '== cargo doc\n';           RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet --features std
+printf '== cargo doc\n';           RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet
+printf '== cargo doc (std)\n';     RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet --features std
 "$ROOT/scripts/prove.sh"

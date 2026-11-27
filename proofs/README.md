@@ -448,10 +448,13 @@ processor:
 
 This is the grouping clang gives the unfused expressions under its default `-ffp-contract=on`,
 which fuses a product into the addition or subtraction that uses it, within one expression,
-trying the left operand first; on Apple silicon each `fma` is then one instruction. So the fused
-functions compute the same as these filters written that way in C or C++ and compiled by clang
-there (worked out outside Lean, not proved). The SVF's coefficients, `d` included, come from
-`CoeffsF64::new` and the design functions, which do not fuse.
+trying the left operand first; on Apple silicon each `fma` is then one instruction. So each fused
+step computes the same as the same step written that way in C or C++ and compiled by clang there
+(worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). For the SVF
+this is the step only. Its coefficients, `d` included, come from `CoeffsF64::new` and the design
+functions, which do not fuse, while clang also fuses `1 + g·(g + k)` in `d = 1/(1 + g·(g + k))`;
+so a C or C++ SVF built that way gets a different `d`, and the whole filter matches only if `d`
+is computed unfused there too.
 
 | Rust function | Theorem | File | Says |
 |---|---|---|---|

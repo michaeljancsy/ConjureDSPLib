@@ -360,7 +360,8 @@ pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
 /// One sample of the filter, in `f64`, with fused multiply-adds: returns the output and updates
 /// `state`. The grouping is how clang contracts the expressions of [`step_f64`] on Apple silicon
 /// (its default `-ffp-contract=on`, which fuses a product into the addition or subtraction it
-/// feeds, within one expression):
+/// feeds, within one expression; worked out outside Lean, not proved: checked against Apple
+/// clang 17, arm64, -O2):
 ///
 /// ```text
 /// hp  = ((-(k + g)).mul_add(s1, x) - s2)·d
@@ -371,8 +372,10 @@ pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
 /// y   = m_lp.mul_add(lp, m_hp.mul_add(hp, m_bp·bp))
 /// ```
 ///
-/// Eleven roundings instead of sixteen. The coefficients, including `d`, are those of
-/// [`CoeffsF64::new`] and the design functions, which do not fuse. Needs the `std` feature.
+/// Eleven roundings instead of sixteen. This matches the step only: the coefficients, including
+/// `d`, are those of [`CoeffsF64::new`] and the design functions, which do not fuse, while
+/// clang also fuses `1 + g·(g + k)` when computing `d`. So the whole filter matches a C or C++ one
+/// built that way only if `d` is also computed unfused there. Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f64(c: &CoeffsF64, state: &mut StateF64, x: f64) -> f64 {
@@ -399,7 +402,8 @@ pub fn process_fma_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
 /// One sample of the filter, in `f32`, with fused multiply-adds: returns the output and updates
 /// `state`. The grouping is how clang contracts the expressions of [`step_f32`] on Apple silicon
 /// (its default `-ffp-contract=on`, which fuses a product into the addition or subtraction it
-/// feeds, within one expression):
+/// feeds, within one expression; worked out outside Lean, not proved: checked against Apple
+/// clang 17, arm64, -O2):
 ///
 /// ```text
 /// hp  = ((-(k + g)).mul_add(s1, x) - s2)·d
@@ -410,8 +414,10 @@ pub fn process_fma_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
 /// y   = m_lp.mul_add(lp, m_hp.mul_add(hp, m_bp·bp))
 /// ```
 ///
-/// Eleven roundings instead of sixteen. The coefficients, including `d`, are those of
-/// [`CoeffsF32::new`] and the design functions, which do not fuse. Needs the `std` feature.
+/// Eleven roundings instead of sixteen. This matches the step only: the coefficients, including
+/// `d`, are those of [`CoeffsF32::new`] and the design functions, which do not fuse, while
+/// clang also fuses `1 + g·(g + k)` when computing `d`. So the whole filter matches a C or C++ one
+/// built that way only if `d` is also computed unfused there. Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f32(c: &CoeffsF32, state: &mut StateF32, x: f32) -> f32 {

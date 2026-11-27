@@ -174,7 +174,8 @@ pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
 /// One sample of the filter, in `f64`, with fused multiply-adds: returns the output and updates
 /// `state`. The grouping is how clang contracts the expressions of [`step_f64`] on Apple silicon
 /// (its default `-ffp-contract=on`, which fuses a product into the addition or subtraction it
-/// feeds, within one expression):
+/// feeds, within one expression; worked out outside Lean, not proved: checked against Apple
+/// clang 17, arm64, -O2):
 ///
 /// ```text
 /// y  = b0.mul_add(x, s1)
@@ -207,7 +208,8 @@ pub fn process_fma_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
 /// One sample of the filter, in `f32`, with fused multiply-adds: returns the output and updates
 /// `state`. The grouping is how clang contracts the expressions of [`step_f32`] on Apple silicon
 /// (its default `-ffp-contract=on`, which fuses a product into the addition or subtraction it
-/// feeds, within one expression):
+/// feeds, within one expression; worked out outside Lean, not proved: checked against Apple
+/// clang 17, arm64, -O2):
 ///
 /// ```text
 /// y  = b0.mul_add(x, s1)

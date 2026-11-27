@@ -58,4 +58,7 @@ jobs:
         run: cargo test --features std
 
       - name: cargo doc
+        run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet
+
+      - name: cargo doc (std feature)
         run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --quiet --features std

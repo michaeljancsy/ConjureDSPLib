@@ -84,12 +84,17 @@ Per-sample code does no memory allocation, takes no locks and makes no system ca
 - None of this is otherwise proved in Lean.
 
 With the `std` feature on, the crate is no longer `no_std`: it links Rust's standard library, so
-the build no longer rules out allocation and system calls. The functions themselves do not
-change: the fused ones add only calls to `f64::mul_add` and `f32::mul_add`. On processors with a
-fused multiply-add instruction (every 64-bit Arm processor, Apple silicon included, and x86-64
-built with the `fma` target feature) each call is that one instruction; otherwise it is a call to
-the platform's software `fma` routine (worked out outside Lean, not proved). With the feature off,
-the build and every function are exactly as before.
+the build no longer rules out allocation and system calls. The feature only adds the fused
+functions, which call `f64::mul_add` and `f32::mul_add`; the source of every other function is
+the same in both builds, since nothing else in the code depends on the feature (a property of the
+code, not proved). With the feature off, the build is the `no_std` one described above. The
+proofs are about the build with the feature on (Charon translates it with `--features std`),
+which contains every function of the other build too.
+
+On processors with a fused multiply-add instruction (64-bit Arm, Apple silicon included, and
+x86-64 built with the `fma` target feature), each `mul_add` is expected to compile to that one
+instruction; otherwise it is expected to be a call to the platform C library's `fma` routine
+(not measured, and not proved).
 
 ## Fused multiply-add (the `std` feature)
 
@@ -105,17 +110,25 @@ processor:
   (unfused) `CoeffsF64::new` and design functions.
 
 This is how clang contracts the unfused expressions with its default `-ffp-contract=on`, so on
-Apple silicon these functions compute the same as the same filters written in C or C++ and built
-with clang (worked out outside Lean, not proved). The proofs show that each fused function computes
-exactly this grouping, never fails, and meets the same whole-block error bounds as its unfused
-version, with the same constants and conditions; tighter bounds for the fused versions are not
-proved.
+Apple silicon each fused step computes the same as the same step written in C or C++ and built
+with clang (worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). For
+the SVF that is the step only: clang also fuses `1 + g·(g + k)` in the coefficient calculation,
+so a C or C++ SVF gets a different `d` from this crate's unfused `CoeffsF64::new`, and the whole
+filter matches only if `d` is computed unfused there too.
 
-Advice on speed: where the processor has no fused multiply-add instruction (x86-64 built without
-the `fma` target feature, which is Rust's default for x86-64), each `mul_add` is a call to a
-software routine, many times slower than a multiply and an add. Use the unfused functions there,
-or build with `-C target-feature=+fma` for processors that have the instruction. Not measured
-here.
+The proofs show that each fused function computes exactly this grouping, never fails, and meets
+the same whole-block error bounds as its unfused version, with the same constants. The
+`_of_inputs` theorems have exactly the unfused ones' conditions; the others replace the
+no-overflow condition `NoOverflow_*` by `NoOverflowFma_*`, which is about the fused function's
+own intermediate results. Tighter bounds for the fused versions are not proved.
+
+Advice on speed (expected, not measured): where the build cannot assume a fused multiply-add
+instruction (x86-64 without the `fma` target feature, which is Rust's default for x86-64), each
+`mul_add` is expected to be a call to the C library's `fma`. Some C libraries (glibc on x86-64,
+for example) use the hardware instruction at run time when the processor has it, so the cost may
+be only the call; on a processor without the instruction, or with a C library that computes it in
+software, it can be many times slower than a multiply and an add. Use the unfused functions there,
+or build with `-C target-feature=+fma` for processors that have the instruction.
 
 ## What is proved, in brief
 
@@ -185,9 +198,9 @@ In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` count
   `svf.process_f64_block_error`; in exact arithmetic, `svf.complexPolesContraction`.
 - `delay`: `delay.process_f64_ok`, `delay.process_f64_spec`, `delay.process_f64_append`.
 - Fused functions: `real_fma_f64` and `abs_real_fma_sub_le_f64` (one fused multiply-add rounds
-  once), `one_pole.process_fma_f64_block_error_of_inputs`, `biquad.process_fma_f64_spec`,
-  `biquad.process_fma_f64_block_error_of_inputs`, `svf.process_fma_f64_spec`,
-  `svf.process_fma_f64_block_error_of_inputs`.
+  once), `one_pole.process_fma_f64_spec`, `one_pole.process_fma_f64_block_error_of_inputs`,
+  `biquad.process_fma_f64_spec`, `biquad.process_fma_f64_block_error_of_inputs`,
+  `svf.process_fma_f64_spec`, `svf.process_fma_f64_block_error_of_inputs`.
 
 </details>
 

@@ -25,6 +25,35 @@ The proof follows FloatLib's for addition (`Arithmetic/LeanModel/AddSub.lean`): 
 operands are finite and nonzero, Lean's `fma` is Lean's `add` of the exact product, an unpacked
 value with mantissa `m₁·m₂` and exponent `e₁ + e₂`, and the addend. FloatLib's lemma for that case
 is private, so its proof is repeated here (`roundDyadic_addDyadic_eq_ofModel_add`).
+
+## Credit
+
+`round_natAbs_eq_normalize`, `round_addFields_eq_normalize` and
+`roundDyadic_addDyadic_eq_ofModel_add` below are adapted from FloatLib
+(https://github.com/lean-dojo/FloatLib), file
+`FloatLib/Floats/Formats/BinaryInterchange/Arithmetic/LeanModel/AddSub.lean`, where they are the
+private theorems `round_natAbs_eq_normalize`, `round_addFields_eq_normalize` and
+`round_addDyadic_eq_ofModel_add_finite`. FloatLib is under the MIT licence:
+
+Copyright (c) 2026 FloatLib
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 -/
 
 @[expose] public section
@@ -148,30 +177,36 @@ theorem toReal_of_toModel_eq_zero {fmt : FloatFormat} (hfmt : fmt.isIEEE = true)
 /-! Lean's `fma` on zero operands, one equation per case the proofs below need. (Unfolding `fma`
 with `simp` would add its equation lemmas to this module, and some of those mention NaN.) -/
 
+/-- Lean's `fma` of `0·0 + 0`: a zero, `+0` unless the signs agree. -/
 theorem fma_zero_zero_zero (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) :
     Float.Model.UnpackedFloat.fma spec (.zero s₁) (.zero s₂) (.zero s₃) =
       if s₁ * s₂ == s₃ then .zero s₃ else .zero .positive := rfl
 
+/-- Lean's `fma` of `0·y + 0`, `y` finite nonzero: a zero, `+0` unless the signs agree. -/
 theorem fma_zero_finite_zero (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₂ : Nat) (e₂ : Int)
     (h₂ : 0 < m₂) :
     Float.Model.UnpackedFloat.fma spec (.zero s₁) (.finite s₂ m₂ e₂ h₂) (.zero s₃) =
       if s₁ * s₂ == s₃ then .zero s₃ else .zero .positive := rfl
 
+/-- Lean's `fma` of `x·0 + 0`, `x` finite nonzero: a zero, `+0` unless the signs agree. -/
 theorem fma_finite_zero_zero (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₁ : Nat) (e₁ : Int)
     (h₁ : 0 < m₁) :
     Float.Model.UnpackedFloat.fma spec (.finite s₁ m₁ e₁ h₁) (.zero s₂) (.zero s₃) =
       if s₁ * s₂ == s₃ then .zero s₃ else .zero .positive := rfl
 
+/-- Lean's `fma` of `0·0 + z`, `z` finite nonzero: exactly `z`. -/
 theorem fma_zero_zero_finite (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₃ : Nat) (e₃ : Int)
     (h₃ : 0 < m₃) :
     Float.Model.UnpackedFloat.fma spec (.zero s₁) (.zero s₂) (.finite s₃ m₃ e₃ h₃) =
       .finite s₃ m₃ e₃ h₃ := rfl
 
+/-- Lean's `fma` of `0·y + z`, `y` and `z` finite nonzero: exactly `z`. -/
 theorem fma_zero_finite_finite (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₂ m₃ : Nat)
     (e₂ e₃ : Int) (h₂ : 0 < m₂) (h₃ : 0 < m₃) :
     Float.Model.UnpackedFloat.fma spec (.zero s₁) (.finite s₂ m₂ e₂ h₂) (.finite s₃ m₃ e₃ h₃) =
       .finite s₃ m₃ e₃ h₃ := rfl
 
+/-- Lean's `fma` of `x·0 + z`, `x` and `z` finite nonzero: exactly `z`. -/
 theorem fma_finite_zero_finite (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₁ m₃ : Nat)
     (e₁ e₃ : Int) (h₁ : 0 < m₁) (h₃ : 0 < m₃) :
     Float.Model.UnpackedFloat.fma spec (.finite s₁ m₁ e₁ h₁) (.zero s₂) (.finite s₃ m₃ e₃ h₃) =

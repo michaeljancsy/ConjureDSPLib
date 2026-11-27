@@ -71,7 +71,8 @@ pub fn process_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
 
 /// One sample of the filter, in `f64`, with one fused multiply-add: `a.mul_add(state, x)`, which
 /// is `a * state + x` rounded once. This is how clang compiles `x + a * state` on Apple silicon
-/// (its default `-ffp-contract=on`). Needs the `std` feature.
+/// (its default `-ffp-contract=on`; worked out outside Lean, not proved: checked against Apple
+/// clang 17, arm64, -O2). Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f64(a: f64, state: f64, x: f64) -> f64 {
@@ -93,7 +94,9 @@ pub fn process_fma_f64(a: f64, state: &mut f64, buf: &mut [f64]) {
 }
 
 /// One sample of the filter, in `f32`, with one fused multiply-add: `a.mul_add(state, x)`, which
-/// is `a * state + x` rounded once. Needs the `std` feature.
+/// is `a * state + x` rounded once. This is how clang compiles `x + a * state` on Apple silicon
+/// (its default `-ffp-contract=on`; worked out outside Lean, not proved: checked against Apple
+/// clang 17, arm64, -O2). Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f32(a: f32, state: f32, x: f32) -> f32 {
@@ -195,7 +198,7 @@ mod fma_tests {
 
     /// The same tests for both precisions.
     macro_rules! one_pole_fma_tests {
-        ($name:ident, $t:ty, $step:ident, $process:ident, $step_fma:ident, $process_fma:ident,
+        ($name:ident, $t:ty, $process:ident, $step_fma:ident, $process_fma:ident,
          $tol:expr) => {
             mod $name {
                 use super::*;
@@ -252,7 +255,6 @@ mod fma_tests {
     one_pole_fma_tests!(
         f64_tests,
         f64,
-        step_f64,
         process_f64,
         step_fma_f64,
         process_fma_f64,
@@ -261,7 +263,6 @@ mod fma_tests {
     one_pole_fma_tests!(
         f32_tests,
         f32,
-        step_f32,
         process_f32,
         step_fma_f32,
         process_fma_f32,

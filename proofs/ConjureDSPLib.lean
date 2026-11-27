@@ -29,6 +29,8 @@ public import ConjureDSPLib.Smoother.BridgeF64
 public import ConjureDSPLib.Smoother.BridgeF32
 public import ConjureDSPLib.Smoother.BlockF64
 public import ConjureDSPLib.Smoother.BlockF32
+public import ConjureDSPLib.Smoother.FmaF64
+public import ConjureDSPLib.Smoother.FmaF32
 public import ConjureDSPLib.Biquad.SpecF64
 public import ConjureDSPLib.Biquad.SpecF32
 public import ConjureDSPLib.Biquad.Textbook

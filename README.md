@@ -31,8 +31,9 @@ Every module has `f32` and `f64` versions (functions end in `_f32` / `_f64`, typ
   a block at a time (`process`), or one sample at a time, reading before writing, for feedback
   (`read`, `write`).
 
-With the optional cargo feature `std`, `one_pole`, `biquad` and `svf` also have fused multiply-add
-versions (`step_fma_f64`, `process_fma_f64` and the `_f32` ones); see
+With the optional cargo feature `std`, `one_pole`, `smoother`, `biquad` and `svf` also have fused
+multiply-add versions (`step_fma_f64`, `process_fma_f64` and the `_f32` ones, and for the smoother
+also `step_coeff_fma_f64` and `process_coeff_fma_f64`); see
 [Fused multiply-add](#fused-multiply-add-the-std-feature).
 
 ## How to use it
@@ -104,6 +105,8 @@ The fused functions use `mul_add`, one rounding of `a·b + c`, in a fixed groupi
 processor:
 
 - `one_pole::step_fma_*`: `y = a.mul_add(state, x)`.
+- `smoother::step_coeff_fma_*`: `y = c.mul_add(x - state, state)`; `smoother::step_fma_*` the
+  same with `c = 1.0 - a` (computed once per block by `process_fma_*`).
 - `biquad::step_fma_*`: `y = b0.mul_add(x, s1)`, `s1 = b1.mul_add(x, -(a1·y)) + s2`,
   `s2 = b2.mul_add(x, -(a2·y))`.
 - `svf::step_fma_*`: `hp = ((-(k + g)).mul_add(s1, x) - s2)·d`, `bp = g.mul_add(hp, s1)`,
@@ -149,7 +152,7 @@ substitute for them.
 | `biquad` | From a zero state (or one matching a given history), equals the textbook recurrence in exact arithmetic; whole-block error bound (*) |
 | `svf` | Design functions compute exactly the stated operations (libm modelled, see below); whole-block error bound (*) |
 | `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing; reading then writing one sample matches a one-sample block when the delay used is at least 1 (a delay of at least 1 and a buffer of at least 2 samples) |
-| fused `one_pole`, `biquad`, `svf` (`std` feature) | Never fail; compute exactly the stated fused operations; the same whole-block error bound as the unfused version, with the same constants ((*) for the biquad and the SVF) |
+| fused `one_pole`, `smoother`, `biquad`, `svf` (`std` feature) | Never fail; compute exactly the stated fused operations; the same whole-block error bounds (and, for the smoother, settling bounds) as the unfused version, with the same constants ((*) for the biquad and the SVF) |
 
 (†) Every public DSP function. For the SVF design functions, "never fails" assumes libm's
 functions never panic.
@@ -206,6 +209,8 @@ In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` count
   `delay.read_write_f64_eq_process`.
 - Fused functions: `real_fma_f64` and `abs_real_fma_sub_le_f64` (one fused multiply-add rounds
   once), `one_pole.process_fma_f64_spec`, `one_pole.process_fma_f64_block_error_of_inputs`,
+  `smoother.process_fma_f64_spec`, `smoother.process_coeff_fma_f64_spec`,
+  `smoother.process_fma_f64_settle_of_inputs`, `smoother.process_coeff_fma_f64_settle_of_inputs`,
   `biquad.process_fma_f64_spec`, `biquad.process_fma_f64_block_error_of_inputs`,
   `svf.process_fma_f64_spec`, `svf.process_fma_f64_block_error_of_inputs`.
 

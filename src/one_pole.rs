@@ -22,6 +22,11 @@
 //! turns on the processor's flush-to-zero mode, the error bounds are not proved for that mode; see
 //! `proofs/README.md`).
 //!
+//! With the `std` feature, `step_fma_f64` / `process_fma_f64` (and the `f32` ones) compute the
+//! same filter with one fused multiply-add per sample (`one_pole.step_fma_f64_eq`), with the same
+//! whole-block error bound (`one_pole.process_fma_f64_block_error`). Where the processor has no
+//! fused multiply-add instruction, `mul_add` is a slow software routine (not measured here).
+//!
 //! Call these through the module, as `one_pole::process_f32`.
 
 /// One sample of the filter, in `f64`: the new output from the input `x` and the previous

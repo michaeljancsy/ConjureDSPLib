@@ -13,6 +13,12 @@
 //! otherwise proved in Lean. The crate's one dependency is `libm` (pinned exactly, default
 //! features off), for `tan`, `pow` and `sqrt` in filter design.
 //!
+//! The optional `std` feature adds fused multiply-add versions of the one-pole, biquad and SVF
+//! (`step_fma_f64`, `process_fma_f64` and the `f32` ones), which call `f64::mul_add` and
+//! `f32::mul_add`; those are in `std`, not `core`, on stable Rust. With it on, the crate is not
+//! `no_std` and links the standard library, so the build no longer rules out allocation and system
+//! calls as above; the functions themselves are unchanged.
+//!
 //! The code is written so that Aeneas can translate it to Lean (see `proofs/`): plain loops with
 //! an index rather than iterators, and no trait objects or closures in proved functions.
 //!

@@ -603,6 +603,44 @@ theorem isFinite_fma_neg_f32 (x y q : Float32) (hx : x.isFinite = true) (hy : y.
   refine isFinite_fma_f32 x y (-q) hx hy (isFinite_neg_f32 q hq) ?_
   rwa [real_neg_f32 q hq, ← sub_eq_add_neg]
 
+/-- One `(-k).fma s x`, computing `x - k·s`, of finite numbers with a finite result is within
+`u·|x - k·s| + η` of the exact `x - k·s`. -/
+theorem abs_real_neg_fma_sub_le_f64 (k s x : Float) (hk : k.isFinite = true)
+    (hs : s.isFinite = true) (hx : x.isFinite = true) (hr : ((-k).fma s x).isFinite = true) :
+    |real_f64 ((-k).fma s x) - (real_f64 x - real_f64 k * real_f64 s)| ≤
+      unitRoundoff_f64 * |real_f64 x - real_f64 k * real_f64 s| + underflowErr_f64 := by
+  have h := abs_real_fma_sub_le_f64 (-k) s x (isFinite_neg_f64 k hk) hs hx hr
+  rwa [real_neg_f64 k hk,
+    show -real_f64 k * real_f64 s + real_f64 x = real_f64 x - real_f64 k * real_f64 s by ring] at h
+
+/-- `(-k).fma s x` of finite numbers is finite when `|x - k·s|` is at most the largest finite
+value. -/
+theorem isFinite_neg_fma_f64 (k s x : Float) (hk : k.isFinite = true) (hs : s.isFinite = true)
+    (hx : x.isFinite = true) (h : |real_f64 x - real_f64 k * real_f64 s| ≤ maxFinite_f64) :
+    ((-k).fma s x).isFinite = true := by
+  refine isFinite_fma_f64 (-k) s x (isFinite_neg_f64 k hk) hs hx ?_
+  rwa [real_neg_f64 k hk,
+    show -real_f64 k * real_f64 s + real_f64 x = real_f64 x - real_f64 k * real_f64 s by ring]
+
+/-- One `(-k).fma s x`, computing `x - k·s`, of finite numbers with a finite result is within
+`u·|x - k·s| + η` of the exact `x - k·s`. -/
+theorem abs_real_neg_fma_sub_le_f32 (k s x : Float32) (hk : k.isFinite = true)
+    (hs : s.isFinite = true) (hx : x.isFinite = true) (hr : ((-k).fma s x).isFinite = true) :
+    |real_f32 ((-k).fma s x) - (real_f32 x - real_f32 k * real_f32 s)| ≤
+      unitRoundoff_f32 * |real_f32 x - real_f32 k * real_f32 s| + underflowErr_f32 := by
+  have h := abs_real_fma_sub_le_f32 (-k) s x (isFinite_neg_f32 k hk) hs hx hr
+  rwa [real_neg_f32 k hk,
+    show -real_f32 k * real_f32 s + real_f32 x = real_f32 x - real_f32 k * real_f32 s by ring] at h
+
+/-- `(-k).fma s x` of finite numbers is finite when `|x - k·s|` is at most the largest finite
+value. -/
+theorem isFinite_neg_fma_f32 (k s x : Float32) (hk : k.isFinite = true) (hs : s.isFinite = true)
+    (hx : x.isFinite = true) (h : |real_f32 x - real_f32 k * real_f32 s| ≤ maxFinite_f32) :
+    ((-k).fma s x).isFinite = true := by
+  refine isFinite_fma_f32 (-k) s x (isFinite_neg_f32 k hk) hs hx ?_
+  rwa [real_neg_f32 k hk,
+    show -real_f32 k * real_f32 s + real_f32 x = real_f32 x - real_f32 k * real_f32 s by ring]
+
 end conjure_dsp_lib
 
 end

@@ -48,3 +48,6 @@ public import ConjureDSPLib.Svf.Block
 public import ConjureDSPLib.Svf.Contraction
 public import ConjureDSPLib.Svf.BlockF64
 public import ConjureDSPLib.Svf.BlockF32
+public import ConjureDSPLib.Svf.Fma
+public import ConjureDSPLib.Svf.FmaF64
+public import ConjureDSPLib.Svf.FmaF32

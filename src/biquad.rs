@@ -22,6 +22,12 @@
 //! fused multiply-add, given the same rounding mode and subnormal handling, gets the same output,
 //! NaN bit patterns aside (follows from IEEE 754 rounding, not proved).
 //!
+//! With the `std` feature, `step_fma_f64` / `process_fma_f64` (and the `f32` ones) compute
+//! the same steps with fused multiply-adds, in the grouping their documentation gives
+//! (`biquad.step_fma_f64_eq`), with the same whole-block error bounds
+//! (`biquad.process_fma_f64_block_error`). Where the processor has no fused multiply-add
+//! instruction, `mul_add` is a slow software routine (not measured here).
+//!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.
 //!

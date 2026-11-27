@@ -29,6 +29,10 @@ Every module has `f32` and `f64` versions (functions end in `_f32` / `_f64`, typ
   A. Simper (Cytomic).
 - `delay`: delay line of a whole number of samples (no interpolation), in a buffer the caller owns.
 
+With the optional cargo feature `std`, `one_pole`, `biquad` and `svf` also have fused multiply-add
+versions (`step_fma_f64`, `process_fma_f64` and the `_f32` ones); see
+[Fused multiply-add](#fused-multiply-add-the-std-feature).
+
 ## How to use it
 
 Add it from crates.io:
@@ -55,6 +59,13 @@ The crate declares a minimum Rust version of 1.93 (`rust-version` in `Cargo.toml
 repository's own checks use exactly Rust 1.93.1 (`rust-toolchain.toml`). Its one dependency is
 `libm`, pinned exactly to 0.2.16 with default features off.
 
+For the fused multiply-add functions, turn on the `std` feature:
+
+```toml
+[dependencies]
+conjure-dsp-lib = { version = "0.1", features = ["std"] }
+```
+
 The documentation of each module (`cargo doc --open`) gives exact behaviour, including edge cases
 such as empty blocks, an empty delay buffer and changing the delay between calls.
 
@@ -71,6 +82,40 @@ Per-sample code does no memory allocation, takes no locks and makes no system ca
 - **Panics:** a panic would run the program's panic handler, which can allocate, lock and make
   system calls. That the functions never panic is proved of the translated code.
 - None of this is otherwise proved in Lean.
+
+With the `std` feature on, the crate is no longer `no_std`: it links Rust's standard library, so
+the build no longer rules out allocation and system calls. The functions themselves do not
+change: the fused ones add only calls to `f64::mul_add` and `f32::mul_add`. On processors with a
+fused multiply-add instruction (every 64-bit Arm processor, Apple silicon included, and x86-64
+built with the `fma` target feature) each call is that one instruction; otherwise it is a call to
+the platform's software `fma` routine (worked out outside Lean, not proved). With the feature off,
+the build and every function are exactly as before.
+
+## Fused multiply-add (the `std` feature)
+
+The fused functions use `mul_add`, one rounding of `a·b + c`, in a fixed grouping, on every
+processor:
+
+- `one_pole::step_fma_*`: `y = a.mul_add(state, x)`.
+- `biquad::step_fma_*`: `y = b0.mul_add(x, s1)`, `s1 = b1.mul_add(x, -(a1·y)) + s2`,
+  `s2 = b2.mul_add(x, -(a2·y))`.
+- `svf::step_fma_*`: `hp = ((-(k + g)).mul_add(s1, x) - s2)·d`, `bp = g.mul_add(hp, s1)`,
+  `lp = g.mul_add(bp, s2)`, `s1 = g.mul_add(hp, bp)`, `s2 = g.mul_add(bp, lp)`,
+  `y = m_lp.mul_add(lp, m_hp.mul_add(hp, m_bp·bp))`. The coefficients come from the same
+  (unfused) `CoeffsF64::new` and design functions.
+
+This is how clang contracts the unfused expressions with its default `-ffp-contract=on`, so on
+Apple silicon these functions compute the same as the same filters written in C or C++ and built
+with clang (worked out outside Lean, not proved). The proofs show that each fused function computes
+exactly this grouping, never fails, and meets the same whole-block error bounds as its unfused
+version, with the same constants and conditions; tighter bounds for the fused versions are not
+proved.
+
+Advice on speed: where the processor has no fused multiply-add instruction (x86-64 built without
+the `fma` target feature, which is Rust's default for x86-64), each `mul_add` is a call to a
+software routine, many times slower than a multiply and an add. Use the unfused functions there,
+or build with `-C target-feature=+fma` for processors that have the instruction. Not measured
+here.
 
 ## What is proved, in brief
 
@@ -89,6 +134,7 @@ substitute for them.
 | `biquad` | From a zero state (or one matching a given history), equals the textbook recurrence in exact arithmetic; whole-block error bound (*) |
 | `svf` | Design functions compute exactly the stated operations (libm modelled, see below); whole-block error bound (*) |
 | `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing |
+| fused `one_pole`, `biquad`, `svf` (`std` feature) | Never fail; compute exactly the stated fused operations; the same whole-block error bound as the unfused version, with the same constants ((*) for the biquad and the SVF) |
 
 (†) Every public DSP function. For the SVF design functions, "never fails" assumes libm's
 functions never panic.
@@ -138,6 +184,10 @@ In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` count
 - `svf`: `svf.process_f64_spec`, `svf.CoeffsF64.low_pass_eq` (and one for each other shape),
   `svf.process_f64_block_error`; in exact arithmetic, `svf.complexPolesContraction`.
 - `delay`: `delay.process_f64_ok`, `delay.process_f64_spec`, `delay.process_f64_append`.
+- Fused functions: `real_fma_f64` and `abs_real_fma_sub_le_f64` (one fused multiply-add rounds
+  once), `one_pole.process_fma_f64_block_error_of_inputs`, `biquad.process_fma_f64_spec`,
+  `biquad.process_fma_f64_block_error_of_inputs`, `svf.process_fma_f64_spec`,
+  `svf.process_fma_f64_block_error_of_inputs`.
 
 </details>
 
@@ -156,8 +206,12 @@ In brief; the full list is in
   results kept (no flush-to-zero) and subnormal inputs read as they are (no denormals-are-zero), in
   IEEE single and double precision (not x87 extended precision). Hosts and plug-ins often turn on
   flush-to-zero; the error bounds are not proved for that mode.
-- **No fused multiply-add.** Every multiply and add is rounded separately. Rust does not fuse them
-  unless the code asks for `mul_add`, and this code does not.
+- **Fused multiply-add only where the code asks for it.** In the unfused functions every multiply
+  and add is rounded separately: Rust does not fuse them unless the code asks for `mul_add`, and
+  those functions do not. The fused functions (`*_fma_*`, the `std` feature) ask for it, and the
+  proofs assume that Rust's `mul_add` rounds `a·b + c` once, as IEEE 754's fused multiply-add,
+  like Lean's `Float.fma` / `Float32.fma`: done by the processor's instruction or by the
+  platform's software routine.
 - **libm.** The one dependency, `libm` 0.2.16, is not translated. Its `tan`, `pow` and `sqrt`
   (and `tanf`, `powf`, `sqrtf`) are modelled as unknown functions that always return, and return
   the same float for the same arguments. The proofs hold whatever values these functions return,

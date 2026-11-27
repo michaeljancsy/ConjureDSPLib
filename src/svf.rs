@@ -19,6 +19,12 @@
 //! the equations of the trapezoidal ("topology-preserving") SVF in V. Zavalishin, *The Art of VA
 //! Filter Design* (with `k = 2R`); that correspondence is not proved in `proofs/`.
 //!
+//! With the `std` feature, `step_fma_f64` / `process_fma_f64` (and the `f32` ones) compute
+//! the same steps with fused multiply-adds, in the grouping their documentation gives
+//! (`svf.step_fma_f64_eq`), with the same whole-block error bounds
+//! (`svf.process_fma_f64_block_error`). Where the processor has no fused multiply-add
+//! instruction, `mul_add` is a slow software routine (not measured here).
+//!
 //! The Lean proofs bound the floating-point error of each output and of the final state of a
 //! block, of any length, against the same filter in exact arithmetic
 //! (`svf.process_f64_block_error`, `svf.process_f32_block_error`), under the assumptions in
@@ -347,6 +353,84 @@ pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
     let mut i = 0;
     while i < buf.len() {
         buf[i] = step_f32(c, state, buf[i]);
+        i += 1;
+    }
+}
+
+/// One sample of the filter, in `f64`, with fused multiply-adds: returns the output and updates
+/// `state`. The grouping is how clang contracts the expressions of [`step_f64`] on Apple silicon
+/// (its default `-ffp-contract=on`, which fuses a product into the addition or subtraction it
+/// feeds, within one expression):
+///
+/// ```text
+/// hp  = ((-(k + g)).mul_add(s1, x) - s2)·d
+/// bp  = g.mul_add(hp, s1)
+/// lp  = g.mul_add(bp, s2)
+/// s1' = g.mul_add(hp, bp)
+/// s2' = g.mul_add(bp, lp)
+/// y   = m_lp.mul_add(lp, m_hp.mul_add(hp, m_bp·bp))
+/// ```
+///
+/// Eleven roundings instead of sixteen. The coefficients, including `d`, are those of
+/// [`CoeffsF64::new`] and the design functions, which do not fuse. Needs the `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_fma_f64(c: &CoeffsF64, state: &mut StateF64, x: f64) -> f64 {
+    let hp = ((-(c.k + c.g)).mul_add(state.s1, x) - state.s2) * c.d;
+    let bp = c.g.mul_add(hp, state.s1);
+    let lp = c.g.mul_add(bp, state.s2);
+    state.s1 = c.g.mul_add(hp, bp);
+    state.s2 = c.g.mul_add(bp, lp);
+    c.m_lp.mul_add(lp, c.m_hp.mul_add(hp, c.m_bp * bp))
+}
+
+/// [`process_f64`] with [`step_fma_f64`] for each sample. Needs the `std` feature. An empty block
+/// leaves `state` unchanged (`svf.process_fma_f64_spec`).
+#[cfg(feature = "std")]
+pub fn process_fma_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        buf[i] = step_fma_f64(c, state, buf[i]);
+        i += 1;
+    }
+}
+
+/// One sample of the filter, in `f32`, with fused multiply-adds: returns the output and updates
+/// `state`. The grouping is how clang contracts the expressions of [`step_f32`] on Apple silicon
+/// (its default `-ffp-contract=on`, which fuses a product into the addition or subtraction it
+/// feeds, within one expression):
+///
+/// ```text
+/// hp  = ((-(k + g)).mul_add(s1, x) - s2)·d
+/// bp  = g.mul_add(hp, s1)
+/// lp  = g.mul_add(bp, s2)
+/// s1' = g.mul_add(hp, bp)
+/// s2' = g.mul_add(bp, lp)
+/// y   = m_lp.mul_add(lp, m_hp.mul_add(hp, m_bp·bp))
+/// ```
+///
+/// Eleven roundings instead of sixteen. The coefficients, including `d`, are those of
+/// [`CoeffsF32::new`] and the design functions, which do not fuse. Needs the `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_fma_f32(c: &CoeffsF32, state: &mut StateF32, x: f32) -> f32 {
+    let hp = ((-(c.k + c.g)).mul_add(state.s1, x) - state.s2) * c.d;
+    let bp = c.g.mul_add(hp, state.s1);
+    let lp = c.g.mul_add(bp, state.s2);
+    state.s1 = c.g.mul_add(hp, bp);
+    state.s2 = c.g.mul_add(bp, lp);
+    c.m_lp.mul_add(lp, c.m_hp.mul_add(hp, c.m_bp * bp))
+}
+
+/// [`process_f32`] with [`step_fma_f32`] for each sample. Needs the `std` feature. An empty block
+/// leaves `state` unchanged (`svf.process_fma_f32_spec`).
+#[cfg(feature = "std")]
+pub fn process_fma_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        buf[i] = step_fma_f32(c, state, buf[i]);
         i += 1;
     }
 }
@@ -778,4 +862,92 @@ mod tests {
             }
         }
     }
+}
+
+#[cfg(all(test, feature = "std"))]
+mod fma_tests {
+    use super::*;
+
+    /// The same tests for both precisions.
+    macro_rules! svf_fma_tests {
+        ($name:ident, $t:ty, $coeffs:ident, $state:ident, $process:ident, $process_fma:ident,
+         $tol:expr) => {
+            mod $name {
+                use super::*;
+
+                const INPUT: [$t; 8] = [1.0, -0.5, 0.25, 0.0, 0.75, -1.0, 0.3, 0.1];
+
+                fn coeffs() -> $coeffs {
+                    // g near tan(pi * 1 kHz / 48 kHz), k = 1.3; a mix of all three outputs.
+                    $coeffs::new(0.0655, 1.3, 0.25, 0.5, 1.0)
+                }
+
+                #[test]
+                fn process_is_the_documented_grouping() {
+                    let c = coeffs();
+                    let mut buf = INPUT;
+                    let mut state = $state {
+                        s1: 0.01,
+                        s2: -0.02,
+                    };
+                    $process_fma(&c, &mut state, &mut buf);
+                    let (mut s1, mut s2): ($t, $t) = (0.01, -0.02);
+                    for (out, x) in buf.iter().zip(INPUT) {
+                        let hp = ((-(c.k + c.g)).mul_add(s1, x) - s2) * c.d;
+                        let bp = c.g.mul_add(hp, s1);
+                        let lp = c.g.mul_add(bp, s2);
+                        s1 = c.g.mul_add(hp, bp);
+                        s2 = c.g.mul_add(bp, lp);
+                        let y = c.m_lp.mul_add(lp, c.m_hp.mul_add(hp, c.m_bp * bp));
+                        assert_eq!(out.to_bits(), y.to_bits());
+                    }
+                    assert_eq!(state.s1.to_bits(), s1.to_bits());
+                    assert_eq!(state.s2.to_bits(), s2.to_bits());
+                }
+
+                #[test]
+                fn close_to_unfused() {
+                    let c = coeffs();
+                    let mut fused = INPUT;
+                    let mut plain = INPUT;
+                    let mut st1 = $state::default();
+                    let mut st2 = $state::default();
+                    $process_fma(&c, &mut st1, &mut fused);
+                    $process(&c, &mut st2, &mut plain);
+                    for (f, p) in fused.iter().zip(plain) {
+                        assert!((f - p).abs() <= $tol, "{f} vs {p}");
+                    }
+                    assert!((st1.s1 - st2.s1).abs() <= $tol);
+                    assert!((st1.s2 - st2.s2).abs() <= $tol);
+                }
+
+                #[test]
+                fn empty_block_leaves_state_alone() {
+                    let c = coeffs();
+                    let mut state = $state { s1: 0.3, s2: -0.1 };
+                    $process_fma(&c, &mut state, &mut []);
+                    assert_eq!(state, $state { s1: 0.3, s2: -0.1 });
+                }
+            }
+        };
+    }
+
+    svf_fma_tests!(
+        f64_tests,
+        f64,
+        CoeffsF64,
+        StateF64,
+        process_f64,
+        process_fma_f64,
+        1e-13
+    );
+    svf_fma_tests!(
+        f32_tests,
+        f32,
+        CoeffsF32,
+        StateF32,
+        process_f32,
+        process_fma_f32,
+        1e-5
+    );
 }

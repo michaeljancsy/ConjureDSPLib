@@ -121,15 +121,24 @@ theorem rotate_set_eq_drop {α : Type} (l : List α) (p : ℕ) (x : α) (hL : 0 
   split_ifs with h
   · have hnil : l.drop (p % l.length + 1) = [] := List.drop_eq_nil_of_le (by omega)
     simp [hnil]
-  · rw [List.rotate_eq_drop_append_take (by
-      simp only [List.length_append, List.length_cons, List.length_drop, htake]
-      omega)]
+  · rw [List.rotate_eq_drop_append_take
+      (l := l.take (p % l.length) ++ x :: l.drop (p % l.length + 1)) (n := p % l.length + 1) (by
+        simp only [List.length_append, List.length_cons, List.length_drop, htake]
+        omega)]
     have h1 : (l.take (p % l.length)).drop (p % l.length + 1) = [] :=
       List.drop_eq_nil_of_le (by rw [htake]; omega)
     have h2 : (l.take (p % l.length)).take (p % l.length + 1) = l.take (p % l.length) :=
       List.take_of_length_le (by rw [htake]; omega)
-    rw [List.drop_append, List.take_append, h1, h2, htake, Nat.add_sub_cancel_left]
-    simp
+    rw [List.drop_append (l₁ := l.take (p % l.length)),
+      List.take_append (l₁ := l.take (p % l.length)), h1, h2, htake, Nat.add_sub_cancel_left]
+    -- Both sides are `l.drop (p % l.length + 1) ++ (l.take (p % l.length) ++ [x])` once `drop 1`
+    -- and `take 1` of a cons are computed; plain `simp` would fold `l[i] :: l.drop (i + 1)` back
+    -- into `l.drop i`.
+    simp only [List.nil_append, List.append_assoc]
+    first
+      | rfl
+      | (simp only [List.drop_succ_cons, List.drop_zero, List.take_succ_cons, List.take_zero,
+          List.cons_append])
 
 end conjure_dsp_lib.delay
 

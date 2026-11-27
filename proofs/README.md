@@ -660,9 +660,9 @@ What is listed here is observed or expected behaviour, not proved.
 - `FmaFacts.lean` relates Lean's `Float.fma` / `Float32.fma` to FloatLib's rounding (one
   rounding of `x·y + z`), with its error bound and finiteness, and holds the facts about exact
   negation the fused filters use. `OnePole/FmaF64.lean`, `Smoother/FmaF64.lean`,
-  `Biquad/FmaF64.lean`, `Svf/FmaF64.lean` and their `F32` versions prove the fused functions' spec and whole-block bounds;
-  `Biquad/Fma.lean` and `Svf/Fma.lean` (real numbers only) give a fused step the unfused step's
-  bounds.
+  `Biquad/FmaF64.lean`, `Svf/FmaF64.lean` and their `F32` versions prove the fused functions'
+  spec and whole-block bounds; `Biquad/Fma.lean` and `Svf/Fma.lean` (real numbers only) give a
+  fused step the unfused step's bounds.
 - `FloatFacts.lean` holds facts about floats shared by every module's proofs, including
   `real_f64` / `real_f32` (the exact real value of a float), the size of one rounding, and how
   infinity, NaN and signed zeros pass through one operation.

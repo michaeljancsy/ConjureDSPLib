@@ -47,7 +47,17 @@
 //! floating point the results can differ (different operation order; worked out outside Lean,
 //! not proved).
 //!
-//! Call these through the module, as `smoother::process_f32`.
+//! **With the coefficient given directly.** `step_coeff_*` and `process_coeff_*` take the
+//! fraction `c` itself instead of `a`, and compute `state + c * (target - state)` with `c` as
+//! given, so no `1 - a` is rounded inside (`smoother.step_coeff_f64_eq`,
+//! `smoother.process_coeff_f64_spec`). With `c = 1.0 - a` they give exactly the results of
+//! `step_*` and `process_*` (`smoother.step_f64_eq_step_coeff`,
+//! `smoother.process_f64_eq_process_coeff`). The whole-block error and settling bounds above hold
+//! for `process_coeff_*` with `C` the value of the given `c` and `A = 1 - C`
+//! (`smoother.process_coeff_f64_block_error`, `smoother.process_coeff_f64_block_error_of_inputs`,
+//! `smoother.process_coeff_f64_settle_of_inputs`, and their `f32` versions).
+//!
+//! Call these through the module, as `smoother::process_f32` or `smoother::process_coeff_f64`.
 
 /// One sample of the smoother, in `f64`: moves `state` (the previous output) the fraction
 /// `1 - a` of the way toward `target`, returning `state + (1.0 - a) * (target - state)`, computed
@@ -97,13 +107,71 @@ pub fn process_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
     }
 }
 
+/// One sample of the smoother with the coefficient given directly, in `f64`: moves `state` (the
+/// previous output) the fraction `c` of the way toward `target`, returning
+/// `state + c * (target - state)`, computed in that order: the difference `target - state`, then
+/// the product with `c`, then the sum, each rounded once (`smoother.step_coeff_f64_eq`). With
+/// `c = 1.0 - a` it is exactly `step_f64(a, state, target)` (`smoother.step_f64_eq_step_coeff`).
+#[inline]
+pub fn step_coeff_f64(c: f64, state: f64, target: f64) -> f64 {
+    state + c * (target - state)
+}
+
+/// Smooths `buf` in place, in `f64`, with the coefficient `c` given directly, starting from
+/// `state` (the previous output) and leaving the last output in `state`. Each sample `x` is the
+/// target for that sample: `y = state + c * (x - state)`, as in `step_coeff_f64`. An empty block
+/// leaves `state` unchanged (`smoother.process_coeff_f64_spec`). With `c = 1.0 - a` it gives
+/// exactly the outputs and state of `process_f64(a, ..)`
+/// (`smoother.process_f64_eq_process_coeff`).
+pub fn process_coeff_f64(c: f64, state: &mut f64, buf: &mut [f64]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = *state + c * (buf[i] - *state);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
+/// One sample of the smoother with the coefficient given directly, in `f32`: returns
+/// `state + c * (target - state)`, computed in that order (`smoother.step_coeff_f32_eq`). With
+/// `c = 1.0 - a` it is exactly `step_f32(a, state, target)` (`smoother.step_f32_eq_step_coeff`).
+#[inline]
+pub fn step_coeff_f32(c: f32, state: f32, target: f32) -> f32 {
+    state + c * (target - state)
+}
+
+/// Smooths `buf` in place, in `f32`, with the coefficient `c` given directly, starting from
+/// `state` and leaving the last output in `state`: `y = state + c * (x - state)` for each sample
+/// `x`, as in `step_coeff_f32`. An empty block leaves `state` unchanged
+/// (`smoother.process_coeff_f32_spec`). With `c = 1.0 - a` it gives exactly the outputs and state
+/// of `process_f32(a, ..)` (`smoother.process_f32_eq_process_coeff`).
+pub fn process_coeff_f32(c: f32, state: &mut f32, buf: &mut [f32]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = *state + c * (buf[i] - *state);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// The same tests for both precisions.
     macro_rules! smoother_tests {
-        ($name:ident, $t:ty, $step:ident, $process:ident) => {
+        (
+            $name:ident,
+            $t:ty,
+            $step:ident,
+            $process:ident,
+            $step_coeff:ident,
+            $process_coeff:ident
+        ) => {
             mod $name {
                 use super::*;
 
@@ -203,10 +271,79 @@ mod tests {
                     }
                     assert_eq!(state.to_bits(), y.to_bits());
                 }
+
+                #[test]
+                fn coeff_versions_match_when_one_minus_a_is_exact() {
+                    // For a between 1/2 and 2, `1.0 - a` is exactly 1 - a (Sterbenz's lemma), so
+                    // passing c = 1 - a gives the same bits as passing a.
+                    let input: [$t; 6] = [0.1, 0.2, -0.3, 1.0 / 3.0, 2.5, -7.1];
+                    for a in [0.5 as $t, 0.75, 0.9, 0.99, 0.999, 1.0, 1.5] {
+                        let c: $t = 1.0 - a;
+                        let mut y: $t = 0.05;
+                        for x in input {
+                            let want = $step(a, y, x);
+                            let got = $step_coeff(c, y, x);
+                            assert_eq!(got.to_bits(), want.to_bits());
+                            y = got;
+                        }
+
+                        let mut want = input;
+                        let mut want_state: $t = 0.05;
+                        $process(a, &mut want_state, &mut want);
+                        let mut got = input;
+                        let mut got_state: $t = 0.05;
+                        $process_coeff(c, &mut got_state, &mut got);
+                        for (g, w) in got.iter().zip(want) {
+                            assert_eq!(g.to_bits(), w.to_bits());
+                        }
+                        assert_eq!(got_state.to_bits(), want_state.to_bits());
+                    }
+                }
+
+                #[test]
+                fn process_coeff_matches_reference_bit_for_bit() {
+                    // The coefficient is used as given: no `1 - a` is computed.
+                    let c: $t = 0.3;
+                    let input: [$t; 6] = [0.1, 0.2, -0.3, 1.0 / 3.0, 2.5, -7.1];
+                    let mut buf = input;
+                    let mut state: $t = 0.05;
+                    $process_coeff(c, &mut state, &mut buf);
+                    let mut y: $t = 0.05;
+                    for (out, x) in buf.iter().zip(input) {
+                        let step = $step_coeff(c, y, x);
+                        let d: $t = x - y;
+                        let p: $t = c * d;
+                        y += p;
+                        assert_eq!(out.to_bits(), y.to_bits());
+                        assert_eq!(step.to_bits(), y.to_bits());
+                    }
+                    assert_eq!(state.to_bits(), y.to_bits());
+                }
+
+                #[test]
+                fn process_coeff_empty_block_leaves_state_alone() {
+                    let mut state: $t = 0.3;
+                    $process_coeff(0.1, &mut state, &mut []);
+                    assert_eq!(state, 0.3);
+                }
             }
         };
     }
 
-    smoother_tests!(f64_tests, f64, step_f64, process_f64);
-    smoother_tests!(f32_tests, f32, step_f32, process_f32);
+    smoother_tests!(
+        f64_tests,
+        f64,
+        step_f64,
+        process_f64,
+        step_coeff_f64,
+        process_coeff_f64
+    );
+    smoother_tests!(
+        f32_tests,
+        f32,
+        step_f32,
+        process_f32,
+        step_coeff_f32,
+        process_coeff_f32
+    );
 }

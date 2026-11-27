@@ -6,7 +6,8 @@ public import ConjureDSPLib.Delay.Basic
 /-!
 # The delay line in f32: what the translated Rust does
 
-About `process_f32` from `src/delay.rs`, as Aeneas translated it.
+About `process_f32`, `read_f32` and `write_f32` from `src/delay.rs`, as Aeneas translated
+them.
 
 Write `L` for the buffer's length, `p` for the write position, `n` for the number of audio
 samples and `d = min delay_samples (L - 1)` for the delay used (the delay asked for, clamped to at
@@ -33,6 +34,15 @@ This file proves:
 7. `process_f32_ok`: `process_f32` never fails, for every buffer, position, delay and audio.
 8. `process_f32_state_indep`: two calls that differ only in the delay both never fail and return
    the same buffer and position.
+9. `read_f32_spec`, `read_f32_rotate`, `read_f32_empty_buffer`, `read_f32_ok`: `read_f32`
+   never fails, and returns element `(p + L - d) mod L` of the buffer (for `L > 0`), which for
+   `d ≥ 1` is element `L - d` of `buf.rotate p`; with an empty buffer it returns `0`.
+10. `write_f32_spec`, `write_f32_rotate`, `write_f32_empty_buffer`, `write_f32_ok`:
+   `write_f32` never fails, stores `x` at `p mod L` and moves the position on to `(p + 1) mod L`
+   (for `L > 0`); with an empty buffer it changes nothing.
+11. `write_f32_eq_process_state`, `read_write_f32_eq_process`: writing gives the buffer and
+   position of `process_f32` on one sample; with `d ≥ 1`, reading and then writing gives its
+   output too.
 -/
 
 @[expose] public section
@@ -341,6 +351,229 @@ theorem process_f32_state_indep (buffer : Slice Float32) (position d₁ d₂ : S
   simp only [e₁, e₂, WP.spec_ok, WP.uncurry'_pair]
   refine ⟨(Slice.eq_iff _ _).mpr ?_, hpos⟩
   rw [← List.rotate_eq_rotate (n := p₁.val), hrot₁, hpos, hrot₂]
+
+/-! ## Reading and writing one sample at a time
+
+`read_f32` and `write_f32` split one sample of `process_f32` in two, so that a caller can read
+the delayed sample before computing the sample to write (for feedback). With
+`L = buffer.length > 0`, `p = position` and `d = min delay_samples (L - 1)` as above. -/
+
+/-- With an empty buffer (`buffer.length = 0`), `read_f32` never fails and returns `0`. -/
+theorem read_f32_empty_buffer (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (hL : buffer.length = 0) : read_f32 buffer position delay_samples = ok 0 := by
+  have h : Slice.len buffer = 0#usize := UScalar.eq_of_val_eq (by simp [hL])
+  simp [read_f32, h]
+  rfl
+
+/-- **Reading one sample.** For `L = buffer.length > 0` and `d = min delay_samples (L - 1)`:
+`read_f32` never fails, and returns element `(position + L - d) mod L` of the buffer. It
+changes nothing (it returns only the sample). -/
+theorem read_f32_spec (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (hL : 0 < buffer.length) :
+    read_f32 buffer position delay_samples ⦃ y =>
+      buffer.val[(position.val + buffer.length - min delay_samples.val (buffer.length - 1)) %
+        buffer.length]? = some y ⦄ := by
+  have hlv : buffer.len.val = buffer.length := Slice.len_val buffer
+  have hne : ¬ buffer.len = 0#usize := fun h => by
+    have h' := congrArg UScalar.val h
+    scalar_tac
+  simp only [read_f32, hne, ↓reduceIte]
+  -- The delay used, `d = min delay_samples (L - 1)`.
+  apply WP.spec_bind
+    (Pₘ := fun d : Std.Usize => d.val = min delay_samples.val (buffer.length - 1))
+  · split
+    · simp only [WP.spec_ok]
+      scalar_tac
+    · apply WP.spec_mono (Usize.sub_spec (x := buffer.len) (y := 1#usize) (by scalar_tac))
+      intro d hd
+      scalar_tac
+  intro d hdv
+  -- The write index `w = position mod L`.
+  apply WP.spec_bind (Usize.rem_spec position (y := buffer.len) (by scalar_tac))
+  intro w hw
+  have hw' : w.val = position.val % buffer.length := by rw [hw, hlv]
+  have hwL : w.val < buffer.length := by rw [hw']; exact Nat.mod_lt _ hL
+  -- The read index `r`, `d` behind `w`, wrapping at `L`.
+  apply WP.spec_bind (Pₘ := fun r : Std.Usize => r.val < buffer.length ∧
+    (position.val + buffer.length - min delay_samples.val (buffer.length - 1)) % buffer.length =
+      r.val)
+  · split
+    · apply WP.spec_mono (Usize.sub_spec (x := w) (y := d) (by scalar_tac))
+      intro r hr
+      obtain ⟨hr1, hr2⟩ := hr
+      refine ⟨by omega, ?_⟩
+      rw [read_index_eq _ _ _ _ _ hL hdv hw', hr1]
+      simp only [hr2, ↓reduceIte]
+    · have hdw : ¬ d.val ≤ w.val := by scalar_tac
+      apply WP.spec_bind (Usize.sub_spec (x := buffer.len) (y := d) (by scalar_tac))
+      intro i hi
+      obtain ⟨hi1, -⟩ := hi
+      apply WP.spec_mono (Usize.add_spec (x := w) (y := i) (by scalar_tac))
+      intro r hr
+      refine ⟨by omega, ?_⟩
+      rw [read_index_eq _ _ _ _ _ hL hdv hw']
+      simp only [hdw, ↓reduceIte]
+      omega
+  rintro r ⟨hrL, hridx⟩
+  apply WP.spec_mono (Slice.index_usize_spec buffer r hrL)
+  intro y hy
+  rw [hridx, hy]
+  exact List.getElem?_eq_getElem hrL
+
+/-- **Reading in time order.** For `L = buffer.length > 0` and `d = min delay_samples (L - 1)`
+with `d ≥ 1`: `read_f32` never fails, and returns element `L - d` of `buffer.rotate position`,
+the buffer read in time order (oldest first) from `position`. When `position` is where the next
+write goes, that is the sample written `d` writes ago (worked out outside Lean, not proved: it
+also needs `write_f32_rotate` and at least `d` earlier writes). -/
+theorem read_f32_rotate (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (hL : 0 < buffer.length) (hd : 1 ≤ min delay_samples.val (buffer.length - 1)) :
+    read_f32 buffer position delay_samples ⦃ y =>
+      (buffer.val.rotate position.val)[buffer.length -
+        min delay_samples.val (buffer.length - 1)]? = some y ⦄ := by
+  apply WP.spec_mono (read_f32_spec buffer position delay_samples hL)
+  intro y hy
+  have hm : buffer.length - min delay_samples.val (buffer.length - 1) < buffer.val.length := by
+    have : buffer.val.length = buffer.length := rfl
+    omega
+  rw [List.getElem?_rotate hm]
+  rw [show buffer.length - min delay_samples.val (buffer.length - 1) + position.val =
+    position.val + buffer.length - min delay_samples.val (buffer.length - 1) by omega]
+  exact hy
+
+/-- `read_f32` never fails, for every buffer, position and delay. -/
+theorem read_f32_ok (buffer : Slice Float32) (position delay_samples : Std.Usize) :
+    ∃ y, read_f32 buffer position delay_samples = ok y := by
+  rcases Nat.eq_zero_or_pos buffer.length with h | h
+  · exact ⟨_, read_f32_empty_buffer buffer position delay_samples h⟩
+  · obtain ⟨y, hy, -⟩ := exists_ok_of_spec (read_f32_spec buffer position delay_samples h)
+    exact ⟨y, hy⟩
+
+/-- With an empty buffer (`buffer.length = 0`), `write_f32` never fails and returns the buffer
+and position unchanged. -/
+theorem write_f32_empty_buffer (buffer : Slice Float32) (position : Std.Usize) (x : Float32)
+    (hL : buffer.length = 0) : write_f32 buffer position x = ok (buffer, position) := by
+  have h : Slice.len buffer = 0#usize := UScalar.eq_of_val_eq (by simp [hL])
+  simp [write_f32, h]
+
+/-- **Writing one sample.** For `L = buffer.length > 0`: `write_f32` never fails; the new buffer
+is the old one with element `position mod L` replaced by `x`, and the new position is
+`(position + 1) mod L`. -/
+theorem write_f32_spec (buffer : Slice Float32) (position : Std.Usize) (x : Float32)
+    (hL : 0 < buffer.length) :
+    write_f32 buffer position x ⦃ buffer' position' =>
+      buffer'.val = buffer.val.set (position.val % buffer.length) x ∧
+      position'.val = (position.val + 1) % buffer.length ⦄ := by
+  have hlv : buffer.len.val = buffer.length := Slice.len_val buffer
+  have hne : ¬ buffer.len = 0#usize := fun h => by
+    have h' := congrArg UScalar.val h
+    scalar_tac
+  simp only [write_f32, hne, ↓reduceIte]
+  apply WP.spec_bind (Usize.rem_spec position (y := buffer.len) (by scalar_tac))
+  intro w hw
+  have hw' : w.val = position.val % buffer.length := by rw [hw, hlv]
+  have hwL : w.val < buffer.length := by rw [hw']; exact Nat.mod_lt _ hL
+  apply WP.spec_bind (Slice.index_mut_usize_spec buffer w hwL)
+  rintro ⟨fl, back⟩ ⟨-, hback⟩
+  subst hback
+  apply WP.spec_bind (Usize.add_spec (x := w) (y := 1#usize) (by scalar_tac))
+  intro next hnext
+  have hsucc := succ_mod_eq position.val buffer.length hL
+  rw [← hw'] at hsucc
+  split
+  · rename_i h
+    have h1 : w.val + 1 = buffer.length := by
+      have h' := congrArg UScalar.val h
+      have h1' : (1#usize).val = 1 := by simp
+      omega
+    simp only [WP.spec_ok, WP.uncurry'_pair]
+    refine ⟨by rw [Slice.set_val_eq, hw'], ?_⟩
+    simp [hsucc, h1]
+  · rename_i h
+    have h1 : ¬ w.val + 1 = buffer.length := fun e => h (UScalar.eq_of_val_eq (by scalar_tac))
+    simp only [WP.spec_ok, WP.uncurry'_pair]
+    refine ⟨by rw [Slice.set_val_eq, hw'], ?_⟩
+    rw [hsucc]
+    simp only [h1, ↓reduceIte]
+    scalar_tac
+
+/-- **The history after a write.** For `L = buffer.length > 0`: `write_f32` never fails, and the
+new buffer read in time order from the new position is the old one read from the old position,
+followed by `x`, without its first (oldest) element: `buffer'.rotate position' =
+(buffer.rotate position ++ [x]).drop 1`, as for `process_f32` on the one sample `x`. -/
+theorem write_f32_rotate (buffer : Slice Float32) (position : Std.Usize) (x : Float32)
+    (hL : 0 < buffer.length) :
+    write_f32 buffer position x ⦃ buffer' position' =>
+      buffer'.length = buffer.length ∧
+      buffer'.val.rotate position'.val = (buffer.val.rotate position.val ++ [x]).drop 1 ⦄ := by
+  apply WP.spec_mono (write_f32_spec buffer position x hL)
+  rintro ⟨b', p'⟩ ⟨hb', hp'⟩
+  simp only [WP.uncurry'_pair]
+  refine ⟨by simp only [Slice.length, hb', List.length_set], ?_⟩
+  rw [hb', hp']
+  exact rotate_set_eq_drop buffer.val position.val x hL
+
+/-- `write_f32` never fails, for every buffer, position and sample. -/
+theorem write_f32_ok (buffer : Slice Float32) (position : Std.Usize) (x : Float32) :
+    ∃ r, write_f32 buffer position x = ok r := by
+  rcases Nat.eq_zero_or_pos buffer.length with h | h
+  · exact ⟨_, write_f32_empty_buffer buffer position x h⟩
+  · obtain ⟨r, hr, -⟩ := exists_ok_of_spec (write_f32_spec buffer position x h)
+    exact ⟨r, hr⟩
+
+/-- **Writing is `process_f32`'s state change.** For any buffer (empty or not), position,
+delay and sample `x`, with `audio` the one-sample block `[x]`: `write_f32` and `process_f32`
+both never fail and return the same new buffer and the same new position. -/
+theorem write_f32_eq_process_state (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (x : Float32) (audio : Slice Float32) (haudio : audio.val = [x]) :
+    write_f32 buffer position x ⦃ buffer' position' =>
+      process_f32 buffer position delay_samples audio ⦃ buffer'' position'' _ =>
+        buffer' = buffer'' ∧ position' = position'' ⦄ ⦄ := by
+  rcases Nat.eq_zero_or_pos buffer.length with hL | hL
+  · simp [write_f32_empty_buffer _ _ _ hL, process_f32_empty_buffer _ _ _ _ hL]
+  have hn : audio.length = 1 := by simp [Slice.length, haudio]
+  obtain ⟨⟨b', p'⟩, ew, hb', hp'⟩ := exists_ok_of_spec (write_f32_spec buffer position x hL)
+  obtain ⟨⟨b'', p'', o⟩, ep, -, -, -, hp'', hrot⟩ :=
+    exists_ok_of_spec (process_f32_spec buffer position delay_samples audio hL)
+  have hpp : p''.val = (position.val + 1) % buffer.length := by rw [hp'', hn]
+  simp only [ew, ep, WP.spec_ok, WP.uncurry'_pair]
+  refine ⟨?_, UScalar.eq_of_val_eq (by rw [hp', hpp])⟩
+  rw [Slice.eq_iff, hb', ← List.rotate_eq_rotate (n := p''.val), hrot, hpp, hn, haudio]
+  exact rotate_set_eq_drop buffer.val position.val x hL
+
+/-- **Read, then write, is `process_f32` on one sample.** For any buffer, position and delay with
+`d = min delay_samples (L - 1) ≥ 1` (so `L ≥ 2`), and `audio` the one-sample block `[x]`:
+`read_f32`, then `write_f32` of `x` at the same position, and `process_f32` on `audio` all never
+fail; the output of `process_f32` is `[y]`, where `y` is the sample `read_f32` returned; and the
+new buffer and position of `write_f32` are those of `process_f32`. With `d = 0` they differ:
+`process_f32` returns `x` itself, `read_f32` the sample `x` overwrites. -/
+theorem read_write_f32_eq_process (buffer : Slice Float32) (position delay_samples : Std.Usize)
+    (x : Float32) (audio : Slice Float32) (haudio : audio.val = [x])
+    (hd : 1 ≤ min delay_samples.val (buffer.length - 1)) :
+    read_f32 buffer position delay_samples ⦃ y =>
+      write_f32 buffer position x ⦃ buffer' position' =>
+        process_f32 buffer position delay_samples audio ⦃ buffer'' position'' audio' =>
+          audio'.val = [y] ∧ buffer' = buffer'' ∧ position' = position'' ⦄ ⦄ ⦄ := by
+  have hL : 0 < buffer.length := by omega
+  have hn : audio.length = 1 := by simp [Slice.length, haudio]
+  have hR : (buffer.val.rotate position.val).length = buffer.length := by
+    simp [List.length_rotate]
+  obtain ⟨y, ey, hy⟩ := exists_ok_of_spec (read_f32_rotate buffer position delay_samples hL hd)
+  obtain ⟨⟨b', p'⟩, ew, hstate⟩ :=
+    exists_ok_of_spec (write_f32_eq_process_state buffer position delay_samples x audio haudio)
+  obtain ⟨⟨b'', p'', o⟩, ep, hno, hout, -⟩ :=
+    exists_ok_of_spec (process_f32_spec buffer position delay_samples audio hL)
+  simp only [ep, WP.spec_ok, WP.uncurry'_pair] at hstate
+  simp only [ey, ew, ep, WP.spec_ok, WP.uncurry'_pair]
+  refine ⟨?_, hstate⟩
+  have h0 := hout 0 (by omega)
+  rw [Nat.add_zero, List.getElem?_append_left (by omega), hy] at h0
+  have hl : o.val.length = 1 := by rw [← hn]; exact hno
+  cases ho : o.val with
+  | nil => rw [ho] at hl; simp at hl
+  | cons z t =>
+    cases t with
+    | nil => rw [ho] at h0; simp at h0; simp [h0]
+    | cons w t => rw [ho] at hl; simp at hl
 
 end conjure_dsp_lib.delay
 

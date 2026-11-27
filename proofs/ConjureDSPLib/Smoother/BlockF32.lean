@@ -17,7 +17,10 @@ between 1/2 and 2 they are equal (`coeff_f32_exact`).
 rounding) and no step overflowing, every output sample and the final state are within `E` of the
 exact smoother, for a block of any length. `process_f32_block_error_of_inputs` proves the
 no-overflow condition from the inputs instead. `process_f32_settle_of_inputs`: with a steady
-input `x`, the final state is within `|A|^n·|S - X| + E` of `X`.
+input `x`, the final state is within `|A|^n·|S - X| + E` of `X`. The same three theorems for
+`process_coeff_f32`, which takes the coefficient `c` directly, are
+`process_coeff_f32_block_error`, `process_coeff_f32_block_error_of_inputs` and
+`process_coeff_f32_settle_of_inputs`, with `C` the value of `c`.
 
 The last theorems are the f32 rows of the smoother table in `proofs/README.md`.
 -/
@@ -264,6 +267,108 @@ theorem process_f32_settle_of_inputs (a state x : Float32) (buf : Slice Float32)
   have h := settle_real A unitRoundoff_f32 underflowErr_f32 M (real_f32 x) (real_f32 state)
     (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hXM hstab _ _ _ hw
   apply WP.spec_mono (process_f32_spec a state buf)
+  rintro r ⟨-, hst⟩
+  rw [hst]
+  rw [← hrep] at h
+  exact h
+
+/-! ## The smoother with the coefficient given directly
+
+`process_coeff_f32 c` runs the same loop as `process_f32` with the stored coefficient `c` as
+given, so the whole-block theorems above hold for it with `C` the value of `c`. -/
+
+/-- **Whole-block error of `process_coeff_f32`.** Let `C` be the value of `c`, `A = 1 - C` and
+`S` the value of the starting state. If `c` and the starting state are finite, no step overflows,
+every sample is at most `M` in size and `|A| + errGrowth A u < 1`, then `process_coeff_f32`
+never fails, and every sample it writes and the state it leaves are within
+`E = errBound A u η M S` of the exact smoother `filt_real A`, run from `S` on the samples'
+values. -/
+theorem process_coeff_f32_block_error (c state : Float32) (buf : Slice Float32) (M : ℝ)
+    (hc : c.isFinite = true) (hs : state.isFinite = true)
+    (hno : NoOverflow_f32 c state buf.val)
+    (hM0 : 0 ≤ M) (hM : ∀ x ∈ buf.val, |real_f32 x| ≤ M)
+    (hstab : |1 - real_f32 c| + errGrowth (1 - real_f32 c) unitRoundoff_f32 < 1) :
+    let A := 1 - real_f32 c
+    let E := errBound A unitRoundoff_f32 underflowErr_f32 M (real_f32 state)
+    process_coeff_f32 c state buf ⦃ fun r =>
+      List.Forall₂ (fun y e => |real_f32 y - e| ≤ E) r.2.val
+          (filt_real A (real_f32 state) (buf.val.map real_f32)).2 ∧
+        |real_f32 r.1 - (filt_real A (real_f32 state) (buf.val.map real_f32)).1| ≤ E ⦄ := by
+  intro A E
+  have hblock := filt_f32_block_error c state buf.val M hc hs hno hM0 hM hstab
+  apply WP.spec_mono (process_coeff_f32_spec c state buf)
+  rintro r ⟨hbuf, hst⟩
+  rw [hbuf, hst]
+  exact hblock
+
+/-- **Whole-block error of `process_coeff_f32`, with conditions on the inputs only.** Let `C`
+be the value of `c`, `A = 1 - C`, `S` the value of the starting state, and `u`, `η` binary32's
+rounding constants. If `c`, the starting state and every sample are finite, every sample is at
+most `M` in size, `|A| + errGrowth A u < 1`, and, with `B = outBound A M S`,
+`E = errBound A u η M S`, `W = B + E` and `G = (1 + u)·(M + W) + η`,
+`G + W + (1 + u)·|C|·G + η` is at most the largest finite binary32 value, then no step
+overflows, `process_coeff_f32` never fails, and every sample it writes and the state it leaves
+are within `E` of the exact smoother `filt_real A`. -/
+theorem process_coeff_f32_block_error_of_inputs (c state : Float32) (buf : Slice Float32) (M : ℝ)
+    (hc : c.isFinite = true) (hs : state.isFinite = true)
+    (hin : ∀ x ∈ buf.val, x.isFinite = true ∧ |real_f32 x| ≤ M) (hM0 : 0 ≤ M)
+    (hstab : |1 - real_f32 c| + errGrowth (1 - real_f32 c) unitRoundoff_f32 < 1)
+    (hcap :
+      let A := 1 - real_f32 c
+      let W := outBound A M (real_f32 state) +
+        errBound A unitRoundoff_f32 underflowErr_f32 M (real_f32 state)
+      let G := (1 + unitRoundoff_f32) * (M + W) + underflowErr_f32
+      G + W + (1 + unitRoundoff_f32) * |real_f32 c| * G + underflowErr_f32 ≤
+        maxFinite_f32) :
+    let A := 1 - real_f32 c
+    let E := errBound A unitRoundoff_f32 underflowErr_f32 M (real_f32 state)
+    NoOverflow_f32 c state buf.val ∧
+      process_coeff_f32 c state buf ⦃ fun r =>
+        List.Forall₂ (fun y e => |real_f32 y - e| ≤ E) r.2.val
+          (filt_real A (real_f32 state) (buf.val.map real_f32)).2 ∧
+        |real_f32 r.1 - (filt_real A (real_f32 state) (buf.val.map real_f32)).1| ≤ E ⦄ := by
+  intro A E
+  obtain ⟨hE0, hSB, hB, hE⟩ := block_constants A unitRoundoff_f32 underflowErr_f32 M
+    (real_f32 state) (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hM0 hstab
+  have hB' : |real_f32 c| * M + |1 - real_f32 c| * outBound A M (real_f32 state) ≤
+      outBound A M (real_f32 state) := by
+    have := hB; simp only [A, sub_sub_cancel] at this; exact this
+  have hno := noOverflow_f32_of_inputs c hc M _ _ hB' hE hcap buf.val state (real_f32 state)
+    hs hin (by simpa using hE0) hSB
+  exact ⟨hno, process_coeff_f32_block_error c state buf M hc hs hno hM0
+    (fun x hx => (hin x hx).2) hstab⟩
+
+/-- **Settling on a steady input, `process_coeff_f32`.** Let `C` be the value of `c`,
+`A = 1 - C`, `S` the value of the starting state, `X` the value of the input `x`, and `n` the
+length of the block. If every sample in the buffer is `x`, `|X| ≤ M`, and the conditions of
+`process_coeff_f32_block_error_of_inputs` hold, then `process_coeff_f32` never fails, and the
+state it leaves is within `|A|^n·|S - X| + E` of `X`, where `E = errBound A u η M S`. -/
+theorem process_coeff_f32_settle_of_inputs (c state x : Float32) (buf : Slice Float32) (M : ℝ)
+    (hc : c.isFinite = true) (hs : state.isFinite = true)
+    (hx : x.isFinite = true) (hbuf : ∀ y ∈ buf.val, y = x) (hXM : |real_f32 x| ≤ M)
+    (hstab : |1 - real_f32 c| + errGrowth (1 - real_f32 c) unitRoundoff_f32 < 1)
+    (hcap :
+      let A := 1 - real_f32 c
+      let W := outBound A M (real_f32 state) +
+        errBound A unitRoundoff_f32 underflowErr_f32 M (real_f32 state)
+      let G := (1 + unitRoundoff_f32) * (M + W) + underflowErr_f32
+      G + W + (1 + unitRoundoff_f32) * |real_f32 c| * G + underflowErr_f32 ≤
+        maxFinite_f32) :
+    let A := 1 - real_f32 c
+    process_coeff_f32 c state buf ⦃ fun r =>
+      |real_f32 r.1 - real_f32 x| ≤ |A| ^ buf.val.length * |real_f32 state - real_f32 x| +
+        errBound A unitRoundoff_f32 underflowErr_f32 M (real_f32 state) ⦄ := by
+  intro A
+  have hin : ∀ y ∈ buf.val, y.isFinite = true ∧ |real_f32 y| ≤ M := by
+    intro y hy; rw [hbuf y hy]; exact ⟨hx, hXM⟩
+  obtain ⟨hno, -⟩ := process_coeff_f32_block_error_of_inputs c state buf M hc hs hin
+    ((abs_nonneg _).trans hXM) hstab hcap
+  have hrep : buf.val = List.replicate buf.val.length x := List.eq_replicate_iff.mpr ⟨rfl, hbuf⟩
+  have hw := filt_f32_withinStepErr c hc buf.val state hs hno
+  rw [hrep, List.map_replicate] at hw
+  have h := settle_real A unitRoundoff_f32 underflowErr_f32 M (real_f32 x) (real_f32 state)
+    (Model.unitRoundoffAt_pos _).le (Model.underflowErrorAt_pos _).le hXM hstab _ _ _ hw
+  apply WP.spec_mono (process_coeff_f32_spec c state buf)
   rintro r ⟨-, hst⟩
   rw [hst]
   rw [← hrep] at h

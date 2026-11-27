@@ -363,6 +363,7 @@ theorem read_f32_empty_buffer (buffer : Slice Float32) (position delay_samples :
     (hL : buffer.length = 0) : read_f32 buffer position delay_samples = ok 0 := by
   have h : Slice.len buffer = 0#usize := UScalar.eq_of_val_eq (by simp [hL])
   simp [read_f32, h]
+  rfl
 
 /-- **Reading one sample.** For `L = buffer.length > 0` and `d = min delay_samples (L - 1)`:
 `read_f32` never fails, and returns element `(position + L - d) mod L` of the buffer. It

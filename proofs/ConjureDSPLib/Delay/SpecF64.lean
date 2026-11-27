@@ -363,6 +363,7 @@ theorem read_f64_empty_buffer (buffer : Slice Float) (position delay_samples : S
     (hL : buffer.length = 0) : read_f64 buffer position delay_samples = ok 0 := by
   have h : Slice.len buffer = 0#usize := UScalar.eq_of_val_eq (by simp [hL])
   simp [read_f64, h]
+  rfl
 
 /-- **Reading one sample.** For `L = buffer.length > 0` and `d = min delay_samples (L - 1)`:
 `read_f64` never fails, and returns element `(position + L - d) mod L` of the buffer. It

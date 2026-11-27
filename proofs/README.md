@@ -540,9 +540,10 @@ What is listed here is observed or expected behaviour, not proved.
   `closePolesContraction` has `cInf = 1/ε` for the chosen `ε`, whatever the distance between the
   poles (worked out outside Lean, not proved: its condition `ρ < 1` needs `|p| + √|δ| < 1`, with
   `p = −a1/2` and `δ = a1²/4 − a2`, which for complex poles is stricter than both poles being
-  inside the unit circle, and `cInf = 1/ε` is always above `1/(1 − |p|)`); for that filter it
-  gives a bound on each output's error of at most 0.0122, against at most 734
-  (`lowPass1kHzQ05_bounds_f32`, `lowPass1kHzQ05_bound_f32`). Not proved: which `ε` gives the
+  inside the unit circle, and `cInf = 1/ε` is always above `1/(1 − |p|)`); for that filter,
+  with `ε = 0.06`, `M = 1` (inputs at most 1 in size) and a start from zero, it gives a bound on
+  each output's error of at most 0.0122, against at most 734 (`lowPass1kHzQ05_bounds_f32`,
+  `lowPass1kHzQ05_bound_f32`). Not proved: which `ε` gives the
   smallest bound, or how close the bound is to the filter's actual largest error.
 - The biquad's whole-block bound also assumes `cInf·K·κ·β < 1 - ρ` (false in f32 for a 48 kHz
   Butterworth low-pass at 82 Hz, `lowPass82Hz_smallness_fails_f32`).
@@ -569,7 +570,7 @@ What is listed here is observed or expected behaviour, not proved.
   only, `OnePole/`, `Smoother/`) proves what the filter does in exact arithmetic;
   `Textbook.lean` (real numbers only) shows the code's form of a filter equals the textbook formula;
   `Contraction.lean` (real numbers only) builds a `Contraction` for biquads with complex poles,
-  distinct real poles, a repeated real pole or poles close together inside the unit circle
+  distinct real poles, a repeated real pole, or poles close together when its `ρ < 1`
   (`Biquad/`), or for the SVF with complex poles or from a biquad one (`Svf/`); `Basic.lean`
   (`Delay/`) holds facts about lists, natural numbers and Aeneas's `Result` that both precisions'
   files use; `Line.lean` (real numbers only, `Gain/`) holds the gain ramp's straight line and the

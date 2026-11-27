@@ -36,6 +36,9 @@ public import ConjureDSPLib.Biquad.Block
 public import ConjureDSPLib.Biquad.BlockF64
 public import ConjureDSPLib.Biquad.BlockF32
 public import ConjureDSPLib.Biquad.Contraction
+public import ConjureDSPLib.Biquad.Fma
+public import ConjureDSPLib.Biquad.FmaF64
+public import ConjureDSPLib.Biquad.FmaF32
 public import ConjureDSPLib.Delay.Basic
 public import ConjureDSPLib.Delay.SpecF64
 public import ConjureDSPLib.Delay.SpecF32

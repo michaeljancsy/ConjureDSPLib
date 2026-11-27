@@ -145,6 +145,38 @@ theorem toReal_of_toModel_eq_zero {fmt : FloatFormat} (hfmt : fmt.isIEEE = true)
     (x : Model fmt) {s : Sign} (hx : toModel x = .zero s) : toReal x = 0 := by
   rw [toReal_eq_unpackedToReal_toModel hfmt x, hx, unpackedToReal_zero]
 
+/-! Lean's `fma` on zero operands, one equation per case the proofs below need. (Unfolding `fma`
+with `simp` would add its equation lemmas to this module, and some of those mention NaN.) -/
+
+theorem fma_zero_zero_zero (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) :
+    Float.Model.UnpackedFloat.fma spec (.zero s₁) (.zero s₂) (.zero s₃) =
+      if s₁ * s₂ == s₃ then .zero s₃ else .zero .positive := rfl
+
+theorem fma_zero_finite_zero (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₂ : Nat) (e₂ : Int)
+    (h₂ : 0 < m₂) :
+    Float.Model.UnpackedFloat.fma spec (.zero s₁) (.finite s₂ m₂ e₂ h₂) (.zero s₃) =
+      if s₁ * s₂ == s₃ then .zero s₃ else .zero .positive := rfl
+
+theorem fma_finite_zero_zero (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₁ : Nat) (e₁ : Int)
+    (h₁ : 0 < m₁) :
+    Float.Model.UnpackedFloat.fma spec (.finite s₁ m₁ e₁ h₁) (.zero s₂) (.zero s₃) =
+      if s₁ * s₂ == s₃ then .zero s₃ else .zero .positive := rfl
+
+theorem fma_zero_zero_finite (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₃ : Nat) (e₃ : Int)
+    (h₃ : 0 < m₃) :
+    Float.Model.UnpackedFloat.fma spec (.zero s₁) (.zero s₂) (.finite s₃ m₃ e₃ h₃) =
+      .finite s₃ m₃ e₃ h₃ := rfl
+
+theorem fma_zero_finite_finite (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₂ m₃ : Nat)
+    (e₂ e₃ : Int) (h₂ : 0 < m₂) (h₃ : 0 < m₃) :
+    Float.Model.UnpackedFloat.fma spec (.zero s₁) (.finite s₂ m₂ e₂ h₂) (.finite s₃ m₃ e₃ h₃) =
+      .finite s₃ m₃ e₃ h₃ := rfl
+
+theorem fma_finite_zero_finite (spec : Float.Model.Format) (s₁ s₂ s₃ : Sign) (m₁ m₃ : Nat)
+    (e₁ e₃ : Int) (h₁ : 0 < m₁) (h₃ : 0 < m₃) :
+    Float.Model.UnpackedFloat.fma spec (.finite s₁ m₁ e₁ h₁) (.zero s₂) (.finite s₃ m₃ e₃ h₃) =
+      .finite s₃ m₃ e₃ h₃ := rfl
+
 /-- **Lean's fused multiply-add rounds once.** For a conventional IEEE format, three finite
 words, the first two and the third unpacked by Lean's model, and a finite result: the real value
 of the packed result of Lean's unpacked `fma` is FloatLib's nearest-even rounding of the exact
@@ -192,20 +224,20 @@ theorem toReal_ofModel_fma_toModel_eq_roundAt {fmt : FloatFormat} (hfmt : fmt.is
       | infinity _ => simp [Float.Model.UnpackedFloat.isFinite] at hzm
       | zero s₃ =>
         rw [toReal_of_toModel_eq_zero hfmt z huz, roundAt_zero]
-        simp only [Float.Model.UnpackedFloat.fma]
+        rw [fma_zero_zero_zero]
         split_ifs <;> exact toReal_ofModel_zero fmt hzero _
       | finite s₃ m₃ e₃ h₃ =>
-        rw [hzround]; exact hzself
+        rw [fma_zero_zero_finite, hzround]; exact hzself
     | finite s₂ m₂ e₂ h₂ =>
       cases uz with
       | notANumber => simp [Float.Model.UnpackedFloat.isFinite] at hzm
       | infinity _ => simp [Float.Model.UnpackedFloat.isFinite] at hzm
       | zero s₃ =>
         rw [toReal_of_toModel_eq_zero hfmt z huz, roundAt_zero]
-        simp only [Float.Model.UnpackedFloat.fma]
+        rw [fma_zero_finite_zero]
         split_ifs <;> exact toReal_ofModel_zero fmt hzero _
       | finite s₃ m₃ e₃ h₃ =>
-        rw [hzround]; exact hzself
+        rw [fma_zero_finite_finite, hzround]; exact hzself
   | finite s₁ m₁ e₁ h₁ =>
     cases uy with
     | notANumber => simp [Float.Model.UnpackedFloat.isFinite] at hym
@@ -217,10 +249,10 @@ theorem toReal_ofModel_fma_toModel_eq_roundAt {fmt : FloatFormat} (hfmt : fmt.is
       | infinity _ => simp [Float.Model.UnpackedFloat.isFinite] at hzm
       | zero s₃ =>
         rw [toReal_of_toModel_eq_zero hfmt z huz, roundAt_zero]
-        simp only [Float.Model.UnpackedFloat.fma]
+        rw [fma_finite_zero_zero]
         split_ifs <;> exact toReal_ofModel_zero fmt hzero _
       | finite s₃ m₃ e₃ h₃ =>
-        rw [hzround]; exact hzself
+        rw [fma_finite_zero_finite, hzround]; exact hzself
     | finite s₂ m₂ e₂ h₂ =>
       have hxy : toReal x * toReal y =
           (⟨Bool.xor (modelSignBit s₁) (modelSignBit s₂), m₁ * m₂, e₁ + e₂⟩ :
@@ -287,14 +319,14 @@ theorem isFinite_ofModel_fma_toModel {fmt : FloatFormat} (hfmt : fmt.isIEEE = tr
       cases uz with
       | notANumber => simp [Float.Model.UnpackedFloat.isFinite] at hzm
       | infinity _ => simp [Float.Model.UnpackedFloat.isFinite] at hzm
-      | zero s₃ => simp only [Float.Model.UnpackedFloat.fma]; split_ifs <;> exact hzeroFin _
-      | finite s₃ m₃ e₃ h₃ => exact hzself
+      | zero s₃ => rw [fma_zero_zero_zero]; split_ifs <;> exact hzeroFin _
+      | finite s₃ m₃ e₃ h₃ => rw [fma_zero_zero_finite]; exact hzself
     | finite s₂ m₂ e₂ h₂ =>
       cases uz with
       | notANumber => simp [Float.Model.UnpackedFloat.isFinite] at hzm
       | infinity _ => simp [Float.Model.UnpackedFloat.isFinite] at hzm
-      | zero s₃ => simp only [Float.Model.UnpackedFloat.fma]; split_ifs <;> exact hzeroFin _
-      | finite s₃ m₃ e₃ h₃ => exact hzself
+      | zero s₃ => rw [fma_zero_finite_zero]; split_ifs <;> exact hzeroFin _
+      | finite s₃ m₃ e₃ h₃ => rw [fma_zero_finite_finite]; exact hzself
   | finite s₁ m₁ e₁ h₁ =>
     cases uy with
     | notANumber => simp [Float.Model.UnpackedFloat.isFinite] at hym
@@ -303,8 +335,8 @@ theorem isFinite_ofModel_fma_toModel {fmt : FloatFormat} (hfmt : fmt.isIEEE = tr
       cases uz with
       | notANumber => simp [Float.Model.UnpackedFloat.isFinite] at hzm
       | infinity _ => simp [Float.Model.UnpackedFloat.isFinite] at hzm
-      | zero s₃ => simp only [Float.Model.UnpackedFloat.fma]; split_ifs <;> exact hzeroFin _
-      | finite s₃ m₃ e₃ h₃ => exact hzself
+      | zero s₃ => rw [fma_finite_zero_zero]; split_ifs <;> exact hzeroFin _
+      | finite s₃ m₃ e₃ h₃ => rw [fma_finite_zero_finite]; exact hzself
     | finite s₂ m₂ e₂ h₂ =>
       cases uz with
       | notANumber => simp [Float.Model.UnpackedFloat.isFinite] at hzm
@@ -458,37 +490,118 @@ theorem isFinite_fma_f32 (x y z : Float32) (hx : x.isFinite = true) (hy : y.isFi
     (isFinite_ofFloat32 y hy) (isFinite_ofFloat32 z hz)
     (Model.isModelCanonical_ofFloat32Model _) h
 
-/-- A fused multiply-add with an operand that is not finite is not finite. -/
-theorem isFinite_fma_eq_false_f64 (x y z : Float)
-    (h : x.isFinite = false ∨ y.isFinite = false ∨ z.isFinite = false) :
-    (x.fma y z).isFinite = false := by
-  show (Float.Model.pack (Float.Model.UnpackedFloat.fma Float.Model.Format.binary64
-    x.toModel.unpack y.toModel.unpack z.toModel.unpack)).isFinite = false
-  simp only [Float.isFinite, Float.Model.isFinite] at h
-  unfold Float.Model.isFinite
-  rw [unpack_pack_f64]
-  rcases h with h | h | h
-  all_goals
-    cases hx : x.toModel.unpack <;> cases hy : y.toModel.unpack <;>
-      cases hz : z.toModel.unpack <;>
-      simp_all [Float.Model.UnpackedFloat.fma, Float.Model.UnpackedFloat.isFinite]
-  all_goals split_ifs <;> simp
+/-! ## Negation
 
-/-- A fused multiply-add with an operand that is not finite is not finite. -/
-theorem isFinite_fma_eq_false_f32 (x y z : Float32)
-    (h : x.isFinite = false ∨ y.isFinite = false ∨ z.isFinite = false) :
-    (x.fma y z).isFinite = false := by
-  show (Float32.Model.pack (Float.Model.UnpackedFloat.fma Float.Model.Format.binary32
-    x.toModel.unpack y.toModel.unpack z.toModel.unpack)).isFinite = false
-  simp only [Float32.isFinite, Float32.Model.isFinite] at h
-  unfold Float32.Model.isFinite
-  rw [unpack_pack_f32]
-  rcases h with h | h | h
-  all_goals
-    cases hx : x.toModel.unpack <;> cases hy : y.toModel.unpack <;>
-      cases hz : z.toModel.unpack <;>
-      simp_all [Float.Model.UnpackedFloat.fma, Float.Model.UnpackedFloat.isFinite]
-  all_goals split_ifs <;> simp
+The fused filters negate a product before adding it (`b1.mul_add(x, -(a1 * y))`, the way clang
+contracts `b1*x - a1*y`). Negation is exact. -/
+
+/-- Negating a word and packing Lean's negation of its unpacked form have the same real value and
+finiteness. -/
+theorem toModel_ofModel_neg_toModel {fmt : FloatFormat} (hfmt : fmt.isIEEE = true)
+    (X : Model fmt) :
+    Model.toModel (Model.ofModel fmt (Float.Model.UnpackedFloat.neg (Model.toModel X))) =
+      Model.toModel (Model.neg X) := by
+  rw [← Model.toModel_neg hfmt]
+  exact Model.toModel_canonicalizeModel _
+
+/-- FloatLib's binary64 word of `-x` is the packed Lean negation of `x`'s unpacked word. -/
+theorem toModel_ofFloat_neg (x : Float) :
+    toModel (ofFloat (-x) : Binary64) =
+      Model.ofModel FloatFormat.binary64
+        (Float.Model.UnpackedFloat.neg (Model.toModel (toModel (ofFloat x : Binary64)))) := by
+  rw [toModel_ofFloat, toModel_ofFloat]
+  change Model.ofFloatModel (Float.Model.neg x.toModel) = _
+  rw [Float.Model.neg, Model.ofFloatModel_pack]
+  rfl
+
+/-- FloatLib's binary32 word of `-x` is the packed Lean negation of `x`'s unpacked word. -/
+theorem toModel_ofFloat32_neg (x : Float32) :
+    toModel (ofFloat32 (-x) : Binary32) =
+      Model.ofModel FloatFormat.binary32
+        (Float.Model.UnpackedFloat.neg (Model.toModel (toModel (ofFloat32 x : Binary32)))) := by
+  rw [toModel_ofFloat32, toModel_ofFloat32]
+  change Model.ofFloat32Model (Float32.Model.neg x.toModel) = _
+  rw [Float32.Model.neg, Model.ofFloat32Model_pack]
+  rfl
+
+/-- Packing Lean's negation of a finite word's unpacked form negates its real value. -/
+theorem toReal_ofModel_neg_toModel {fmt : FloatFormat} (hfmt : fmt.isIEEE = true)
+    (X : Model fmt) (hX : Model.isFinite X = true) :
+    Model.toReal (Model.ofModel fmt (Float.Model.UnpackedFloat.neg (Model.toModel X))) =
+      -Model.toReal X := by
+  rw [Model.toReal_eq_unpackedToReal_toModel hfmt (Model.ofModel fmt _),
+    toModel_ofModel_neg_toModel hfmt, ← Model.toReal_eq_unpackedToReal_toModel hfmt,
+    Model.toReal_neg _ hX]
+
+/-- Packing Lean's negation of a finite word's unpacked form gives a finite word. -/
+theorem isFinite_ofModel_neg_toModel {fmt : FloatFormat} (hfmt : fmt.isIEEE = true)
+    (X : Model fmt) (hX : Model.isFinite X = true) :
+    Model.isFinite (Model.ofModel fmt (Float.Model.UnpackedFloat.neg (Model.toModel X))) =
+      true := by
+  rw [← Model.isFinite_toModel hfmt, toModel_ofModel_neg_toModel hfmt, Model.toModel_neg hfmt]
+  rw [← Model.isFinite_toModel hfmt] at hX
+  cases hu : Model.toModel X <;>
+    simp_all [Float.Model.UnpackedFloat.neg, Float.Model.UnpackedFloat.isFinite]
+
+/-- Negating a finite `Float` negates its real value exactly. -/
+theorem real_neg_f64 (x : Float) (hx : x.isFinite = true) : real_f64 (-x) = -real_f64 x := by
+  unfold real_f64 toReal
+  rw [toModel_ofFloat_neg]
+  exact toReal_ofModel_neg_toModel (by decide) _ (isFinite_ofFloat x hx)
+
+/-- Negating a finite `Float32` negates its real value exactly. -/
+theorem real_neg_f32 (x : Float32) (hx : x.isFinite = true) : real_f32 (-x) = -real_f32 x := by
+  unfold real_f32 toReal
+  rw [toModel_ofFloat32_neg]
+  exact toReal_ofModel_neg_toModel (by decide) _ (isFinite_ofFloat32 x hx)
+
+/-- The negation of a finite `Float` is finite. -/
+theorem isFinite_neg_f64 (x : Float) (hx : x.isFinite = true) : (-x).isFinite = true := by
+  rw [← isFinite_ofFloat_iff]
+  unfold isFinite
+  rw [toModel_ofFloat_neg]
+  exact isFinite_ofModel_neg_toModel (by decide) _ (isFinite_ofFloat x hx)
+
+/-- The negation of a finite `Float32` is finite. -/
+theorem isFinite_neg_f32 (x : Float32) (hx : x.isFinite = true) : (-x).isFinite = true := by
+  rw [← isFinite_ofFloat32_iff]
+  unfold isFinite
+  rw [toModel_ofFloat32_neg]
+  exact isFinite_ofModel_neg_toModel (by decide) _ (isFinite_ofFloat32 x hx)
+
+/-- One binary64 fused multiply-add `x.fma y (-q)`, computing `x·y - q`, of finite numbers with a
+finite result is within `u·|x·y - q| + η` of the exact `x·y - q`. -/
+theorem abs_real_fma_neg_sub_le_f64 (x y q : Float) (hx : x.isFinite = true)
+    (hy : y.isFinite = true) (hq : q.isFinite = true) (hr : (x.fma y (-q)).isFinite = true) :
+    |real_f64 (x.fma y (-q)) - (real_f64 x * real_f64 y - real_f64 q)| ≤
+      unitRoundoff_f64 * |real_f64 x * real_f64 y - real_f64 q| + underflowErr_f64 := by
+  have h := abs_real_fma_sub_le_f64 x y (-q) hx hy (isFinite_neg_f64 q hq) hr
+  rwa [real_neg_f64 q hq, ← sub_eq_add_neg] at h
+
+/-- One binary32 fused multiply-add `x.fma y (-q)`, computing `x·y - q`, of finite numbers with a
+finite result is within `u·|x·y - q| + η` of the exact `x·y - q`. -/
+theorem abs_real_fma_neg_sub_le_f32 (x y q : Float32) (hx : x.isFinite = true)
+    (hy : y.isFinite = true) (hq : q.isFinite = true) (hr : (x.fma y (-q)).isFinite = true) :
+    |real_f32 (x.fma y (-q)) - (real_f32 x * real_f32 y - real_f32 q)| ≤
+      unitRoundoff_f32 * |real_f32 x * real_f32 y - real_f32 q| + underflowErr_f32 := by
+  have h := abs_real_fma_sub_le_f32 x y (-q) hx hy (isFinite_neg_f32 q hq) hr
+  rwa [real_neg_f32 q hq, ← sub_eq_add_neg] at h
+
+/-- `x.fma y (-q)` of finite numbers is finite when `|x·y - q|` is at most the largest finite
+value. -/
+theorem isFinite_fma_neg_f64 (x y q : Float) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hq : q.isFinite = true) (h : |real_f64 x * real_f64 y - real_f64 q| ≤ maxFinite_f64) :
+    (x.fma y (-q)).isFinite = true := by
+  refine isFinite_fma_f64 x y (-q) hx hy (isFinite_neg_f64 q hq) ?_
+  rwa [real_neg_f64 q hq, ← sub_eq_add_neg]
+
+/-- `x.fma y (-q)` of finite numbers is finite when `|x·y - q|` is at most the largest finite
+value. -/
+theorem isFinite_fma_neg_f32 (x y q : Float32) (hx : x.isFinite = true) (hy : y.isFinite = true)
+    (hq : q.isFinite = true) (h : |real_f32 x * real_f32 y - real_f32 q| ≤ maxFinite_f32) :
+    (x.fma y (-q)).isFinite = true := by
+  refine isFinite_fma_f32 x y (-q) hx hy (isFinite_neg_f32 q hq) ?_
+  rwa [real_neg_f32 q hq, ← sub_eq_add_neg]
 
 end conjure_dsp_lib
 

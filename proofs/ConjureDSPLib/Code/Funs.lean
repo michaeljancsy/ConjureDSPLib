@@ -415,6 +415,118 @@ def biquad.process_f32
   := do
   biquad.process_f32_loop c state buf 0#usize
 
+/-- [conjure_dsp_lib::biquad::step_fma_f64]:
+    Source: 'src/biquad.rs', lines 182:0-187:1
+    Visibility: public -/
+def biquad.step_fma_f64
+  (c : biquad.CoeffsF64) (state : biquad.StateF64) (x : Float) :
+  Result (Float × biquad.StateF64)
+  := do
+  let y ← lift (std.f64.mul_add c.b0 x state.s1)
+  let fl ← lift (std.f64.mul_add c.b1 x (Float.neg (Float.mul c.a1 y)))
+  let fl1 ← lift (std.f64.mul_add c.b2 x (Float.neg (Float.mul c.a2 y)))
+  ok (y, { s1 := (Float.add fl state.s2), s2 := fl1 })
+
+/-- [conjure_dsp_lib::biquad::process_fma_f64]: loop body 0:
+    Source: 'src/biquad.rs', lines 195:4-198:5
+    Visibility: public -/
+@[rust_loop_body]
+def biquad.process_fma_f64_loop.body
+  (c : biquad.CoeffsF64) (state : biquad.StateF64) (buf : Slice Float)
+  (i : Std.Usize) :
+  Result (ControlFlow (biquad.StateF64 × (Slice Float) × Std.Usize)
+    (biquad.StateF64 × (Slice Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← biquad.step_fma_f64 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::biquad::process_fma_f64]: loop 0:
+    Source: 'src/biquad.rs', lines 195:4-198:5
+    Visibility: public -/
+@[rust_loop]
+def biquad.process_fma_f64_loop
+  (c : biquad.CoeffsF64) (state : biquad.StateF64) (buf : Slice Float)
+  (i : Std.Usize) :
+  Result (biquad.StateF64 × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => biquad.process_fma_f64_loop.body c state1 buf1
+      i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::biquad::process_fma_f64]:
+    Source: 'src/biquad.rs', lines 192:0-199:1
+    Visibility: public -/
+@[reducible]
+def biquad.process_fma_f64
+  (c : biquad.CoeffsF64) (state : biquad.StateF64) (buf : Slice Float) :
+  Result (biquad.StateF64 × (Slice Float))
+  := do
+  biquad.process_fma_f64_loop c state buf 0#usize
+
+/-- [conjure_dsp_lib::biquad::step_fma_f32]:
+    Source: 'src/biquad.rs', lines 215:0-220:1
+    Visibility: public -/
+def biquad.step_fma_f32
+  (c : biquad.CoeffsF32) (state : biquad.StateF32) (x : Float32) :
+  Result (Float32 × biquad.StateF32)
+  := do
+  let y ← lift (std.f32.mul_add c.b0 x state.s1)
+  let fl ← lift (std.f32.mul_add c.b1 x (Float32.neg (Float32.mul c.a1 y)))
+  let fl1 ← lift (std.f32.mul_add c.b2 x (Float32.neg (Float32.mul c.a2 y)))
+  ok (y, { s1 := (Float32.add fl state.s2), s2 := fl1 })
+
+/-- [conjure_dsp_lib::biquad::process_fma_f32]: loop body 0:
+    Source: 'src/biquad.rs', lines 228:4-231:5
+    Visibility: public -/
+@[rust_loop_body]
+def biquad.process_fma_f32_loop.body
+  (c : biquad.CoeffsF32) (state : biquad.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (ControlFlow (biquad.StateF32 × (Slice Float32) × Std.Usize)
+    (biquad.StateF32 × (Slice Float32)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← biquad.step_fma_f32 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::biquad::process_fma_f32]: loop 0:
+    Source: 'src/biquad.rs', lines 228:4-231:5
+    Visibility: public -/
+@[rust_loop]
+def biquad.process_fma_f32_loop
+  (c : biquad.CoeffsF32) (state : biquad.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (biquad.StateF32 × (Slice Float32))
+  := do
+  loop
+    (fun (state1, buf1, i1) => biquad.process_fma_f32_loop.body c state1 buf1
+      i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::biquad::process_fma_f32]:
+    Source: 'src/biquad.rs', lines 225:0-232:1
+    Visibility: public -/
+@[reducible]
+def biquad.process_fma_f32
+  (c : biquad.CoeffsF32) (state : biquad.StateF32) (buf : Slice Float32) :
+  Result (biquad.StateF32 × (Slice Float32))
+  := do
+  biquad.process_fma_f32_loop c state buf 0#usize
+
 /-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
     Source: 'src/delay.rs', lines 72:4-84:5
     Visibility: public -/

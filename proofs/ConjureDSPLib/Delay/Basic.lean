@@ -135,10 +135,7 @@ theorem rotate_set_eq_drop {α : Type} (l : List α) (p : ℕ) (x : α) (hL : 0 
     -- and `take 1` of a cons are computed; plain `simp` would fold `l[i] :: l.drop (i + 1)` back
     -- into `l.drop i`.
     simp only [List.nil_append, List.append_assoc]
-    first
-      | rfl
-      | (simp only [List.drop_succ_cons, List.drop_zero, List.take_succ_cons, List.take_zero,
-          List.cons_append])
+    rfl
 
 end conjure_dsp_lib.delay
 

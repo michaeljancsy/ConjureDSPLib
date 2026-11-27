@@ -362,7 +362,7 @@ the delayed sample before computing the sample to write (for feedback). With
 theorem read_f64_empty_buffer (buffer : Slice Float) (position delay_samples : Std.Usize)
     (hL : buffer.length = 0) : read_f64 buffer position delay_samples = ok 0 := by
   have h : Slice.len buffer = 0#usize := UScalar.eq_of_val_eq (by simp [hL])
-  simp [read_f64, h] <;> rfl
+  simp [read_f64, h]
 
 /-- **Reading one sample.** For `L = buffer.length > 0` and `d = min delay_samples (L - 1)`:
 `read_f64` never fails, and returns element `(position + L - d) mod L` of the buffer. It
@@ -376,7 +376,7 @@ theorem read_f64_spec (buffer : Slice Float) (position delay_samples : Std.Usize
   have hne : ¬ buffer.len = 0#usize := fun h => by
     have h' := congrArg UScalar.val h
     scalar_tac
-  simp only [read_f64, hne, ↓reduceIte, Bind.bind]
+  simp only [read_f64, hne, ↓reduceIte]
   -- The delay used, `d = min delay_samples (L - 1)`.
   apply WP.spec_bind
     (Pₘ := fun d : Std.Usize => d.val = min delay_samples.val (buffer.length - 1))
@@ -464,7 +464,7 @@ theorem write_f64_spec (buffer : Slice Float) (position : Std.Usize) (x : Float)
   have hne : ¬ buffer.len = 0#usize := fun h => by
     have h' := congrArg UScalar.val h
     scalar_tac
-  simp only [write_f64, hne, ↓reduceIte, Bind.bind]
+  simp only [write_f64, hne, ↓reduceIte]
   apply WP.spec_bind (Usize.rem_spec position (y := buffer.len) (by scalar_tac))
   intro w hw
   have hw' : w.val = position.val % buffer.length := by rw [hw, hlv]
@@ -481,7 +481,8 @@ theorem write_f64_spec (buffer : Slice Float) (position : Std.Usize) (x : Float)
   · rename_i h
     have h1 : w.val + 1 = buffer.length := by
       have h' := congrArg UScalar.val h
-      scalar_tac
+      have h1' : (1#usize).val = 1 := by first | rfl | simp
+      omega
     simp only [WP.spec_ok, WP.uncurry'_pair]
     refine ⟨by rw [Slice.set_val_eq, hw'], ?_⟩
     rw [hsucc, if_pos h1]
@@ -559,7 +560,7 @@ theorem read_write_f64_eq_process (buffer : Slice Float) (position delay_samples
     exists_ok_of_spec (write_f64_eq_process_state buffer position delay_samples x audio haudio)
   obtain ⟨⟨b'', p'', o⟩, ep, hno, hout, -⟩ :=
     exists_ok_of_spec (process_f64_spec buffer position delay_samples audio hL)
-  simp only [ew, ep, WP.spec_ok, WP.uncurry'_pair] at hstate
+  simp only [ep, WP.spec_ok, WP.uncurry'_pair] at hstate
   simp only [ey, ew, ep, WP.spec_ok, WP.uncurry'_pair]
   refine ⟨?_, hstate⟩
   have h0 := hout 0 (by omega)

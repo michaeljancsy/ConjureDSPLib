@@ -13,6 +13,8 @@
 //! cargo test --release --features std --test looseness -- --ignored --nocapture
 //! ```
 //!
+//! With the defaults a run takes about 65 seconds in release mode on Apple silicon (measured once).
+//!
 //! `LOOSENESS_LEN` sets the block length (default 2^20 samples) and `LOOSENESS_SEEDS` the number
 //! of seeds for each random signal (default 8). Without `--features std` the fused functions are
 //! skipped.
@@ -281,6 +283,19 @@ fn measure<T: Copy + Into<f64>>(
     worst
 }
 
+/// Measures the unfused function (`$plain`) and, with the `std` feature, the fused one
+/// (`$fused`), on the same signals against the same reference. `$b` is the block.
+macro_rules! both {
+    ($sigs:expr, $round:expr, $reference:expr, |$b:ident: $t:ty| $plain:expr, $fused:expr) => {{
+        let plain = measure($sigs, $round, &|$b: $t| $plain, $reference);
+        #[cfg(feature = "std")]
+        let fused = Some(measure($sigs, $round, &|$b: $t| $fused, $reference));
+        #[cfg(not(feature = "std"))]
+        let fused = None;
+        (plain, fused)
+    }};
+}
+
 /// The `Q` of the worked SVF examples, as written there (not exactly 1/√2).
 #[allow(clippy::approx_constant)]
 const Q_WORKED: f64 = 0.7071;
@@ -373,39 +388,21 @@ fn looseness_of_block_error_bounds() {
         let sigs = signals(n, seeds, (1.0 - f64::abs(a)) / (2.0 * PI), &h);
         let (plain, fused) = if prec == "f32" {
             let a32 = a as f32;
-            let p = measure(
+            both!(
                 &sigs,
                 r32,
-                &|b: &mut [f32]| one_pole::process_f32(a32, &mut 0.0, b),
                 &reference,
-            );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
-                &sigs,
-                r32,
-                &|b: &mut [f32]| one_pole::process_fma_f32(a32, &mut 0.0, b),
-                &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f32]| one_pole::process_f32(a32, &mut 0.0, b),
+                one_pole::process_fma_f32(a32, &mut 0.0, b)
+            )
         } else {
-            let p = measure(
+            both!(
                 &sigs,
                 r64,
-                &|b: &mut [f64]| one_pole::process_f64(a, &mut 0.0, b),
                 &reference,
-            );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
-                &sigs,
-                r64,
-                &|b: &mut [f64]| one_pole::process_fma_f64(a, &mut 0.0, b),
-                &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f64]| one_pole::process_f64(a, &mut 0.0, b),
+                one_pole::process_fma_f64(a, &mut 0.0, b)
+            )
         };
         rows.push(Row {
             filter: "one_pole",
@@ -434,39 +431,21 @@ fn looseness_of_block_error_bounds() {
         let sigs = signals(n, seeds, (1.0 - a) / (2.0 * PI), &h);
         let (plain, fused) = if prec == "f32" {
             let a32 = a as f32;
-            let p = measure(
+            both!(
                 &sigs,
                 r32,
-                &|b: &mut [f32]| smoother::process_f32(a32, &mut 0.0, b),
                 &reference,
-            );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
-                &sigs,
-                r32,
-                &|b: &mut [f32]| smoother::process_fma_f32(a32, &mut 0.0, b),
-                &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f32]| smoother::process_f32(a32, &mut 0.0, b),
+                smoother::process_fma_f32(a32, &mut 0.0, b)
+            )
         } else {
-            let p = measure(
+            both!(
                 &sigs,
                 r64,
-                &|b: &mut [f64]| smoother::process_f64(a, &mut 0.0, b),
                 &reference,
-            );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
-                &sigs,
-                r64,
-                &|b: &mut [f64]| smoother::process_fma_f64(a, &mut 0.0, b),
-                &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f64]| smoother::process_f64(a, &mut 0.0, b),
+                smoother::process_fma_f64(a, &mut 0.0, b)
+            )
         };
         rows.push(Row {
             filter: "smoother",
@@ -641,24 +620,18 @@ fn looseness_of_block_error_bounds() {
                 a2: c.a2 as f32,
             };
             // Every stored value converts exactly.
-            assert_eq!(f64::from(c32.a1), c.a1);
-            assert_eq!(f64::from(c32.b0), c.b0);
-            let p = measure(
-                &sigs,
-                r32,
-                &|b: &mut [f32]| biquad::process_f32(&c32, &mut biquad::StateF32::default(), b),
-                &reference,
+            assert_eq!(
+                [c32.b0, c32.b1, c32.b2, c32.a1, c32.a2].map(f64::from),
+                [c.b0, c.b1, c.b2, c.a1, c.a2],
+                "biquad f32 {case}: a stored coefficient is not a binary32 value"
             );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
+            both!(
                 &sigs,
                 r32,
-                &|b: &mut [f32]| biquad::process_fma_f32(&c32, &mut biquad::StateF32::default(), b),
                 &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f32]| biquad::process_f32(&c32, &mut biquad::StateF32::default(), b),
+                biquad::process_fma_f32(&c32, &mut biquad::StateF32::default(), b)
+            )
         } else {
             let c64 = biquad::CoeffsF64 {
                 b0: c.b0,
@@ -667,22 +640,13 @@ fn looseness_of_block_error_bounds() {
                 a1: c.a1,
                 a2: c.a2,
             };
-            let p = measure(
+            both!(
                 &sigs,
                 r64,
-                &|b: &mut [f64]| biquad::process_f64(&c64, &mut biquad::StateF64::default(), b),
                 &reference,
-            );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
-                &sigs,
-                r64,
-                &|b: &mut [f64]| biquad::process_fma_f64(&c64, &mut biquad::StateF64::default(), b),
-                &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f64]| biquad::process_f64(&c64, &mut biquad::StateF64::default(), b),
+                biquad::process_fma_f64(&c64, &mut biquad::StateF64::default(), b)
+            )
         };
         rows.push(Row {
             filter: "biquad",
@@ -797,22 +761,13 @@ fn looseness_of_block_error_bounds() {
                 (c.g, c.k, c.d),
                 "f32 SVF design at {fc} Hz differs from the stored values"
             );
-            let p = measure(
+            both!(
                 &sigs,
                 r32,
-                &|b: &mut [f32]| svf::process_f32(&c32, &mut svf::StateF32::default(), b),
                 &reference,
-            );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
-                &sigs,
-                r32,
-                &|b: &mut [f32]| svf::process_fma_f32(&c32, &mut svf::StateF32::default(), b),
-                &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f32]| svf::process_f32(&c32, &mut svf::StateF32::default(), b),
+                svf::process_fma_f32(&c32, &mut svf::StateF32::default(), b)
+            )
         } else {
             let c64 = svf::CoeffsF64::low_pass(fc, 48_000.0, Q_WORKED);
             assert_eq!(
@@ -820,22 +775,13 @@ fn looseness_of_block_error_bounds() {
                 (c.g, c.k, c.d),
                 "f64 SVF design at {fc} Hz differs from the stored values"
             );
-            let p = measure(
+            both!(
                 &sigs,
                 r64,
-                &|b: &mut [f64]| svf::process_f64(&c64, &mut svf::StateF64::default(), b),
                 &reference,
-            );
-            #[cfg(feature = "std")]
-            let f = Some(measure(
-                &sigs,
-                r64,
-                &|b: &mut [f64]| svf::process_fma_f64(&c64, &mut svf::StateF64::default(), b),
-                &reference,
-            ));
-            #[cfg(not(feature = "std"))]
-            let f = None;
-            (p, f)
+                |b: &mut [f64]| svf::process_f64(&c64, &mut svf::StateF64::default(), b),
+                svf::process_fma_f64(&c64, &mut svf::StateF64::default(), b)
+            )
         };
         rows.push(Row {
             filter: "svf",
@@ -849,12 +795,18 @@ fn looseness_of_block_error_bounds() {
 
     print_rows(&rows, n, seeds);
     for r in &rows {
-        assert!(
-            r.plain.err <= r.bound,
-            "observed error above the proved bound: {} {}",
-            r.filter,
-            r.case
-        );
+        for (kind, w) in [("unfused", Some(&r.plain)), ("fused", r.fused.as_ref())] {
+            if let Some(w) = w {
+                assert!(
+                    w.err <= r.bound,
+                    "{} {} ({kind}): observed error {:.3e} above the proved bound {:.3e}",
+                    r.filter,
+                    r.case,
+                    w.err,
+                    r.bound
+                );
+            }
+        }
     }
 }
 
@@ -879,8 +831,11 @@ fn looseness_of_ramp_bounds() {
     }
     let lengths = [3_usize, 64, 1000, 4096, 48_000, 1 << 20];
     println!();
-    println!("| Precision | Block lengths | Start, end pairs | Largest observed error | Its bound | Bound ÷ observed (smallest) |");
-    println!("|---|---|---|---|---|---|");
+    println!(
+        "| Precision | Block lengths | Start, end pairs | Largest observed error | Its bound | \
+         Bound ÷ observed there | Bound ÷ observed, smallest over all gains |"
+    );
+    println!("|---|---|---|---|---|---|---|");
     for prec in ["f32", "f64"] {
         let (u, eta) = if prec == "f32" {
             (2f64.powi(-24), 2f64.powi(-150))
@@ -923,13 +878,19 @@ fn looseness_of_ramp_bounds() {
                         worst_err = err;
                         worst_bound = bound;
                     }
-                    assert!(err <= bound, "ramp error above the proved bound");
+                    assert!(
+                        err <= bound,
+                        "gain ramp {prec}, start {s}, end {e}, n = {n}, gain {i}: observed error \
+                         {err:.3e} above the proved bound {bound:.3e}"
+                    );
                 }
             }
         }
         println!(
-            "| {prec} | {lengths:?} | {} | {worst_err:.2e} | {worst_bound:.2e} | {min_ratio:.2} |",
-            pairs.len()
+            "| {prec} | {lengths:?} | {} | {worst_err:.2e} | {worst_bound:.2e} | {:.2} | \
+             {min_ratio:.2} |",
+            pairs.len(),
+            worst_bound / worst_err
         );
     }
 }

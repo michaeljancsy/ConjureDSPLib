@@ -125,20 +125,7 @@ Three layers change. The real-number arguments in the `Block.lean` files would n
    simplest hypothesis is that no coefficient, starting state or input is subnormal (then DAZ
    changes nothing); a version allowing subnormal inputs adds the input-change term above.
 
-**Estimate** (not measured). The fused multiply-add proofs are the closest earlier piece of work:
-a new per-operation model fed into the same real-number arguments, about 5,000 lines for four
-filters in two precisions. FTZ is about the same size, plus layer 1, which the fused functions
-did not need, and plus the flush facts, which FloatLib does not provide. Roughly:
-
-| Part | Hours |
-|---|---|
-| Layer 2: `flush`, `daz` and the per-operation facts, both precisions, `fma` included | 4–8 |
-| Layer 1: steps over abstract operations, equal to the generated code | 3–5 |
-| Layer 3: one-step, no-overflow and whole-block theorems for the one-pole, smoother, biquad, SVF (unfused and fused) and the gain ramp | 6–10 |
-| Worked examples with `N` in place of `η`, and documentation | 2–4 |
-| Total | 15–27 |
-
-Layer 3 splits by filter, so with the filters done in parallel the total time is about 10–15
-hours. Each check of the proofs on GitHub takes about 15 minutes, which limits how fast mistakes
-are found. Allowing subnormal inputs under DAZ adds about 4–6 hours. The main risk is layer 2:
-how much of Lean's float model and FloatLib's rounding can be reused for the flush step.
+The work, in short: the flush and denormals-are-zero facts for each operation (layer 2), steps
+written over abstract operations (layer 1), and, for each filter in both precisions, unfused and
+fused, and for the gain ramp, the one-step, no-overflow and whole-block theorems again, with the
+worked examples re-checked.

@@ -11,7 +11,7 @@
 //! - [`step_f64`]`(state)` moves one sample on and returns the new value.
 //! - [`process_f64`]`(state, buf)` fills `buf` with the next `buf.len()` values.
 //!
-//! **Exact arithmetic of the ramp.** `set_target` computes `step = (target - value) / steps`
+//! **What each call computes.** `set_target` computes `step = (target - value) / steps`
 //! once. While `remaining > 0`, each `step` call takes one off `remaining` and then sets
 //! `value = target - step * remaining`, computed from the target and the count in that order,
 //! not by adding `step` repeatedly; when `remaining` reaches 0 it sets `value = target` exactly,
@@ -25,10 +25,14 @@
 //! - **Never panics**, for any state and block (`linear_smoother.process_f64_ok`; `set_target`
 //!   and `step` never panic either, `linear_smoother.set_target_f64_spec`,
 //!   `linear_smoother.step_f64_spec`).
-//! - **Lands exactly.** After `set_target_f64(state, target, steps)`, the value returned by step
-//!   number `steps`, and every value after it until the next `set_target`, is `target` itself,
-//!   bit for bit; with `remaining = 0` a block changes nothing and every value is `state.value`
+//! - **Lands exactly.** After `set_target_f64(state, target, steps)`, a block run on the new state
+//!   returns `target` itself, bit for bit, from step number `steps` on, and with `remaining = 0`
+//!   a block changes nothing and every value is `state.value`
 //!   (`linear_smoother.set_target_process_f64_lands`, `linear_smoother.process_f64_at_rest`).
+//!   That the same holds when the ramp is run one `step` at a time or across several blocks, until
+//!   the next `set_target`, follows from `linear_smoother.step_f64_spec` and
+//!   `linear_smoother.process_f64_spec` with `linear_smoother.process_f64_lands` (no single
+//!   theorem states it across blocks).
 //! - **Close to the straight line before that.** Step number `k`, for `1 <= k < steps`, returns
 //!   `target - step * ((steps - k) as f64)` (`linear_smoother.valueAfter_set_target_f64`). When
 //!   `value` and `target` are finite and at most `2^1020` in size (`2^124` in `f32`) and
@@ -117,7 +121,8 @@ pub fn process_f64(state: &mut StateF64, buf: &mut [f64]) {
     }
 }
 
-/// Starts a ramp, in `f32`: the same as [`set_target_f64`] (`linear_smoother.set_target_f32_spec`).
+/// Starts a ramp, in `f32`: the same as [`set_target_f64`]
+/// (`linear_smoother.set_target_f32_spec`).
 pub fn set_target_f32(state: &mut StateF32, target: f32, steps: usize) {
     state.target = target;
     if steps == 0 {

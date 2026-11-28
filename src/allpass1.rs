@@ -155,7 +155,10 @@ pub fn process_fma_f64(c: f64, state: &mut StateF64, buf: &mut [f64]) {
 }
 
 /// One sample of the filter, in `f32`, with one fused multiply-add:
-/// `y = c.mul_add(x - state.y1, state.x1)`. Needs the `std` feature.
+/// `y = c.mul_add(x - state.y1, state.x1)`, which is `c * (x - state.y1) + state.x1` with the
+/// multiply and add rounded once. This is how clang compiles `c * (x - y1) + x1` on Apple silicon
+/// (its default `-ffp-contract=on`; worked out outside Lean, not proved: checked against Apple
+/// clang 17, arm64, -O2). Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f32(c: f32, state: &mut StateF32, x: f32) -> f32 {
@@ -233,7 +236,7 @@ mod tests {
 
                 #[test]
                 fn magnitude_is_one_at_several_frequencies() {
-                    // Measured, not proved: the gain at each frequency is 1 within $tol.
+                    // Measured, not proved: the gain at each frequency is 1 within the tolerance.
                     let c = $coeff(1_000.0, 48_000.0);
                     for f in [0.0125, 0.05, 0.1, 0.25, 0.4] {
                         let (gain, _) = gain_phase(c, f);

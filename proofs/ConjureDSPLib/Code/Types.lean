@@ -69,7 +69,7 @@ structure biquad.StateF32 where
   s2 : Float32
 
 /-- [conjure_dsp_lib::linear_smoother::StateF64]
-    Source: 'src/linear_smoother.rs', lines 50:0-59:1
+    Source: 'src/linear_smoother.rs', lines 54:0-63:1
     Visibility: public -/
 structure linear_smoother.StateF64 where
   value : Float
@@ -78,7 +78,7 @@ structure linear_smoother.StateF64 where
   target : Float
 
 /-- [conjure_dsp_lib::linear_smoother::StateF32]
-    Source: 'src/linear_smoother.rs', lines 64:0-73:1
+    Source: 'src/linear_smoother.rs', lines 68:0-77:1
     Visibility: public -/
 structure linear_smoother.StateF32 where
   value : Float32

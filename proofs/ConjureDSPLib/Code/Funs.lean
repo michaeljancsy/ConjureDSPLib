@@ -302,7 +302,7 @@ def allpass1.process_fma_f64
   allpass1.process_fma_f64_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::allpass1::step_fma_f32]:
-    Source: 'src/allpass1.rs', lines 161:0-166:1
+    Source: 'src/allpass1.rs', lines 164:0-169:1
     Visibility: public -/
 def allpass1.step_fma_f32
   (c : Float32) (state : allpass1.StateF32) (x : Float32) :
@@ -312,7 +312,7 @@ def allpass1.step_fma_f32
   ok (y, { x1 := x, y1 := y })
 
 /-- [conjure_dsp_lib::allpass1::process_fma_f32]: loop body 0:
-    Source: 'src/allpass1.rs', lines 174:4-177:5
+    Source: 'src/allpass1.rs', lines 177:4-180:5
     Visibility: public -/
 @[rust_loop_body]
 def allpass1.process_fma_f32_loop.body
@@ -332,7 +332,7 @@ def allpass1.process_fma_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::allpass1::process_fma_f32]: loop 0:
-    Source: 'src/allpass1.rs', lines 174:4-177:5
+    Source: 'src/allpass1.rs', lines 177:4-180:5
     Visibility: public -/
 @[rust_loop]
 def allpass1.process_fma_f32_loop
@@ -346,7 +346,7 @@ def allpass1.process_fma_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::allpass1::process_fma_f32]:
-    Source: 'src/allpass1.rs', lines 171:0-178:1
+    Source: 'src/allpass1.rs', lines 174:0-181:1
     Visibility: public -/
 @[reducible]
 def allpass1.process_fma_f32
@@ -858,7 +858,7 @@ def biquad.process_fma_f32
   biquad.process_fma_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
-    Source: 'src/delay.rs', lines 102:4-114:5
+    Source: 'src/delay.rs', lines 103:4-115:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f64_loop.body
@@ -887,7 +887,7 @@ def delay.process_f64_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop 0:
-    Source: 'src/delay.rs', lines 102:4-114:5
+    Source: 'src/delay.rs', lines 103:4-115:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f64_loop
@@ -901,7 +901,7 @@ def delay.process_f64_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f64]:
-    Source: 'src/delay.rs', lines 81:0-116:1
+    Source: 'src/delay.rs', lines 82:0-117:1
     Visibility: public -/
 def delay.process_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -924,7 +924,7 @@ def delay.process_f64
     delay.process_f64_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop body 0:
-    Source: 'src/delay.rs', lines 141:4-153:5
+    Source: 'src/delay.rs', lines 142:4-154:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f32_loop.body
@@ -953,7 +953,7 @@ def delay.process_f32_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop 0:
-    Source: 'src/delay.rs', lines 141:4-153:5
+    Source: 'src/delay.rs', lines 142:4-154:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f32_loop
@@ -967,7 +967,7 @@ def delay.process_f32_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f32]:
-    Source: 'src/delay.rs', lines 120:0-155:1
+    Source: 'src/delay.rs', lines 121:0-156:1
     Visibility: public -/
 def delay.process_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -990,7 +990,7 @@ def delay.process_f32
     delay.process_f32_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::read_f64]:
-    Source: 'src/delay.rs', lines 171:0-185:1
+    Source: 'src/delay.rs', lines 172:0-186:1
     Visibility: public -/
 def delay.read_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize) :
@@ -1012,7 +1012,7 @@ def delay.read_f64
     Slice.index_usize buffer r
 
 /-- [conjure_dsp_lib::delay::write_f64]:
-    Source: 'src/delay.rs', lines 193:0-202:1
+    Source: 'src/delay.rs', lines 194:0-203:1
     Visibility: public -/
 def delay.write_f64
   (buffer : Slice Float) (position : Std.Usize) (x : Float) :
@@ -1032,7 +1032,7 @@ def delay.write_f64
          ok (buffer1, next)
 
 /-- [conjure_dsp_lib::delay::read_f32]:
-    Source: 'src/delay.rs', lines 206:0-220:1
+    Source: 'src/delay.rs', lines 207:0-221:1
     Visibility: public -/
 def delay.read_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize) :
@@ -1054,7 +1054,7 @@ def delay.read_f32
     Slice.index_usize buffer r
 
 /-- [conjure_dsp_lib::delay::write_f32]:
-    Source: 'src/delay.rs', lines 224:0-233:1
+    Source: 'src/delay.rs', lines 225:0-234:1
     Visibility: public -/
 def delay.write_f32
   (buffer : Slice Float32) (position : Std.Usize) (x : Float32) :
@@ -1074,7 +1074,7 @@ def delay.write_f32
          ok (buffer1, next)
 
 /-- [conjure_dsp_lib::delay::read_interp_f64]:
-    Source: 'src/delay.rs', lines 272:0-306:1
+    Source: 'src/delay.rs', lines 275:0-309:1
     Visibility: public -/
 def delay.read_interp_f64
   (buffer : Slice Float) (position : Std.Usize) (delay : Float) :
@@ -1135,7 +1135,7 @@ def delay.read_interp_f64
       x2))
 
 /-- [conjure_dsp_lib::delay::read_interp_f32]:
-    Source: 'src/delay.rs', lines 312:0-346:1
+    Source: 'src/delay.rs', lines 316:0-350:1
     Visibility: public -/
 def delay.read_interp_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay : Float32) :
@@ -1300,14 +1300,14 @@ def gain.ramp_f32
       0#usize
 
 /-- [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF64}::clone]:
-    Source: 'src/linear_smoother.rs', lines 49:9-49:14
+    Source: 'src/linear_smoother.rs', lines 53:9-53:14
     Visibility: public -/
 def linear_smoother.StateF64.Insts.CoreCloneClone.clone
   (self : linear_smoother.StateF64) : Result linear_smoother.StateF64 := do
   ok self
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF64}]
-    Source: 'src/linear_smoother.rs', lines 49:9-49:14 -/
+    Source: 'src/linear_smoother.rs', lines 53:9-53:14 -/
 @[reducible]
 def linear_smoother.StateF64.Insts.CoreCloneClone : core.clone.Clone
   linear_smoother.StateF64 := {
@@ -1315,7 +1315,7 @@ def linear_smoother.StateF64.Insts.CoreCloneClone : core.clone.Clone
 }
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::Copy for conjure_dsp_lib::linear_smoother::StateF64}]
-    Source: 'src/linear_smoother.rs', lines 49:16-49:20 -/
+    Source: 'src/linear_smoother.rs', lines 53:16-53:20 -/
 @[reducible]
 def linear_smoother.StateF64.Insts.CoreMarkerCopy : core.marker.Copy
   linear_smoother.StateF64 := {
@@ -1323,14 +1323,14 @@ def linear_smoother.StateF64.Insts.CoreMarkerCopy : core.marker.Copy
 }
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::linear_smoother::StateF64}]
-    Source: 'src/linear_smoother.rs', lines 49:38-49:47 -/
+    Source: 'src/linear_smoother.rs', lines 53:38-53:47 -/
 @[reducible]
 def linear_smoother.StateF64.Insts.CoreMarkerStructuralPartialEq :
   core.marker.StructuralPartialEq linear_smoother.StateF64 := {
 }
 
 /-- [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF64> for conjure_dsp_lib::linear_smoother::StateF64}::eq]:
-    Source: 'src/linear_smoother.rs', lines 49:38-49:47
+    Source: 'src/linear_smoother.rs', lines 53:38-53:47
     Visibility: public -/
 def linear_smoother.StateF64.Insts.CoreCmpPartialEqStateF64.eq
   (self : linear_smoother.StateF64) (other : linear_smoother.StateF64) :
@@ -1347,7 +1347,7 @@ def linear_smoother.StateF64.Insts.CoreCmpPartialEqStateF64.eq
   else ok false
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF64> for conjure_dsp_lib::linear_smoother::StateF64}]
-    Source: 'src/linear_smoother.rs', lines 49:38-49:47 -/
+    Source: 'src/linear_smoother.rs', lines 53:38-53:47 -/
 @[reducible]
 def linear_smoother.StateF64.Insts.CoreCmpPartialEqStateF64 :
   core.cmp.PartialEq linear_smoother.StateF64 linear_smoother.StateF64 := {
@@ -1355,14 +1355,14 @@ def linear_smoother.StateF64.Insts.CoreCmpPartialEqStateF64 :
 }
 
 /-- [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF32}::clone]:
-    Source: 'src/linear_smoother.rs', lines 63:9-63:14
+    Source: 'src/linear_smoother.rs', lines 67:9-67:14
     Visibility: public -/
 def linear_smoother.StateF32.Insts.CoreCloneClone.clone
   (self : linear_smoother.StateF32) : Result linear_smoother.StateF32 := do
   ok self
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF32}]
-    Source: 'src/linear_smoother.rs', lines 63:9-63:14 -/
+    Source: 'src/linear_smoother.rs', lines 67:9-67:14 -/
 @[reducible]
 def linear_smoother.StateF32.Insts.CoreCloneClone : core.clone.Clone
   linear_smoother.StateF32 := {
@@ -1370,7 +1370,7 @@ def linear_smoother.StateF32.Insts.CoreCloneClone : core.clone.Clone
 }
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::Copy for conjure_dsp_lib::linear_smoother::StateF32}]
-    Source: 'src/linear_smoother.rs', lines 63:16-63:20 -/
+    Source: 'src/linear_smoother.rs', lines 67:16-67:20 -/
 @[reducible]
 def linear_smoother.StateF32.Insts.CoreMarkerCopy : core.marker.Copy
   linear_smoother.StateF32 := {
@@ -1378,14 +1378,14 @@ def linear_smoother.StateF32.Insts.CoreMarkerCopy : core.marker.Copy
 }
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::linear_smoother::StateF32}]
-    Source: 'src/linear_smoother.rs', lines 63:38-63:47 -/
+    Source: 'src/linear_smoother.rs', lines 67:38-67:47 -/
 @[reducible]
 def linear_smoother.StateF32.Insts.CoreMarkerStructuralPartialEq :
   core.marker.StructuralPartialEq linear_smoother.StateF32 := {
 }
 
 /-- [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF32> for conjure_dsp_lib::linear_smoother::StateF32}::eq]:
-    Source: 'src/linear_smoother.rs', lines 63:38-63:47
+    Source: 'src/linear_smoother.rs', lines 67:38-67:47
     Visibility: public -/
 def linear_smoother.StateF32.Insts.CoreCmpPartialEqStateF32.eq
   (self : linear_smoother.StateF32) (other : linear_smoother.StateF32) :
@@ -1402,7 +1402,7 @@ def linear_smoother.StateF32.Insts.CoreCmpPartialEqStateF32.eq
   else ok false
 
 /-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF32> for conjure_dsp_lib::linear_smoother::StateF32}]
-    Source: 'src/linear_smoother.rs', lines 63:38-63:47 -/
+    Source: 'src/linear_smoother.rs', lines 67:38-67:47 -/
 @[reducible]
 def linear_smoother.StateF32.Insts.CoreCmpPartialEqStateF32 :
   core.cmp.PartialEq linear_smoother.StateF32 linear_smoother.StateF32 := {
@@ -1410,7 +1410,7 @@ def linear_smoother.StateF32.Insts.CoreCmpPartialEqStateF32 :
 }
 
 /-- [conjure_dsp_lib::linear_smoother::set_target_f64]:
-    Source: 'src/linear_smoother.rs', lines 79:0-89:1
+    Source: 'src/linear_smoother.rs', lines 83:0-93:1
     Visibility: public -/
 def linear_smoother.set_target_f64
   (state : linear_smoother.StateF64) (target : Float) (steps : Std.Usize) :
@@ -1433,7 +1433,7 @@ def linear_smoother.set_target_f64
       }
 
 /-- [conjure_dsp_lib::linear_smoother::step_f64]:
-    Source: 'src/linear_smoother.rs', lines 96:0-106:1
+    Source: 'src/linear_smoother.rs', lines 100:0-110:1
     Visibility: public -/
 def linear_smoother.step_f64
   (state : linear_smoother.StateF64) :
@@ -1457,7 +1457,7 @@ def linear_smoother.step_f64
   else ok (state.value, state)
 
 /-- [conjure_dsp_lib::linear_smoother::process_f64]: loop body 0:
-    Source: 'src/linear_smoother.rs', lines 114:4-117:5
+    Source: 'src/linear_smoother.rs', lines 118:4-121:5
     Visibility: public -/
 @[rust_loop_body]
 def linear_smoother.process_f64_loop.body
@@ -1475,7 +1475,7 @@ def linear_smoother.process_f64_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::linear_smoother::process_f64]: loop 0:
-    Source: 'src/linear_smoother.rs', lines 114:4-117:5
+    Source: 'src/linear_smoother.rs', lines 118:4-121:5
     Visibility: public -/
 @[rust_loop]
 def linear_smoother.process_f64_loop
@@ -1488,7 +1488,7 @@ def linear_smoother.process_f64_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::linear_smoother::process_f64]:
-    Source: 'src/linear_smoother.rs', lines 111:0-118:1
+    Source: 'src/linear_smoother.rs', lines 115:0-122:1
     Visibility: public -/
 @[reducible]
 def linear_smoother.process_f64
@@ -1498,7 +1498,7 @@ def linear_smoother.process_f64
   linear_smoother.process_f64_loop state buf 0#usize
 
 /-- [conjure_dsp_lib::linear_smoother::set_target_f32]:
-    Source: 'src/linear_smoother.rs', lines 121:0-131:1
+    Source: 'src/linear_smoother.rs', lines 126:0-136:1
     Visibility: public -/
 def linear_smoother.set_target_f32
   (state : linear_smoother.StateF32) (target : Float32) (steps : Std.Usize) :
@@ -1525,7 +1525,7 @@ def linear_smoother.set_target_f32
       }
 
 /-- [conjure_dsp_lib::linear_smoother::step_f32]:
-    Source: 'src/linear_smoother.rs', lines 136:0-146:1
+    Source: 'src/linear_smoother.rs', lines 141:0-151:1
     Visibility: public -/
 def linear_smoother.step_f32
   (state : linear_smoother.StateF32) :
@@ -1549,7 +1549,7 @@ def linear_smoother.step_f32
   else ok (state.value, state)
 
 /-- [conjure_dsp_lib::linear_smoother::process_f32]: loop body 0:
-    Source: 'src/linear_smoother.rs', lines 153:4-156:5
+    Source: 'src/linear_smoother.rs', lines 158:4-161:5
     Visibility: public -/
 @[rust_loop_body]
 def linear_smoother.process_f32_loop.body
@@ -1567,7 +1567,7 @@ def linear_smoother.process_f32_loop.body
   else ok (done (state, buf))
 
 /-- [conjure_dsp_lib::linear_smoother::process_f32]: loop 0:
-    Source: 'src/linear_smoother.rs', lines 153:4-156:5
+    Source: 'src/linear_smoother.rs', lines 158:4-161:5
     Visibility: public -/
 @[rust_loop]
 def linear_smoother.process_f32_loop
@@ -1580,7 +1580,7 @@ def linear_smoother.process_f32_loop
     (state, buf, i)
 
 /-- [conjure_dsp_lib::linear_smoother::process_f32]:
-    Source: 'src/linear_smoother.rs', lines 150:0-157:1
+    Source: 'src/linear_smoother.rs', lines 155:0-162:1
     Visibility: public -/
 @[reducible]
 def linear_smoother.process_f32

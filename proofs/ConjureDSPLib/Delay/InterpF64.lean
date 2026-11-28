@@ -2,7 +2,7 @@ module
 
 public import ConjureDSPLib.Delay.SpecF64
 public import ConjureDSPLib.Delay.Interp
-public import ConjureDSPLib.Delay.Cast
+public import ConjureDSPLib.Cast
 public import ConjureDSPLib.Gain.BridgeF64
 public import FloatLib.Floats.Formats.BinaryInterchange.Analysis.Sterbenz
 

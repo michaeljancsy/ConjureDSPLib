@@ -17,8 +17,8 @@
 //! 3. moves `p` on by one, back to 0 when it reaches `L`.
 //!
 //! At the end, `position` is set to `p`. The delay is a whole number of samples: `process` does
-//! no interpolation between samples (for that, see `read_interp` below). The longest delay is `L - 1` samples, so for delays of up to
-//! `D` samples, use a buffer of `D + 1` samples.
+//! no interpolation between samples (for that, see `read_interp` below). The longest delay is
+//! `L - 1` samples, so for delays of up to `D` samples, use a buffer of `D + 1` samples.
 //!
 //! Calling `process` on one block and then on the next, with the same `buffer`, `position` and
 //! `delay_samples`, gives the same outputs, `buffer` and `position` as one call on the two blocks
@@ -72,7 +72,8 @@
 //! `position`, and writes nothing; it is used like `read`, before `write`. The delay is clamped to
 //! the range from 2 to `L - 2` samples, and a buffer shorter than 5 samples gives `0.0` (exact
 //! rules in its documentation). It never panics (`read_interp_f64_ok`), and at a whole-number
-//! delay it returns the sample `read` returns, in value (`read_interp_f64_whole_eq_read`).
+//! delay from 2 to `L - 2`, with `L <= 2^53` (`2^24` in `f32`) and the buffer's samples finite,
+//! it returns the sample `read` returns, in value (`read_interp_f64_whole_eq_read`).
 //!
 //! Call these through the module, as `delay::process_f32` or `delay::read_f64`.
 
@@ -252,15 +253,17 @@ pub fn write_f32(buffer: &mut [f32], position: &mut usize, x: f32) {
 ///   `((wm1 * xm1 + w0 * x0) + w1 * x1) + w2 * x2`, every operation rounded in `f64` in that
 ///   order.
 ///
-/// So the delay is clamped to the range from 2 to `L - 2` samples: a shorter delay, a NaN or a
-/// negative one reads at 2 samples, and a longer one, or `+∞`, at `L - 2`. For delays of up to `D`
-/// samples, use a buffer of at least `D + 2` samples (and at least 5). Called before
-/// `write_f64` at the same `position`, the sample at delay `k >= 1` is the one written `k` writes
-/// ago (worked out outside Lean, not proved; see [`read_f64`]).
+/// So the delay is clamped to the range from 2 to `L - 2` samples: a shorter delay, or a negative
+/// one, reads at 2 samples, and a longer one at `L - 2` (`delay.read_interp_f64_frac`, for finite
+/// delays); a NaN or `-∞` reads at 2 and `+∞` at `L - 2` (worked out outside Lean, not proved).
+/// For delays of up to `D` samples, use a buffer of at least `D + 2` samples (and at least 5).
+/// Called before `write_f64` at the same `position`, the sample at delay `k >= 1` is the one
+/// written `k` writes ago (worked out outside Lean, not proved; see [`read_f64`]).
 ///
 /// It never panics, for any arguments (`delay.read_interp_f64_ok`); what it computes is
-/// `delay.read_interp_f64_spec`. When `delay` is finite and `L <= 2^53`, `t` is the fractional
-/// part of the clamped delay, between 0 and 1 (`delay.read_interp_f64_frac`). In exact
+/// `delay.read_interp_f64_spec`. When `delay` is finite and `L <= 2^53`, `t` is between 0 and 1:
+/// the fractional part of the delay between 2 and `L - 2`, 0 below, and 1 at `L - 2` and above
+/// (`delay.read_interp_f64_frac`). In exact
 /// arithmetic, for `0 <= t <= 1`, the weights are the cubic Lagrange polynomials through the four
 /// samples placed at `-1`, `0`, `1` and `2`, read at `t` (worked out outside Lean, not proved).
 /// At a whole-number delay `d` from 2 to `L - 2`, with `L <= 2^53` and the buffer's samples
@@ -308,7 +311,8 @@ pub fn read_interp_f64(buffer: &[f64], position: usize, delay: f64) -> f64 {
 /// Reads the delay line between samples, in `f32`: the same as [`read_interp_f64`], in `f32`
 /// (`delay.read_interp_f32_spec`). Its theorems about the fraction and whole-number delays
 /// (`delay.read_interp_f32_frac`, `delay.read_interp_f32_whole`) need `L <= 2^24` in place of
-/// `L <= 2^53`.
+/// `L <= 2^53`. In `f32` the fraction of a long delay is coarse: near 96,000 samples, delays are
+/// stored to about 1/128 of a sample (follows from IEEE 754 rounding, not proved).
 pub fn read_interp_f32(buffer: &[f32], position: usize, delay: f32) -> f32 {
     let len = buffer.len();
     if len < 5 {

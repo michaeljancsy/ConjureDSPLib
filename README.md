@@ -22,17 +22,21 @@ Every module has `f32` and `f64` versions (functions end in `_f32` / `_f64`, typ
 - `one_pole`: one-pole feedback filter, `y[n] = x[n] + a·y[n-1]`.
 - `smoother`: one-pole smoother, `y[n] = y[n-1] + (1 - a)·(x[n] - y[n-1])`, for gliding toward a
   target; `step_coeff` and `process_coeff` take the fraction `c = 1 - a` directly.
+- `linear_smoother`: a value that moves in a straight line to a new target over a set number of
+  samples, then stays there (`set_target`, `step`, `process`), with its state kept across blocks.
+- `allpass1`: first-order all-pass filter, `y[n] = c·(x[n] - y[n-1]) + x[n-1]`, with a design
+  function for `c` from a corner frequency (`coeff`).
 - `biquad`: second-order filter in transposed direct form II, with coefficients you supply.
 - `svf`: trapezoidal state-variable filter, with design functions for eight shapes (low-pass,
   high-pass, band-pass, notch, all-pass, bell, low shelf, high shelf), whose formulas follow
   A. Simper (Cytomic).
-- `delay`: delay line of a whole number of samples (no interpolation), in a buffer the caller owns;
-  a block at a time (`process`), or one sample at a time, reading before writing, for feedback
-  (`read`, `write`).
+- `delay`: delay line of a whole number of samples, in a buffer the caller owns; a block at a time
+  (`process`), or one sample at a time, reading before writing, for feedback (`read`, `write`);
+  and reads between samples, by four-point cubic Lagrange interpolation (`read_interp`).
 
-With the optional cargo feature `std`, `one_pole`, `smoother`, `biquad` and `svf` also have fused
-multiply-add versions (`step_fma_f64`, `process_fma_f64` and the `_f32` ones, and for the smoother
-also `step_coeff_fma_f64` and `process_coeff_fma_f64`); see
+With the optional cargo feature `std`, `one_pole`, `smoother`, `allpass1`, `biquad` and `svf` also
+have fused multiply-add versions (`step_fma_f64`, `process_fma_f64` and the `_f32` ones, and for
+the smoother also `step_coeff_fma_f64` and `process_coeff_fma_f64`); see
 [Fused multiply-add](#fused-multiply-add-the-std-feature).
 
 ## How to use it
@@ -106,6 +110,7 @@ processor:
 - `one_pole::step_fma_*`: `y = a.mul_add(state, x)`.
 - `smoother::step_coeff_fma_*`: `y = c.mul_add(x - state, state)`; `smoother::step_fma_*` the
   same with `c = 1.0 - a` (computed once per block by `process_fma_*`).
+- `allpass1::step_fma_*`: `y = c.mul_add(x - y1, x1)`.
 - `biquad::step_fma_*`: `y = b0.mul_add(x, s1)`, `s1 = b1.mul_add(x, -(a1·y)) + s2`,
   `s2 = b2.mul_add(x, -(a2·y))`.
 - `svf::step_fma_*`: `hp = ((-(k + g)).mul_add(s1, x) - s2)·d`, `bp = g.mul_add(hp, s1)`,
@@ -150,13 +155,15 @@ substitute for them.
 | `gain` | Ramp: each gain within a stated bound of the ideal line; finite gains never move the wrong way |
 | `one_pole` | Error bound for every output of a block of any length, against exact arithmetic |
 | `smoother` | The same; and, for a steady input, how far from it the state can be after `n` steps |
+| `linear_smoother` | After `set_target` with `n` steps, a block's step `n` and every later step return the target exactly (one step at a time or across several blocks, this follows from `linear_smoother.step_f64_spec` and `linear_smoother.process_f64_spec` with `linear_smoother.process_f64_lands`; no single theorem states it across blocks); each value before that is within a stated bound of the exact straight line |
+| `allpass1` | Error bound for every output of a block of any length, against exact arithmetic; in exact arithmetic, the outputs stay bounded when `\|c\| < 1`; the design function computes exactly the stated operations (libm modelled, see below) |
 | `biquad` | From a zero state (or one matching a given history), equals the textbook recurrence in exact arithmetic; whole-block error bound (*) |
 | `svf` | Design functions compute exactly the stated operations (libm modelled, see below); whole-block error bound (*) |
-| `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing; reading then writing one sample matches a one-sample block when the delay used is at least 1 (a delay of at least 1 and a buffer of at least 2 samples) |
-| fused `one_pole`, `smoother`, `biquad`, `svf` (`std` feature) | Never fail; compute exactly the stated fused operations; the same whole-block error bounds (and, for the smoother, settling bounds) as the unfused version, with the same constants ((*) for the biquad and the SVF) |
+| `delay` | Exact outputs for any buffer, position and delay; splitting a block changes nothing; reading then writing one sample matches a one-sample block when the delay used is at least 1 (a delay of at least 1 and a buffer of at least 2 samples); the interpolated read computes exactly the stated formula, and at a whole-number delay from 2 to `L - 2` returns the value of the sample `read` returns (a buffer of at most 2^53 samples in `f64`, 2^24 in `f32`, the delay and every sample finite) |
+| fused `one_pole`, `smoother`, `allpass1`, `biquad`, `svf` (`std` feature) | Never fail; compute exactly the stated fused operations; the same whole-block error bounds (and, for the smoother, settling bounds) as the unfused version, with the same constants ((*) for the biquad and the SVF) |
 
-(†) Every public DSP function. For the SVF design functions, "never fails" assumes libm's
-functions never panic.
+(†) Every public DSP function. For the SVF design functions and `allpass1::coeff_*`, "never fails"
+assumes libm's functions never panic.
 
 (*) Given a contraction for the stored coefficients: a way of measuring the filter's two state
 values under which each step, without input, multiplies the measure by at most a fixed factor
@@ -200,6 +207,12 @@ In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` count
   `smoother.process_f64_settle_of_inputs`; with the coefficient given directly,
   `smoother.process_coeff_f64_spec`, `smoother.process_coeff_f64_block_error`,
   `smoother.process_f64_eq_process_coeff`.
+- `linear_smoother`: `linear_smoother.process_f64_spec`,
+  `linear_smoother.set_target_process_f64_lands`, `linear_smoother.valueAfter_set_target_f64`,
+  `linear_smoother.rampValue_f64_error`.
+- `allpass1`: `allpass1.coeff_f64_eq`, `allpass1.process_f64_spec`,
+  `allpass1.process_f64_block_error`, `allpass1.process_f64_block_error_of_inputs`; in exact
+  arithmetic, `allpass1.filt_real_abs_le_outBound`.
 - `biquad`: `biquad.process_f64_spec`, `biquad.process_f64_block_error`; in exact arithmetic,
   `biquad.filt_real_eq_df1_real_zero` (the textbook recurrence) and
   `biquad.complexPolesContraction`.
@@ -207,11 +220,14 @@ In the namespace `conjure_dsp_lib`; each `_f64` theorem here has an `_f32` count
   `svf.process_f64_block_error`; in exact arithmetic, `svf.complexPolesContraction`.
 - `delay`: `delay.process_f64_ok`, `delay.process_f64_spec`, `delay.process_f64_append`;
   one sample at a time, `delay.read_f64_spec`, `delay.write_f64_spec`,
-  `delay.read_write_f64_eq_process`.
+  `delay.read_write_f64_eq_process`; between samples, `delay.read_interp_f64_ok`,
+  `delay.read_interp_f64_spec`, `delay.read_interp_f64_frac`,
+  `delay.read_interp_f64_whole_eq_read`.
 - Fused functions: `real_fma_f64` and `abs_real_fma_sub_le_f64` (one fused multiply-add rounds
   once), `one_pole.process_fma_f64_spec`, `one_pole.process_fma_f64_block_error_of_inputs`,
   `smoother.process_fma_f64_spec`, `smoother.process_coeff_fma_f64_spec`,
   `smoother.process_fma_f64_settle_of_inputs`, `smoother.process_coeff_fma_f64_settle_of_inputs`,
+  `allpass1.process_fma_f64_spec`, `allpass1.process_fma_f64_block_error_of_inputs`,
   `biquad.process_fma_f64_spec`, `biquad.process_fma_f64_block_error_of_inputs`,
   `svf.process_fma_f64_spec`, `svf.process_fma_f64_block_error_of_inputs`.
 
@@ -244,9 +260,13 @@ In brief; the full list is in
   so they don't depend on `libm`'s accuracy; that accuracy is not proved here either. That libm
   gives the same results on every platform is not proved.
 - **Filter design.** The frequency responses of the SVF design functions' coefficients are not
-  proved, nor that those coefficients are stable or meet the error bounds' conditions at every
-  cutoff (the low-pass examples in `proofs/README.md` are proved for stated coefficient values;
-  that the design functions store those values is worked out outside Lean, not proved).
+  proved, nor the all-pass filter's (that its level is the same at every frequency, and that
+  `allpass1::coeff_*` gives a 90° phase shift at the corner frequency), nor that those
+  coefficients are stable or meet the error bounds' conditions at every cutoff (the low-pass
+  examples in `proofs/README.md` are proved for stated coefficient values; that the design
+  functions store those values is worked out outside Lean, not proved).
+- **Interpolated delay read.** What `delay::read_interp_*` computes is proved exactly, and the
+  size of its formula in exact arithmetic; no bound on the rounded result is proved.
 - **Trusted base.** Lean's kernel, Mathlib, FloatLib (which relates Lean's floats to real numbers)
   and Aeneas's Lean library. Every theorem depends only on the axioms `propext`,
   `Classical.choice` and `Quot.sound`, with no `sorry`. Every declaration in the `ConjureDSPLib`
@@ -257,11 +277,12 @@ In brief; the full list is in
 
 - Not a plug-in framework: nothing about plug-in formats, hosts, threads, parameters, saved state
   or user interfaces.
-- Not a complete DSP library: no FFT, no resampling, no interpolating delay, no SIMD.
+- Not a complete DSP library: no FFT, no resampling, no SIMD.
 - No performance claims.
 - Not checked for every input: nothing is validated at run time. For example, the SVF design
   functions are meant for `0 < cutoff_hz < sample_rate_hz / 2`, `q > 0` and a finite `gain_db`,
-  and outside those ranges their results may be infinite or NaN.
+  and outside those ranges their results may be infinite or NaN; `allpass1::coeff_*` is meant for
+  `0 < corner_hz < sample_rate_hz / 2`.
 - The proofs cover the translated code under the assumptions above. They say nothing about the
   machine code a compiler produces.
 

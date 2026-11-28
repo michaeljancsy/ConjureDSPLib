@@ -16,9 +16,9 @@
 //!    delay of 0 returns `x` itself);
 //! 3. moves `p` on by one, back to 0 when it reaches `L`.
 //!
-//! At the end, `position` is set to `p`. The delay is a whole number of samples: there is no
-//! interpolation between samples. The longest delay is `L - 1` samples, so for delays of up to
-//! `D` samples, use a buffer of `D + 1` samples.
+//! At the end, `position` is set to `p`. The delay is a whole number of samples: `process` does
+//! no interpolation between samples (for that, see `read_interp` below). The longest delay is
+//! `L - 1` samples, so for delays of up to `D` samples, use a buffer of `D + 1` samples.
 //!
 //! Calling `process` on one block and then on the next, with the same `buffer`, `position` and
 //! `delay_samples`, gives the same outputs, `buffer` and `position` as one call on the two blocks
@@ -66,6 +66,14 @@
 //! panics: with an empty `buffer`, `read` returns `0.0` and `write` does nothing, leaving
 //! `position` unchanged (`read_f64_empty_buffer`, `write_f64_empty_buffer`, `read_f64_ok`,
 //! `write_f64_ok`, and the same names with `f32`).
+//!
+//! **Reading between samples.** `read_interp(buffer, position, delay)` reads at a delay that need
+//! not be a whole number, by four-point cubic Lagrange interpolation over the same `buffer` and
+//! `position`, and writes nothing; it is used like `read`, before `write`. The delay is clamped to
+//! the range from 2 to `L - 2` samples, and a buffer shorter than 5 samples gives `0.0` (exact
+//! rules in its documentation). It never panics (`read_interp_f64_ok`), and at a whole-number
+//! delay from 2 to `L - 2`, with `L <= 2^53` (`2^24` in `f32`) and the buffer's samples finite,
+//! it returns the sample `read` returns, in value (`read_interp_f64_whole_eq_read`).
 //!
 //! Call these through the module, as `delay::process_f32` or `delay::read_f64`.
 
@@ -225,13 +233,129 @@ pub fn write_f32(buffer: &mut [f32], position: &mut usize, x: f32) {
     *position = if next == len { 0 } else { next };
 }
 
+/// Reads the delay line between samples, in `f64`, without writing: four-point cubic Lagrange
+/// interpolation at a delay of `delay` samples, which need not be a whole number. It uses the same
+/// `buffer` and `position` as [`read_f64`] and [`write_f64`], and reads only.
+///
+/// With `L` the length of `buffer`:
+///
+/// - If `L < 5` it returns `0.0`.
+/// - `whole = delay as usize`: Rust's conversion, which rounds toward zero, gives 0 for a NaN or
+///   a negative `delay` and saturates at `usize::MAX`.
+/// - Then the sample index `n` and the fraction `t` are `n = 2`, `t = 0.0` if `whole < 2`;
+///   `n = L - 3`, `t = 1.0` if `whole > L - 3`; and otherwise `n = whole` and
+///   `t = delay - (whole as f64)`.
+/// - The four samples are those [`read_f64`] returns at delays `n - 1`, `n`, `n + 1` and `n + 2`:
+///   `xm1`, `x0`, `x1` and `x2`.
+/// - With `tp1 = t + 1`, `tm1 = t - 1` and `tm2 = t - 2`, the weights are
+///   `wm1 = -(t * tm1 * tm2) / 6`, `w0 = tp1 * tm1 * tm2 * 0.5`, `w1 = -(tp1 * t * tm2) * 0.5` and
+///   `w2 = tp1 * t * tm1 / 6`, each product taken left to right, and the result is
+///   `((wm1 * xm1 + w0 * x0) + w1 * x1) + w2 * x2`, every operation rounded in `f64` in that
+///   order.
+///
+/// So the delay is clamped to the range from 2 to `L - 2` samples: a shorter delay, or a negative
+/// one, reads at 2 samples, and a longer one at `L - 2` (`delay.read_interp_f64_frac`, for finite
+/// delays); a NaN or `-∞` reads at 2 and `+∞` at `L - 2` (worked out outside Lean, not proved).
+/// For delays of up to `D` samples, use a buffer of at least `D + 2` samples (and at least 5).
+/// Called before `write_f64` at the same `position`, the sample at delay `k >= 1` is the one
+/// written `k` writes ago (worked out outside Lean, not proved; see [`read_f64`]).
+///
+/// It never panics, for any arguments (`delay.read_interp_f64_ok`); what it computes is
+/// `delay.read_interp_f64_spec`. When `delay` is finite and `L <= 2^53`, `t` is between 0 and 1:
+/// the fractional part of the delay between 2 and `L - 2`, 0 below, and 1 at `L - 2` and above
+/// (`delay.read_interp_f64_frac`). In exact
+/// arithmetic, for `0 <= t <= 1`, the weights are the cubic Lagrange polynomials through the four
+/// samples placed at `-1`, `0`, `1` and `2`, read at `t` (worked out outside Lean, not proved).
+/// At a whole-number delay `d` from 2 to `L - 2`, with `L <= 2^53` and the buffer's samples
+/// finite, it returns a value equal to the sample `read_f64` returns at delay `d`
+/// (`delay.read_interp_f64_whole`, `delay.read_interp_f64_whole_eq_read`; equal in value, so a
+/// zero may come back with the other sign). In exact arithmetic, for `0 <= t <= 1` and samples
+/// at most `M` in size, the formula is at most `1.25·M` in size (`delay.lagrange4_real_abs_le`);
+/// a bound on the rounded result is not proved.
+pub fn read_interp_f64(buffer: &[f64], position: usize, delay: f64) -> f64 {
+    let len = buffer.len();
+    if len < 5 {
+        return 0.0;
+    }
+    // `as` rounds toward zero, sends NaN to 0 and saturates at the largest `usize`, so for any
+    // delay from 0 up, `whole` is its whole number of samples.
+    let whole = delay as usize;
+    let (n, t) = if whole < 2 {
+        (2, 0.0)
+    } else if whole > len - 3 {
+        (len - 3, 1.0)
+    } else {
+        (whole, delay - whole as f64)
+    };
+    // The index of the sample at delay `n + 2`, then one newer sample at a time.
+    let w = position % len;
+    let k = n + 2;
+    let mut r = if k <= w { w - k } else { w + (len - k) };
+    let x2 = buffer[r];
+    r = if r + 1 == len { 0 } else { r + 1 };
+    let x1 = buffer[r];
+    r = if r + 1 == len { 0 } else { r + 1 };
+    let x0 = buffer[r];
+    r = if r + 1 == len { 0 } else { r + 1 };
+    let xm1 = buffer[r];
+    let tp1 = t + 1.0;
+    let tm1 = t - 1.0;
+    let tm2 = t - 2.0;
+    let wm1 = -(t * tm1 * tm2) / 6.0;
+    let w0 = tp1 * tm1 * tm2 * 0.5;
+    let w1 = -(tp1 * t * tm2) * 0.5;
+    let w2 = tp1 * t * tm1 / 6.0;
+    wm1 * xm1 + w0 * x0 + w1 * x1 + w2 * x2
+}
+
+/// Reads the delay line between samples, in `f32`: the same as [`read_interp_f64`], in `f32`
+/// (`delay.read_interp_f32_spec`). Its theorems about the fraction and whole-number delays
+/// (`delay.read_interp_f32_frac`, `delay.read_interp_f32_whole`) need `L <= 2^24` in place of
+/// `L <= 2^53`. In `f32` the fraction of a long delay is coarse: near 96,000 samples, delays are
+/// stored to about 1/128 of a sample (follows from IEEE 754 rounding, not proved).
+pub fn read_interp_f32(buffer: &[f32], position: usize, delay: f32) -> f32 {
+    let len = buffer.len();
+    if len < 5 {
+        return 0.0;
+    }
+    // `as` rounds toward zero, sends NaN to 0 and saturates at the largest `usize`, so for any
+    // delay from 0 up, `whole` is its whole number of samples.
+    let whole = delay as usize;
+    let (n, t) = if whole < 2 {
+        (2, 0.0)
+    } else if whole > len - 3 {
+        (len - 3, 1.0)
+    } else {
+        (whole, delay - whole as f32)
+    };
+    // The index of the sample at delay `n + 2`, then one newer sample at a time.
+    let w = position % len;
+    let k = n + 2;
+    let mut r = if k <= w { w - k } else { w + (len - k) };
+    let x2 = buffer[r];
+    r = if r + 1 == len { 0 } else { r + 1 };
+    let x1 = buffer[r];
+    r = if r + 1 == len { 0 } else { r + 1 };
+    let x0 = buffer[r];
+    r = if r + 1 == len { 0 } else { r + 1 };
+    let xm1 = buffer[r];
+    let tp1 = t + 1.0;
+    let tm1 = t - 1.0;
+    let tm2 = t - 2.0;
+    let wm1 = -(t * tm1 * tm2) / 6.0;
+    let w0 = tp1 * tm1 * tm2 * 0.5;
+    let w1 = -(tp1 * t * tm2) * 0.5;
+    let w2 = tp1 * t * tm1 / 6.0;
+    wm1 * xm1 + w0 * x0 + w1 * x1 + w2 * x2
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// The same tests for both precisions.
     macro_rules! delay_tests {
-        ($name:ident, $t:ty, $process:ident, $read:ident, $write:ident) => {
+        ($name:ident, $t:ty, $process:ident, $read:ident, $write:ident, $read_interp:ident) => {
             mod $name {
                 use super::*;
 
@@ -447,6 +571,68 @@ mod tests {
                 }
 
                 #[test]
+                fn interpolated_read_at_whole_delays_matches_read() {
+                    let mut buffer: [$t; 11] = [0.0; 11];
+                    let mut position = 0;
+                    for k in 0..27 {
+                        $write(&mut buffer, &mut position, (k as $t) * 0.37 - 3.0);
+                        // Delays 2 to L - 2 = 9.
+                        for d in 2..=9 {
+                            let want = $read(&buffer, position, d);
+                            let got = $read_interp(&buffer, position, d as $t);
+                            assert_eq!(got, want, "delay {d} at position {position}");
+                        }
+                    }
+                }
+
+                #[test]
+                fn interpolated_read_follows_a_cubic() {
+                    // Write x(k) = cubic in k; cubic Lagrange reproduces it up to rounding.
+                    let f = |k: f64| 0.001 * k * k * k - 0.02 * k * k + 0.3 * k - 1.0;
+                    let mut buffer: [$t; 16] = [0.0; 16];
+                    let mut position = 5;
+                    for k in 0..40 {
+                        $write(&mut buffer, &mut position, f(k as f64) as $t);
+                    }
+                    // The last write was k = 39, so delay j (j >= 1) holds x(40 - j).
+                    for step in 0..=120 {
+                        let d = 2.0 + (step as f64) * 0.1;
+                        let got = $read_interp(&buffer, position, d as $t) as f64;
+                        let want = f(40.0 - d);
+                        assert!((got - want).abs() < 1e-4, "delay {d}: {got} vs {want}");
+                    }
+                }
+
+                #[test]
+                fn interpolated_read_clamps_and_never_panics() {
+                    let buffer: [$t; 8] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+                    let position = 3;
+                    let lo = $read(&buffer, position, 2);
+                    let hi = $read(&buffer, position, 6);
+                    for d in [-1.0, 0.0, 1.5, 2.0, <$t>::NAN, <$t>::NEG_INFINITY, -0.0] {
+                        assert_eq!($read_interp(&buffer, position, d), lo, "delay {d}");
+                    }
+                    for d in [6.0, 6.5, 1.0e30, <$t>::INFINITY] {
+                        assert_eq!($read_interp(&buffer, position, d), hi, "delay {d}");
+                    }
+                    // Positions past the end are reduced mod L, as for read.
+                    assert_eq!(
+                        $read_interp(&buffer, position + 8 * 3, 3.25),
+                        $read_interp(&buffer, position, 3.25)
+                    );
+                    // Too short: 0.
+                    for len in 0..5 {
+                        assert_eq!($read_interp(&buffer[..len], 2, 2.5), 0.0);
+                    }
+                    // Size bound (exact arithmetic gives at most 1.25 times the largest sample).
+                    let ones: [$t; 8] = [1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0];
+                    for step in 0..=40 {
+                        let d = 2.0 + (step as $t) * 0.1;
+                        assert!($read_interp(&ones, 0, d).abs() <= 1.2501);
+                    }
+                }
+
+                #[test]
                 fn read_and_write_on_an_empty_buffer() {
                     let mut position = 5;
                     assert_eq!($read(&[], position, 2), 0.0);
@@ -457,6 +643,20 @@ mod tests {
         };
     }
 
-    delay_tests!(f64_tests, f64, process_f64, read_f64, write_f64);
-    delay_tests!(f32_tests, f32, process_f32, read_f32, write_f32);
+    delay_tests!(
+        f64_tests,
+        f64,
+        process_f64,
+        read_f64,
+        write_f64,
+        read_interp_f64
+    );
+    delay_tests!(
+        f32_tests,
+        f32,
+        process_f32,
+        read_f32,
+        write_f32,
+        read_interp_f32
+    );
 }

@@ -57,6 +57,15 @@
 //! (`smoother.process_coeff_f64_block_error`, `smoother.process_coeff_f64_block_error_of_inputs`,
 //! `smoother.process_coeff_f64_settle_of_inputs`, and their `f32` versions).
 //!
+//! **Fused multiply-add.** With the `std` feature, `step_fma_*`, `process_fma_*`,
+//! `step_coeff_fma_*` and `process_coeff_fma_*` compute the same with one fused multiply-add per
+//! sample, `c.mul_add(x - state, state)` (`smoother.process_fma_f64_spec`,
+//! `smoother.process_coeff_fma_f64_spec`), with the same whole-block error and settling bounds
+//! (`smoother.process_fma_f64_block_error_of_inputs`, `smoother.process_fma_f64_settle_of_inputs`,
+//! the `process_coeff_fma` ones and their `f32` versions).
+//! Where the build cannot assume a fused multiply-add instruction, `mul_add` is expected to be a
+//! call to the C library's `fma`, which can be much slower (expected, not measured).
+//!
 //! Call these through the module, as `smoother::process_f32` or `smoother::process_coeff_f64`.
 
 /// One sample of the smoother, in `f64`: moves `state` (the previous output) the fraction
@@ -152,6 +161,114 @@ pub fn process_coeff_f32(c: f32, state: &mut f32, buf: &mut [f32]) {
     let mut i = 0;
     while i < buf.len() {
         let y = *state + c * (buf[i] - *state);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
+/// One sample of the smoother, in `f64`, with one fused multiply-add:
+/// `(1.0 - a).mul_add(target - state, state)`, the difference and `1 - a` each rounded once, then
+/// `(1 - a)·(target - state) + state` rounded once. This is how clang compiles
+/// `state + (1.0 - a) * (target - state)` on Apple silicon (its default `-ffp-contract=on`;
+/// worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). Needs the
+/// `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_fma_f64(a: f64, state: f64, target: f64) -> f64 {
+    (1.0 - a).mul_add(target - state, state)
+}
+
+/// [`process_f64`] with one fused multiply-add per sample: with `c = 1.0 - a` computed once per
+/// block, `y = c.mul_add(x - state, state)`. Needs the `std` feature. An empty block leaves
+/// `state` unchanged (`smoother.process_fma_f64_spec`).
+#[cfg(feature = "std")]
+pub fn process_fma_f64(a: f64, state: &mut f64, buf: &mut [f64]) {
+    let c = 1.0 - a;
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = c.mul_add(buf[i] - *state, *state);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
+/// [`step_coeff_f64`] with one fused multiply-add: `c.mul_add(target - state, state)`, the
+/// difference rounded once, then `c·(target - state) + state` rounded once. This is how clang
+/// compiles `state + c * (target - state)` on Apple silicon (its default `-ffp-contract=on`;
+/// worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). Needs the
+/// `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_coeff_fma_f64(c: f64, state: f64, target: f64) -> f64 {
+    c.mul_add(target - state, state)
+}
+
+/// [`process_coeff_f64`] with one fused multiply-add per sample: `y = c.mul_add(x - state, state)`.
+/// Needs the `std` feature. An empty block leaves `state` unchanged
+/// (`smoother.process_coeff_fma_f64_spec`).
+#[cfg(feature = "std")]
+pub fn process_coeff_fma_f64(c: f64, state: &mut f64, buf: &mut [f64]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = c.mul_add(buf[i] - *state, *state);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
+/// One sample of the smoother, in `f32`, with one fused multiply-add:
+/// `(1.0 - a).mul_add(target - state, state)`, the difference and `1 - a` each rounded once, then
+/// `(1 - a)·(target - state) + state` rounded once. This is how clang compiles
+/// `state + (1.0 - a) * (target - state)` on Apple silicon (its default `-ffp-contract=on`;
+/// worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). Needs the
+/// `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_fma_f32(a: f32, state: f32, target: f32) -> f32 {
+    (1.0 - a).mul_add(target - state, state)
+}
+
+/// [`process_f32`] with one fused multiply-add per sample: with `c = 1.0 - a` computed once per
+/// block, `y = c.mul_add(x - state, state)`. Needs the `std` feature. An empty block leaves
+/// `state` unchanged (`smoother.process_fma_f32_spec`).
+#[cfg(feature = "std")]
+pub fn process_fma_f32(a: f32, state: &mut f32, buf: &mut [f32]) {
+    let c = 1.0 - a;
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = c.mul_add(buf[i] - *state, *state);
+        buf[i] = y;
+        *state = y;
+        i += 1;
+    }
+}
+
+/// [`step_coeff_f32`] with one fused multiply-add: `c.mul_add(target - state, state)`, the
+/// difference rounded once, then `c·(target - state) + state` rounded once. This is how clang
+/// compiles `state + c * (target - state)` on Apple silicon (its default `-ffp-contract=on`;
+/// worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). Needs the
+/// `std` feature.
+#[cfg(feature = "std")]
+#[inline]
+pub fn step_coeff_fma_f32(c: f32, state: f32, target: f32) -> f32 {
+    c.mul_add(target - state, state)
+}
+
+/// [`process_coeff_f32`] with one fused multiply-add per sample: `y = c.mul_add(x - state, state)`.
+/// Needs the `std` feature. An empty block leaves `state` unchanged
+/// (`smoother.process_coeff_fma_f32_spec`).
+#[cfg(feature = "std")]
+pub fn process_coeff_fma_f32(c: f32, state: &mut f32, buf: &mut [f32]) {
+    // An index loop rather than an iterator, so that Aeneas can translate it.
+    let mut i = 0;
+    while i < buf.len() {
+        let y = c.mul_add(buf[i] - *state, *state);
         buf[i] = y;
         *state = y;
         i += 1;
@@ -345,5 +462,97 @@ mod tests {
         process_f32,
         step_coeff_f32,
         process_coeff_f32
+    );
+}
+
+#[cfg(all(test, feature = "std"))]
+mod fma_tests {
+    use super::*;
+
+    /// The same tests for both precisions.
+    macro_rules! smoother_fma_tests {
+        ($name:ident, $t:ty, $process:ident, $step_fma:ident, $process_fma:ident,
+         $step_coeff_fma:ident, $process_coeff_fma:ident, $tol:expr) => {
+            mod $name {
+                use super::*;
+
+                const INPUT: [$t; 8] = [1.0, 1.0, 1.0, -0.5, 0.25, 0.0, 0.75, 0.3];
+
+                #[test]
+                fn steps_are_one_mul_add() {
+                    for &(a, s, x) in &[(0.9, -0.5, 0.1), (0.3, 1.0e-3, 0.7), (0.999, 2.0, -1.0)] {
+                        let (a, s, x): ($t, $t, $t) = (a, s, x);
+                        let c = 1.0 - a;
+                        assert_eq!($step_fma(a, s, x).to_bits(), c.mul_add(x - s, s).to_bits());
+                        assert_eq!(
+                            $step_coeff_fma(c, s, x).to_bits(),
+                            c.mul_add(x - s, s).to_bits()
+                        );
+                    }
+                }
+
+                #[test]
+                fn process_is_the_documented_grouping() {
+                    let a: $t = 0.9;
+                    let c = 1.0 - a;
+                    let mut buf1 = INPUT;
+                    let mut buf2 = INPUT;
+                    let (mut s1, mut s2): ($t, $t) = (-0.5, -0.5);
+                    $process_fma(a, &mut s1, &mut buf1);
+                    $process_coeff_fma(c, &mut s2, &mut buf2);
+                    let mut y: $t = -0.5;
+                    for ((o1, o2), x) in buf1.iter().zip(buf2).zip(INPUT) {
+                        y = c.mul_add(x - y, y);
+                        assert_eq!(o1.to_bits(), y.to_bits());
+                        assert_eq!(o2.to_bits(), y.to_bits());
+                    }
+                    assert_eq!(s1.to_bits(), y.to_bits());
+                    assert_eq!(s2.to_bits(), y.to_bits());
+                }
+
+                #[test]
+                fn close_to_unfused() {
+                    let a: $t = 0.95;
+                    let mut fused = INPUT;
+                    let mut plain = INPUT;
+                    let (mut s1, mut s2): ($t, $t) = (0.25, 0.25);
+                    $process_fma(a, &mut s1, &mut fused);
+                    $process(a, &mut s2, &mut plain);
+                    for (f, p) in fused.iter().zip(plain) {
+                        assert!((f - p).abs() <= $tol, "{f} vs {p}");
+                    }
+                    assert!((s1 - s2).abs() <= $tol);
+                }
+
+                #[test]
+                fn empty_block_leaves_state_alone() {
+                    let mut state: $t = 0.3;
+                    $process_fma(0.9, &mut state, &mut []);
+                    $process_coeff_fma(0.1, &mut state, &mut []);
+                    assert_eq!(state, 0.3);
+                }
+            }
+        };
+    }
+
+    smoother_fma_tests!(
+        f64_tests,
+        f64,
+        process_f64,
+        step_fma_f64,
+        process_fma_f64,
+        step_coeff_fma_f64,
+        process_coeff_fma_f64,
+        1e-13
+    );
+    smoother_fma_tests!(
+        f32_tests,
+        f32,
+        process_f32,
+        step_fma_f32,
+        process_fma_f32,
+        step_coeff_fma_f32,
+        process_coeff_fma_f32,
+        1e-5
     );
 }

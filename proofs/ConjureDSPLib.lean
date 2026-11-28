@@ -4,6 +4,7 @@ public import ConjureDSPLib.Code.Types
 public import ConjureDSPLib.Code.FunsExternal
 public import ConjureDSPLib.Code.Funs
 public import ConjureDSPLib.FloatFacts
+public import ConjureDSPLib.FmaFacts
 public import ConjureDSPLib.Gain.SpecF64
 public import ConjureDSPLib.Gain.SpecF32
 public import ConjureDSPLib.Gain.Line
@@ -18,6 +19,8 @@ public import ConjureDSPLib.OnePole.Block
 public import ConjureDSPLib.OnePole.BlockF64
 public import ConjureDSPLib.OnePole.BlockF32
 public import ConjureDSPLib.OnePole.Exact
+public import ConjureDSPLib.OnePole.FmaF64
+public import ConjureDSPLib.OnePole.FmaF32
 public import ConjureDSPLib.Smoother.SpecF64
 public import ConjureDSPLib.Smoother.SpecF32
 public import ConjureDSPLib.Smoother.Exact
@@ -26,6 +29,8 @@ public import ConjureDSPLib.Smoother.BridgeF64
 public import ConjureDSPLib.Smoother.BridgeF32
 public import ConjureDSPLib.Smoother.BlockF64
 public import ConjureDSPLib.Smoother.BlockF32
+public import ConjureDSPLib.Smoother.FmaF64
+public import ConjureDSPLib.Smoother.FmaF32
 public import ConjureDSPLib.Biquad.SpecF64
 public import ConjureDSPLib.Biquad.SpecF32
 public import ConjureDSPLib.Biquad.Textbook
@@ -33,6 +38,9 @@ public import ConjureDSPLib.Biquad.Block
 public import ConjureDSPLib.Biquad.BlockF64
 public import ConjureDSPLib.Biquad.BlockF32
 public import ConjureDSPLib.Biquad.Contraction
+public import ConjureDSPLib.Biquad.Fma
+public import ConjureDSPLib.Biquad.FmaF64
+public import ConjureDSPLib.Biquad.FmaF32
 public import ConjureDSPLib.Delay.Basic
 public import ConjureDSPLib.Delay.SpecF64
 public import ConjureDSPLib.Delay.SpecF32
@@ -42,3 +50,6 @@ public import ConjureDSPLib.Svf.Block
 public import ConjureDSPLib.Svf.Contraction
 public import ConjureDSPLib.Svf.BlockF64
 public import ConjureDSPLib.Svf.BlockF32
+public import ConjureDSPLib.Svf.Fma
+public import ConjureDSPLib.Svf.FmaF64
+public import ConjureDSPLib.Svf.FmaF32

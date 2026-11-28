@@ -125,10 +125,13 @@ mkdir -p target
 # All `Debug` and `Default` implementations are left out: they are not DSP code. Translating
 # `Debug` would bring in Aeneas axioms for formatting floats; `Default` is left out to keep the
 # generated Lean to the DSP code. So proved code cannot call them (for example
-# `StateF64::default()`).
+# `StateF64::default()`). The `std` feature is on, so the proofs are about the `std` build, which
+# also has the fused multiply-add functions. The feature only adds those functions: no other code
+# depends on it (a property of the source, not proved), so the other functions are the same in the
+# default `no_std` build.
 "$CHARON_BIN" cargo --preset=aeneas \
   --exclude '{impl core::fmt::Debug for _}' --exclude '{impl core::default::Default for _}' \
-  --dest-file target/conjure_dsp_lib.llbc
+  --dest-file target/conjure_dsp_lib.llbc -- --features std
 
 step "2. Aeneas"
 # Split files: Code/Types.lean and Code/Funs.lean. Funs.lean imports Code/FunsExternal.lean, the

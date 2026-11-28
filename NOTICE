@@ -3,3 +3,7 @@ Copyright 2026 Michael Jancsy
 
 This product includes ConjureDSPLib, developed by Michael Jancsy
 (https://github.com/michaeljancsy/ConjureDSPLib).
+
+proofs/ConjureDSPLib/FmaFacts.lean contains three proofs adapted from FloatLib
+(https://github.com/lean-dojo/FloatLib), Copyright (c) 2026 FloatLib, under the MIT licence;
+the licence text is in that file.

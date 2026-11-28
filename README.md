@@ -1,6 +1,6 @@
 # ConjureDSPLib
 
-A Rust library of audio DSP building blocks.
+A Rust library of audio DSP building blocks, with all implementations verified in Lean.
 
 What sets it apart is a set of machine-checked [Lean 4](https://lean-lang.org) proofs about the
 code. For each function they state exactly which floating-point operations it performs and that it

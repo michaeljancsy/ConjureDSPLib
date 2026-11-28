@@ -506,9 +506,10 @@ functions are not proved.
 
 What is listed here is observed or expected behaviour, not proved.
 
-- The whole-block bounds are worst cases. Typical rounding errors partly cancel, and are much
-  smaller than the one-pole's `E`, the biquad's `cInf·Ê + L` and the SVF's
-  `outGain·cInf·Ê + Ly`.
+- The whole-block bounds are worst cases, and the errors seen in the measurements below are
+  smaller: by a factor of about 2 to 4 for the one-pole, the smoother and the gain ramp, about
+  200 to 1,100 for the SVF, and about 1,000 to 100,000 for the biquad, more with
+  `realPolesContraction` for poles close together (measured, not proved).
 - At low cutoffs in f32 the SVF's whole-block theorem gives a bound where the biquad's, used with
   `biquad.complexPolesContraction`, gives none. At 20 Hz the SVF's bound is at most 0.0126
   (`svf.lowPass20Hz_bounds_f32`, proved), while for the RBJ-cookbook biquad the condition
@@ -527,6 +528,83 @@ What is listed here is observed or expected behaviour, not proved.
   One case is proved for specific stored values: the binary32 coefficients in `lowPass1Hz_f32`,
   which are those of a 1 Hz Butterworth low-pass at 48 kHz (worked out outside Lean, not proved),
   have a pole at exactly 1 (`biquad.lowPass1Hz_pole_one_f32`).
+
+### How close the bounds are to the errors seen (measured, not proved)
+
+The table compares each proved bound in the worked examples above with the largest error seen
+when running the Rust code. Every "observed" figure and every ratio is measured, not proved, and
+says nothing about inputs that were not tried: the largest error over all inputs can be larger
+than the one observed, so each ratio may overstate how loose the bound is.
+
+How it was measured: `tests/looseness.rs`, run with
+`cargo test --release --features std --test looseness -- --ignored --nocapture` (Rust 1.93.1,
+Apple silicon). Each filter starts from zero and filters blocks of 2²⁰ (1,048,576) samples, one
+call to `process_f32` / `process_f64` per block, for these inputs, each at most 1 in size (so
+`M = 1`, as in the examples): uniform random in [−1, 1) and random ±1, 8 seeds each; alternating
+±1; a constant 1 (a step); a sine and a square wave at the cutoff (for the one-pole and the
+smoother, at `(1 − |a|)/2π` cycles per sample); and ±1 with the signs of the filter's impulse
+response read backwards, repeated (which makes the exact output nearly as large as any input at
+most 1 in size can, once per period). Every output is compared with the same filter run on the same stored coefficients,
+starting state and inputs in double-double arithmetic (about 106 bits), standing in for the exact
+arithmetic the theorems compare against; its own error is estimated to be below 10⁻²⁵ here
+(worked out outside Lean, not proved). The coefficients are the stored values in the theorems
+(for the SVF, the run checks that the design functions store them). The gain ramp's gains are
+read by ramping a block of ones and compared with the exact line `S + (E - S)·i/n`, for 14 pairs
+of `start` and `end` (6 chosen, 8 random in [−2, 2)) and block lengths 3, 64, 1,000, 4,096,
+48,000 and 2²⁰.
+
+The proved bound is the value shown in the tables above (each theorem proves the bound is at
+most that value). The ratio is the proved bound divided by the largest observed error.
+
+| Filter | Case | Proved bound | Largest observed error | Ratio |
+|---|---|---|---|---|
+| one-pole | f32, `a` = 0.5 | 3.6 × 10⁻⁷ | 1.2 × 10⁻⁷ | 3.1 |
+| one-pole | f32, `a` = −0.5 (same theorem) | 3.6 × 10⁻⁷ | 1.2 × 10⁻⁷ | 3.1 |
+| one-pole | f32, `a` = 0.99 | 1.19 × 10⁻³ | 3.8 × 10⁻⁴ | 3.1 |
+| one-pole | f32, `a` = −0.99 (same theorem) | 1.19 × 10⁻³ | 3.8 × 10⁻⁴ | 3.1 |
+| one-pole | f32, `a` = 0.999 | 0.12 | 0.031 | 3.9 |
+| one-pole | f64, `a` = 0.99 | 2.21 × 10⁻¹² | 7.1 × 10⁻¹³ | 3.1 |
+| one-pole | f64, `a` = −0.99 (same theorem) | 2.21 × 10⁻¹² | 7.1 × 10⁻¹³ | 3.1 |
+| one-pole | f64, `a` = 0.999 | 2.22 × 10⁻¹⁰ | 5.7 × 10⁻¹¹ | 3.9 |
+| smoother | f32, `a` = 0.99 | 6.2 × 10⁻⁶ | 3.0 × 10⁻⁶ | 2.1 |
+| smoother | f32, `a` = 0.999 | 6 × 10⁻⁵ | 3.0 × 10⁻⁵ | 2.0 |
+| smoother | f64, `a` = 0.99 | 1.16 × 10⁻¹⁴ | 5.4 × 10⁻¹⁵ | 2.1 |
+| smoother | f64, `a` = 0.999 | 1.12 × 10⁻¹³ | 5.5 × 10⁻¹⁴ | 2.0 |
+| biquad | f32, 100 Hz | 17.1 | 1.8 × 10⁻⁴ | 97,000 |
+| biquad | f32, 250 Hz | 0.979 | 6.1 × 10⁻⁵ | 16,000 |
+| biquad | f32, 1 kHz | 0.0542 | 7.1 × 10⁻⁶ | 7,600 |
+| biquad | f32, 10 kHz | 1.81 × 10⁻⁴ | 1.5 × 10⁻⁷ | 1,200 |
+| biquad | f32, 20 kHz | 0.0128 | 5.1 × 10⁻⁷ | 25,000 |
+| biquad | f32, 1 kHz, `Q` = 0.4 | 0.00559 | 1.6 × 10⁻⁶ | 3,600 |
+| biquad | f32, 1 kHz, `Q` = 0.5, `closePolesContraction` | 0.0122 | 2.1 × 10⁻⁶ | 5,900 |
+| biquad | f32, 1 kHz, `Q` = 0.5, `realPolesContraction` | 734 | 2.1 × 10⁻⁶ | 3.5 × 10⁸ |
+| biquad | f64, 10 Hz | 1.02 × 10⁻⁶ | 1.9 × 10⁻¹⁰ | 5,200 |
+| biquad | f64, 100 Hz | 1.02 × 10⁻⁸ | 1.3 × 10⁻¹² | 7,600 |
+| biquad | f64, 1 kHz | 1.01 × 10⁻¹⁰ | 7.4 × 10⁻¹⁵ | 14,000 |
+| biquad | f64, 10 kHz | 3.37 × 10⁻¹³ | 3.1 × 10⁻¹⁶ | 1,100 |
+| biquad | f64, 1 kHz, `Q` = 0.4 | 1.04 × 10⁻¹¹ | 3.0 × 10⁻¹⁵ | 3,500 |
+| SVF | f32, 20 Hz | 0.0126 | 5.6 × 10⁻⁵ | 220 |
+| SVF | f32, 100 Hz | 0.00267 | 4.2 × 10⁻⁶ | 640 |
+| SVF | f32, 1 kHz | 0.000459 | 5.7 × 10⁻⁷ | 800 |
+| SVF | f32, 10 kHz | 0.000475 | 4.9 × 10⁻⁷ | 980 |
+| SVF | f64, 20 Hz | 2.35 × 10⁻¹¹ | 7.0 × 10⁻¹⁴ | 340 |
+| SVF | f64, 100 Hz | 4.98 × 10⁻¹² | 6.3 × 10⁻¹⁵ | 790 |
+| SVF | f64, 1 kHz | 8.55 × 10⁻¹³ | 1.0 × 10⁻¹⁵ | 840 |
+| SVF | f64, 10 kHz | 8.84 × 10⁻¹³ | 7.9 × 10⁻¹⁶ | 1,100 |
+| gain ramp | f32, each gain | `u·\|S\| + 5u·\|E - S\| + (2n + 4)·η` | 2.8 × 10⁻⁷ (bound there 8.9 × 10⁻⁷) | 1.7 at the tightest gain |
+| gain ramp | f64, each gain | the same | 3.0 × 10⁻¹⁶ (bound there 1.7 × 10⁻¹⁵) | 1.7 at the tightest gain |
+
+Also measured, not proved:
+
+- The fused functions (`process_fma_*`), which have the same proved bounds, gave the same or
+  smaller largest errors in every row. With inputs of ±1 the fused and unfused biquads give the
+  same outputs, since every product with the input is then exact (worked out outside Lean, not
+  proved).
+- For the one-pole and the smoother the largest errors came from the step and alternating inputs,
+  which drive the state to its largest size; for the biquad and the SVF, from the step, the
+  random ±1 inputs and the impulse-response signs. The biquad bounds are the loosest, as the
+  paragraph after the biquad examples above expects; for the `Q` = 0.5 filter the largest errors
+  seen are the same whichever `Contraction` gives the bound, so the choice changes only the proof.
 
 ## What is assumed, not proved
 
@@ -557,7 +635,10 @@ What is listed here is observed or expected behaviour, not proved.
   results kept (no flush-to-zero) and subnormal inputs read as they are (no denormals-are-zero),
   and in IEEE single and double precision (not x87 extended precision, as 32-bit x86 without SSE2
   can). Hosts and plug-ins often turn on flush-to-zero; with it on, results near zero can differ
-  from the model by more than `η`, and the error bounds are not proved for that mode.
+  from the model by more than `η`, and the error bounds are not proved for that mode. Which
+  theorems would still describe the processor in that mode, and what proving bounds for it would
+  take, is in the design note [`notes/flush-to-zero.md`](notes/flush-to-zero.md) (worked out
+  outside Lean, not proved).
 - Rust's `f32`/`f64` operations and Lean's `Float32`/`Float` operations are the same IEEE 754
   round-to-nearest operations. FloatLib relates Lean's floats to real numbers; nothing here
   verifies machine instructions or compiler optimizations. In particular, the proofs assume a

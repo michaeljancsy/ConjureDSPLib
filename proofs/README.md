@@ -89,6 +89,29 @@ index, no arithmetic overflow on indices, and it terminates.
 | `delay::write_f64` | `delay.write_f64_spec`, `delay.write_f64_rotate` | `Delay/SpecF64.lean` | For a buffer of length `L > 0`, any position `p` and sample `x`: never fails; the new buffer is the old one with element `p mod L` replaced by `x` (`List.set`), and the new position is `(p + 1) mod L`; the new buffer has length `L`, and read oldest first from the new position it is `buffer.rotate p ++ [x]` without its first element. |
 | `delay::read_f64`, `write_f64` | `delay.write_f64_eq_process_state`, `delay.read_write_f64_eq_process` | `Delay/SpecF64.lean` | With `audio` the one-sample block `[x]`: for any buffer (empty or not), position and delay, `write_f64` of `x` and `process_f64` on `audio` both never fail and return the same buffer and the same position. When `d = min(delay_samples, L - 1) ≥ 1`, also `read_f64` at the same position, before the write, never fails, and the output of `process_f64` is `[y]`, `y` being the sample `read_f64` returned. (With `d = 0` they differ: `process_f64` returns `x` itself and `read_f64` the sample that `x` overwrites; worked out outside Lean from `process_f64_spec`, `read_f64_spec` and `write_f64_spec`, not proved as a theorem.) |
 | `delay::read_f32`, `write_f32` | `delay.read_f32_ok`, `delay.read_f32_empty_buffer`, `delay.read_f32_spec`, `delay.read_f32_rotate`, `delay.write_f32_ok`, `delay.write_f32_empty_buffer`, `delay.write_f32_spec`, `delay.write_f32_rotate`, `delay.write_f32_eq_process_state`, `delay.read_write_f32_eq_process` | `Delay/SpecF32.lean` | The same ten facts for `f32` samples. |
+| `delay::read_interp_f64` | `delay.read_interp_f64_short_buffer`, `delay.read_interp_f64_ok` | `Delay/InterpF64.lean` | Never fails, for every buffer, position and delay; with a buffer of fewer than 5 samples it returns `0`. |
+| `delay::read_interp_f64` | `delay.read_interp_f64_spec`, `delay.interpPoint_f64_fst_le` | `Delay/InterpF64.lean` | For a buffer of length `L ≥ 5`, with `(n, t) = interpPoint_f64 L delay` (with `whole` the translated `delay as usize`: `(2, 0)` if `whole < 2`, `(L - 3, 1)` if `whole > L - 3`, and `(whole, delay - castNat_f64 whole)` otherwise; `2 ≤ n ≤ L - 3`): never fails, and returns exactly `lagrange4_f64 t xm1 x0 x1 x2`, where `xm1`, `x0`, `x1` and `x2` are the buffer's elements at `(position + L - k) mod L` for `k = n - 1`, `n`, `n + 1` and `n + 2` (the elements `read_f64` returns at those delays, `read_f64_spec`), and `lagrange4_f64` is `((wm1·xm1 + w0·x0) + w1·x1) + w2·x2` with `wm1 = -(t·(t - 1)·(t - 2))/6`, `w0 = (t + 1)·(t - 1)·(t - 2)·0.5`, `w1 = -((t + 1)·t·(t - 2))·0.5` and `w2 = (t + 1)·t·(t - 1)/6`, each operation in binary64 in that order, products left to right. |
+| (`d as usize` for a float `d`) | `toUScalar_usize_val_f64`, `toUScalar_usize_val_f32` | `Delay/Cast.lean` | For every finite `d` of value `D`, the translated cast is `min(⌊D⌋₊, USize.size - 1)`: the integer part of `D` (0 when `D < 1`, negative `D` included), capped at the largest `usize`. |
+| `delay::read_interp_f64` | `delay.read_interp_f64_frac` | `Delay/InterpF64.lean` | For a finite `delay` of value `D` and `5 ≤ L ≤ 2^53`: `t` is finite, with value between 0 and 1; when `D < 2`, `n = 2` and `t` has value 0; when `2 ≤ D < L - 2`, `n = ⌊D⌋₊` and `t` has value exactly `D - n` (the subtraction is exact, by Sterbenz's lemma); when `D ≥ L - 2`, `n = L - 3` and `t` has value 1. |
+| `delay::read_interp_f64`, `read_f64` | `delay.read_interp_f64_whole`, `delay.read_interp_f64_whole_eq_read` | `Delay/InterpF64.lean` | **At a whole-number delay.** For `5 ≤ L ≤ 2^53`, a finite `delay` whose value is a whole number `D` with `2 ≤ D ≤ L - 2`, and every sample in the buffer finite: `read_interp_f64` never fails and returns a finite value equal, as a real number, to the buffer's element at `(position + L - D) mod L`; for any `usize` `d` of value `D`, `read_f64` at `d` never fails and returns that element. So the two results have the same value; as floats they can differ only in the sign of a zero (worked out outside Lean, not proved). |
+| (the interpolation, exact arithmetic) | `delay.lagrange4_real_abs_le` | `Delay/Interp.lean` | In exact arithmetic, for `0 ≤ t ≤ 1` and four samples at most `M` in size, the formula of `lagrange4_f64` (`delay.lagrange4_real`) is at most `(1 + t - t²)·M ≤ (5/4)·M` in size. A bound on the rounded result is not proved. |
+| `delay::read_interp_f32` | `delay.read_interp_f32_short_buffer`, `delay.read_interp_f32_ok`, `delay.read_interp_f32_spec`, `delay.interpPoint_f32_fst_le`, `delay.read_interp_f32_frac`, `delay.read_interp_f32_whole`, `delay.read_interp_f32_whole_eq_read` | `Delay/InterpF32.lean` | The same facts for `f32` samples (`interpPoint_f32`, `lagrange4_f32`), with `L ≤ 2^24` in place of `L ≤ 2^53`. |
+| `allpass1::coeff_f64` | `allpass1.coeff_f64_eq` | `Allpass1/SpecF64.lean` | Never fails, and returns exactly `(t - 1) / (t + 1)` with `t = libm.tanModel_f64 (PI * corner_hz / sample_rate_hz)` (`PI` is `core.f64.consts.PI`; multiplication first), each operation in binary64 in that order (`1` is the binary64 number 1). That this gives a 90° phase shift at `corner_hz` is not proved. |
+| `allpass1::step_f64` | `allpass1.step_f64_eq` | `Allpass1/SpecF64.lean` | Exactly `apStep_f64`: the output `y = c * (x - y1) + x1` in binary64, in that order, and the new state `(x1, y1) = (x, y)`; never fails. |
+| `allpass1::process_f64` | `allpass1.process_f64_spec` | `Allpass1/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `apStep_f64` to each sample in turn (Lean's `allpass1.filt_f64`). |
+| `allpass1::coeff_f32`, `step_f32`, `process_f32` | `allpass1.coeff_f32_eq`, `allpass1.step_f32_eq`, `allpass1.process_f32_spec` | `Allpass1/SpecF32.lean` | The same three facts in binary32, with `core.f32.consts.PI` and `libm.tanModel_f32`. |
+| (the all-pass, exact arithmetic) | `allpass1.filt_real_abs_le_outBound` | `Allpass1/Block.lean` | **Stability.** In exact arithmetic, when `\|C\| < 1`: from the state `(x1, S)`, with `x1` and every input at most `M ≥ 0` in size, every output of `allpass1.filt_real` and its final previous output are at most `allpass1.outBound C M S = \|S\| + (1 + \|C\|)·M/(1 - \|C\|)` in size, for a block of any length. |
+| `allpass1::step_f64` | `allpass1.apStep_f64_error` (and `allpass1.stepErr_of_roundings`, real numbers, in `Allpass1/Block.lean`) | `Allpass1/BlockF64.lean` | When `c`, the state, `x` and the step's three rounded results (`x - y1`, `c * (x - y1)` and the output) are finite: the output is within `stepErr C u η X1 Y1 X` of the exact step `C·(X - Y1) + X1`, where `C`, `X1`, `Y1`, `X` are the values of `c`, `x1`, `y1`, `x`. Written out, with `D = X - Y1`, `d = u·\|D\| + η` and `p = u·\|C\|·(\|D\| + d) + η + \|C\|·d`, the bound is `u·(\|C·D + X1\| + p) + η + p`. |
+| `allpass1::process_f64` | `allpass1.process_f64_block_error` (and `filt_f64_block_error`, the same about `filt_f64`) | `Allpass1/BlockF64.lean` | **Whole-block error.** Under the conditions below: never fails; every output sample and the final `y1` are within `E` of the exact filter `allpass1.filt_real C (X1, S)`, run on the values of the stored inputs from the values of the stored state, and the final `x1` has exactly the exact filter's final previous input as its value; for a block of any length. |
+| `allpass1::process_f64` | `allpass1.process_f64_block_error_of_inputs` (and `noOverflow_f64_of_inputs`) | `Allpass1/BlockF64.lean` | **The same, with conditions on the inputs only:** no step overflows, proved from the inputs rather than assumed, when `M + (1 + u)·((1 + u)·(M + B + E) + η) + η` is at most the largest finite binary64 value (about 1.8 × 10³⁰⁸). |
+| `allpass1::step_f32`, `process_f32` | `allpass1.apStep_f32_error`, `allpass1.process_f32_block_error` (and `filt_f32_block_error`), `allpass1.process_f32_block_error_of_inputs` (and `noOverflow_f32_of_inputs`) | `Allpass1/BlockF32.lean` | The same in binary32 (largest finite value about 3.4 × 10³⁸). |
+| `linear_smoother::set_target_f64` | `linear_smoother.set_target_f64_spec` | `LinearSmoother/SpecF64.lean` | Never fails. It sets the target; with `steps = 0` it also sets the value to the target, the step to `0` and `remaining` to 0, and otherwise it sets the step to `(target - value) / castNat_f64 steps` in binary64 (`gain.rampStep_f64 value target steps`) and `remaining` to `steps`, keeping the value. |
+| `linear_smoother::step_f64` | `linear_smoother.step_f64_spec` | `LinearSmoother/SpecF64.lean` | Never fails. It returns `nextValue_f64 s`: the value itself when `remaining = 0`, the target when `remaining = 1`, and `target - step * castNat_f64 (remaining - 1)` otherwise, in binary64 in that order; it stores that as the value, takes one off `remaining` (leaving 0 at 0) and keeps the step and the target. |
+| `linear_smoother::process_f64` | `linear_smoother.process_f64_spec`, `linear_smoother.process_f64_ok` | `LinearSmoother/SpecF64.lean` | Never fails, for every state and block. Output sample `j` is `valueAfter_f64 s (j + 1)`: the value itself when `remaining = 0`, the target once `remaining ≤ j + 1`, and `target - step * castNat_f64 (remaining - (j + 1))` before that. The state left has the same step and target, `remaining` reduced by the block's length (not below 0), and the last output as its value (the value unchanged for an empty block). |
+| `linear_smoother::set_target_f64`, `process_f64` | `linear_smoother.set_target_process_f64_lands`, `linear_smoother.process_f64_lands`, `linear_smoother.process_f64_at_rest` | `LinearSmoother/SpecF64.lean` | **Landing.** After `set_target_f64 s target steps`, a block of any length never fails, and every output sample `j` with `steps ≤ j + 1` (step number `steps` and every later one) is `target` as a Lean `Float` (bit for bit); when the block has at least `steps` samples, the state left holds `target` as its value, with `remaining = 0`. With `remaining = 0`, a block leaves the value, step, target and `remaining` as they were, and every output sample is the value. |
+| `linear_smoother::set_target_f64`, `process_f64` | `linear_smoother.valueAfter_set_target_f64` | `LinearSmoother/SpecF64.lean` | After `set_target_f64 s target steps`, for `1 ≤ k < steps`, the value after `k` steps is `rampValue_f64 value target steps k`, which is `target - gain.rampStep_f64 value target steps * castNat_f64 (steps - k)` in binary64, in that order. |
+| `linear_smoother::step_f64` | `linear_smoother.rampValue_f64_error` (and `gain.ramp_error_real`, `Gain/Line.lean`) | `LinearSmoother/BridgeF64.lean` | **Accuracy.** When `start` and `target` are finite and at most `2^1020` in size, `1 ≤ n ≤ 2^53` and `k < n`: `rampValue_f64 start target n k` is finite, and its real value is within `u·\|T\| + 5u·\|T - S\| + (2n + 4)·η` of the straight line `S + (T - S)·k/n`, where `S`, `T` are the values of `start`, `target`, `u = 2⁻⁵³` and `η = 2⁻¹⁰⁷⁵`. |
+| `linear_smoother::set_target_f32`, `step_f32`, `process_f32` | the `_f32` versions of the theorems above (`linear_smoother.set_target_f32_spec`, `step_f32_spec`, `process_f32_spec`, `process_f32_ok`, `set_target_process_f32_lands`, `process_f32_lands`, `process_f32_at_rest`, `valueAfter_set_target_f32`, `rampValue_f32_error`) | `LinearSmoother/SpecF32.lean`, `LinearSmoother/BridgeF32.lean` | The same in binary32, with `2^124` in place of `2^1020`, `2^24` in place of `2^53`, `u = 2⁻²⁴` and `η = 2⁻¹⁵⁰`. |
 | `svf::CoeffsF64::new` | `svf.CoeffsF64.new_eq` | `Svf/SpecF64.lean` | Never fails; keeps `g`, `k`, `m_hp`, `m_bp` and `m_lp`, and computes `d` as exactly `1 / (1 + g * (g + k))` in binary64, in that order (`1` is the binary64 number 1). |
 | `svf::step_f64` | `svf.step_f64_eq` | `Svf/SpecF64.lean` | Exactly the step `svfStep_f64` in binary64, in the Rust code's order; never fails. With `hp = ((x - (k + g) * s1) - s2) * d`, `bp = g * hp + s1` and `lp = g * bp + s2`, the output is `(m_hp * hp + m_bp * bp) + m_lp * lp` and the new state is `s1 = g * hp + bp`, `s2 = g * bp + lp`. |
 | `svf::process_f64` | `svf.process_f64_spec` | `Svf/SpecF64.lean` | Never fails, and its outputs and final state are exactly those of applying `svfStep_f64` to each sample in turn (Lean's `filt_f64`). |
@@ -183,6 +206,26 @@ starting state (`realState_f64`) and inputs. The one-pole's conditions:
 Then, with `B = |S| + M / (1 - |A|)` (a bound on the exact filter's outputs):
 
 `E = (u·M + η·(2 + u) + |A|·u·(2 + u)·B) / (1 - |A| - |A|·u·(2 + u))`
+
+For the first-order all-pass, the whole-block theorems likewise compare the Rust outputs with
+the exact filter run on the exact values of the stored floats: `C` is the value of `c`, `X1` and
+`S` those of the starting state's `x1` and `y1`, and the inputs are the values of the stored
+samples. (So the rounding of a decimal coefficient to a float, or inside `coeff_*`, is not covered.) The previous input `x1` is a stored input, never rounded, so only the previous output
+carries an error from step to step, multiplied by `C` each step. The conditions:
+
+- `c` and the starting state are finite, and no step overflows (`allpass1.NoOverflow_f64` /
+  `NoOverflow_f32`: every input, every difference `x - y1`, every product `c * (x - y1)` and every
+  output is finite). The `_of_inputs` theorems need no no-overflow condition: they prove it,
+  given the other conditions here, every input finite, and the size condition in the table;
+- `X1` and every input are at most `M` in size, with `M ≥ 0`;
+- `|C| + κ < 1`, where `κ = errGrowth C u = |C|·u·(1 + (1 + u)·(2 + u))`
+  (`allpass1.errGrowth`): stable, with a little room for rounding.
+
+Then, with `B = |S| + (1 + |C|)·M / (1 - |C|)` (`allpass1.outBound`, a bound on the exact
+filter's outputs):
+
+`E = (κ·(M + B) + u·M + ((1 + u)·(1 + |C|·(1 + u)) + 1)·η) / (1 - |C| - κ)`
+(`allpass1.errBound`, with `allpass1.errBase` the part `u·M + ((1 + u)·(1 + |C|·(1 + u)) + 1)·η`).
 
 For the smoother, `process_f64` / `process_f32` compute the coefficient `c = 1 - a` once per
 block, rounded, so every step uses the same stored `c`. The whole-block theorems compare the Rust
@@ -448,6 +491,7 @@ out outside Lean, not proved). There is no biquad row at 20 Hz (see "Observation
 
 With the cargo feature `std`, the crate also has `one_pole::step_fma_f64` / `process_fma_f64`,
 `smoother::step_fma_f64` / `process_fma_f64` and `step_coeff_fma_f64` / `process_coeff_fma_f64`,
+`allpass1::step_fma_f64` / `process_fma_f64`,
 `biquad::step_fma_f64` / `process_fma_f64`, `svf::step_fma_f64` / `process_fma_f64` and their
 `_f32` versions. They call Rust's `mul_add`, which Aeneas translates to Lean's `Float.fma` /
 `Float32.fma`: `x·y + z` computed exactly and rounded once (Lean core's model
@@ -458,6 +502,7 @@ processor:
 |---|---|
 | `one_pole::step_fma_*` | `y = fma(a, state, x)` |
 | `smoother::step_coeff_fma_*`, `step_fma_*` | `y = fma(c, x - state, state)`, with `c` as given, or `c = 1 - a` (computed once per block by `process_fma_*`) |
+| `allpass1::step_fma_*` | `y = fma(c, x - y1, x1)`, with the new state `(x1, y1) = (x, y)` |
 | `biquad::step_fma_*` | `y = fma(b0, x, s1)`, `s1' = fma(b1, x, -(a1·y)) + s2`, `s2' = fma(b2, x, -(a2·y))` |
 | `svf::step_fma_*` | `hp = (fma(-(k + g), s1, x) - s2)·d`, `bp = fma(g, hp, s1)`, `lp = fma(g, bp, s2)`, `s1' = fma(g, hp, bp)`, `s2' = fma(g, bp, lp)`, `y = fma(m_lp, lp, fma(m_hp, hp, m_bp·bp))` |
 
@@ -487,6 +532,10 @@ so a C or C++ SVF built that way can get a different `d`, and the whole filter m
 | `smoother::step_fma_f64` | `smoother.step_fma_f64_error` | `Smoother/FmaF64.lean` | When `c`, `state`, `x`, the rounded difference `x - state` and the result are finite, one fused step is within the unfused step's bound `stepErr (1 - C) u η S X` of the exact step `S + C·(X - S)`. |
 | `smoother::process_fma_f64`, `process_coeff_fma_f64` | `smoother.process_fma_f64_block_error`, `process_fma_f64_block_error_of_inputs`, `process_fma_f64_settle_of_inputs`, and the `process_coeff_fma_f64` versions | `Smoother/FmaF64.lean` | **Whole-block error and settling.** The statements of the unfused `process_f64` and `process_coeff_f64` theorems, with the same `E` and conditions (`NoOverflowFma_f64`: every input, difference and output finite, in place of `NoOverflow_f64` where no-overflow is assumed; the `_of_inputs` and `_settle_` forms have exactly the unfused conditions). The smoother table rows above are about `E`, `outBound` and the stability condition alone, so they hold for the fused functions too. |
 | `smoother::*_fma_f32` | the `_f32` versions of the theorems above | `Smoother/FmaF32.lean` | The same in binary32. |
+| `allpass1::step_fma_f64`, `process_fma_f64` | `allpass1.step_fma_f64_eq`, `allpass1.process_fma_f64_spec` | `Allpass1/SpecF64.lean` | Exactly `c.fma (x - y1) x1` in binary64, with the new state `(x, y)` (`apStep_fma_f64`); never fails; the block gives exactly `filt_fma_f64`. |
+| `allpass1::step_fma_f64` | `allpass1.apStep_fma_f64_error`; `allpass1.stepErr_of_roundings_fma` (`Allpass1/Block.lean`, real numbers) | `Allpass1/BlockF64.lean` | When `c`, the state, `x`, the rounded difference `x - y1` and the result are finite, one fused step is within the unfused step's bound `stepErr C u η X1 Y1 X` of the exact step. |
+| `allpass1::process_fma_f64` | `allpass1.process_fma_f64_block_error`, `allpass1.process_fma_f64_block_error_of_inputs` (and `noOverflowFma_f64_of_inputs`) | `Allpass1/BlockF64.lean` | **Whole-block error.** The statements of `process_f64_block_error` and `process_f64_block_error_of_inputs`, with the same `E` and conditions (`NoOverflowFma_f64`: every input, difference and output finite, in place of `NoOverflow_f64` where no-overflow is assumed; the `_of_inputs` form has exactly the unfused conditions). |
+| `allpass1::*_fma_f32` | the `_f32` versions of the theorems above | `Allpass1/SpecF32.lean`, `Allpass1/BlockF32.lean` | The same in binary32. |
 | `biquad::step_fma_f64`, `process_fma_f64` | `biquad.step_fma_f64_eq`, `biquad.process_fma_f64_spec` | `Biquad/FmaF64.lean` | Exactly `tdf2_fma_f64` (the grouping above) in binary64; never fails; the block gives exactly `filt_fma_f64`. |
 | `biquad::step_fma_f64` | `biquad.tdf2_fma_f64_localErr`; `biquad.step_localErr_fma` (`Biquad/Fma.lean`, real numbers) | `Biquad/FmaF64.lean` | Under the conditions of `tdf2_f64_localErr`, with `StepFiniteFma_f64` (the six rounded results finite) in place of `StepFinite_f64`: the output and both new state values are within the same `α + β·Sb`. |
 | `biquad::process_fma_f64` | `biquad.process_fma_f64_block_error`, `biquad.process_fma_f64_block_error_of_inputs` | `Biquad/FmaF64.lean` | **Whole-block error.** The statements of `process_f64_block_error` and `process_f64_block_error_of_inputs`, with the same constants and conditions (`NoOverflowFma_f64` in place of `NoOverflow_f64`), for the fused function. Every bound on those constants proved for particular coefficients (the biquad table above) therefore holds for the fused filter too. |
@@ -496,9 +545,9 @@ so a C or C++ SVF built that way can get a different `d`, and the whole filter m
 | `svf::process_fma_f64` | `svf.process_fma_f64_block_error`, `svf.process_fma_f64_block_error_of_inputs` | `Svf/FmaF64.lean` | **Whole-block error.** The statements of `process_f64_block_error` and `process_f64_block_error_of_inputs`, with the same constants and conditions (`NoOverflowFma_f64` in place of `NoOverflow_f64`), for the fused function; so the SVF table's bounds hold for it too. |
 | `svf::*_fma_f32` | the `_f32` versions of the theorems above | `Svf/FmaF32.lean` | The same in binary32. |
 
-The fused functions round less often (one, two, six and eleven distinct rounded results per step
-for the one-pole, the smoother, the biquad and the SVF, against two, three, nine and sixteen; a
-property of the code, not proved), but the bounds proved for them are the unfused ones: correct,
+The fused functions round less often (one, two, two, six and eleven distinct rounded results per
+step for the one-pole, the smoother, the first-order all-pass, the biquad and the SVF, against
+two, three, three, nine and sixteen; a property of the code, not proved), but the bounds proved for them are the unfused ones: correct,
 and no tighter. Tighter bounds for the fused
 functions are not proved.
 
@@ -682,6 +731,18 @@ Also measured, not proved:
   to 2, where `c` can be rounded; `coeff_f64_error` / `coeff_f32_error` bound only the
   coefficient itself), how close to `X` the state actually comes to rest (only the upper bound
   is proved), and how `E` grows as `A` approaches 1.
+- For the first-order all-pass (`allpass1::*`), the floating-point error bound is proved, under
+  the conditions above, against the exact filter with the stored coefficient. Not proved: its
+  frequency response (the same level at every frequency, measured at a few frequencies by the
+  crate's tests, measured, not proved), that `coeff_*` gives a phase shift of 90° at the corner
+  frequency, and that it gives `|c| < 1` for corner frequencies between 0 and half the sample
+  rate (standard results, not proved in Lean; `coeff_*` depends on libm's `tan`, outside the
+  model).
+- For the interpolated delay read (`delay::read_interp_*`), what the code computes is proved
+  exactly, and the size of the exact formula (`delay.lagrange4_real_abs_le`). Not proved: a bound
+  on the rounded result's size or on its distance from the exact formula, and that the formula is
+  the cubic through the four samples (worked out outside Lean, not proved). In `f32` the theorems
+  about the fraction and whole-number delays need a buffer of at most `2^24` samples.
 - For the state-variable filter (`svf::*`), the floating-point error bound is proved, under the
   conditions in the table above, for any stored coefficients for which an `svf.Contraction` of the
   state-update map is given (`svf.process_f64_block_error`, `svf.process_f32_block_error` and their

@@ -53,3 +53,16 @@ public import ConjureDSPLib.Svf.BlockF32
 public import ConjureDSPLib.Svf.Fma
 public import ConjureDSPLib.Svf.FmaF64
 public import ConjureDSPLib.Svf.FmaF32
+public import ConjureDSPLib.Allpass1.SpecF64
+public import ConjureDSPLib.Allpass1.SpecF32
+public import ConjureDSPLib.Allpass1.Block
+public import ConjureDSPLib.Allpass1.BlockF64
+public import ConjureDSPLib.Allpass1.BlockF32
+public import ConjureDSPLib.LinearSmoother.SpecF64
+public import ConjureDSPLib.LinearSmoother.SpecF32
+public import ConjureDSPLib.LinearSmoother.BridgeF64
+public import ConjureDSPLib.LinearSmoother.BridgeF32
+public import ConjureDSPLib.Delay.Cast
+public import ConjureDSPLib.Delay.Interp
+public import ConjureDSPLib.Delay.InterpF64
+public import ConjureDSPLib.Delay.InterpF32

@@ -25,6 +25,336 @@ noncomputable section
 
 namespace conjure_dsp_lib
 
+/-- [conjure_dsp_lib::allpass1::{impl core::clone::Clone for conjure_dsp_lib::allpass1::StateF64}::clone]:
+    Source: 'src/allpass1.rs', lines 49:9-49:14
+    Visibility: public -/
+def allpass1.StateF64.Insts.CoreCloneClone.clone
+  (self : allpass1.StateF64) : Result allpass1.StateF64 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::clone::Clone for conjure_dsp_lib::allpass1::StateF64}]
+    Source: 'src/allpass1.rs', lines 49:9-49:14 -/
+@[reducible]
+def allpass1.StateF64.Insts.CoreCloneClone : core.clone.Clone allpass1.StateF64
+  := {
+  clone := allpass1.StateF64.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::marker::Copy for conjure_dsp_lib::allpass1::StateF64}]
+    Source: 'src/allpass1.rs', lines 49:16-49:20 -/
+@[reducible]
+def allpass1.StateF64.Insts.CoreMarkerCopy : core.marker.Copy allpass1.StateF64
+  := {
+  cloneInst := allpass1.StateF64.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::allpass1::StateF64}]
+    Source: 'src/allpass1.rs', lines 49:38-49:47 -/
+@[reducible]
+def allpass1.StateF64.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq allpass1.StateF64 := {
+}
+
+/-- [conjure_dsp_lib::allpass1::{impl core::cmp::PartialEq<conjure_dsp_lib::allpass1::StateF64> for conjure_dsp_lib::allpass1::StateF64}::eq]:
+    Source: 'src/allpass1.rs', lines 49:38-49:47
+    Visibility: public -/
+def allpass1.StateF64.Insts.CoreCmpPartialEqStateF64.eq
+  (self : allpass1.StateF64) (other : allpass1.StateF64) : Result Bool := do
+  if self.x1 == other.x1
+  then ok (self.y1 == other.y1)
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::cmp::PartialEq<conjure_dsp_lib::allpass1::StateF64> for conjure_dsp_lib::allpass1::StateF64}]
+    Source: 'src/allpass1.rs', lines 49:38-49:47 -/
+@[reducible]
+def allpass1.StateF64.Insts.CoreCmpPartialEqStateF64 : core.cmp.PartialEq
+  allpass1.StateF64 allpass1.StateF64 := {
+  eq := allpass1.StateF64.Insts.CoreCmpPartialEqStateF64.eq
+}
+
+/-- [conjure_dsp_lib::allpass1::{impl core::clone::Clone for conjure_dsp_lib::allpass1::StateF32}::clone]:
+    Source: 'src/allpass1.rs', lines 59:9-59:14
+    Visibility: public -/
+def allpass1.StateF32.Insts.CoreCloneClone.clone
+  (self : allpass1.StateF32) : Result allpass1.StateF32 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::clone::Clone for conjure_dsp_lib::allpass1::StateF32}]
+    Source: 'src/allpass1.rs', lines 59:9-59:14 -/
+@[reducible]
+def allpass1.StateF32.Insts.CoreCloneClone : core.clone.Clone allpass1.StateF32
+  := {
+  clone := allpass1.StateF32.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::marker::Copy for conjure_dsp_lib::allpass1::StateF32}]
+    Source: 'src/allpass1.rs', lines 59:16-59:20 -/
+@[reducible]
+def allpass1.StateF32.Insts.CoreMarkerCopy : core.marker.Copy allpass1.StateF32
+  := {
+  cloneInst := allpass1.StateF32.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::allpass1::StateF32}]
+    Source: 'src/allpass1.rs', lines 59:38-59:47 -/
+@[reducible]
+def allpass1.StateF32.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq allpass1.StateF32 := {
+}
+
+/-- [conjure_dsp_lib::allpass1::{impl core::cmp::PartialEq<conjure_dsp_lib::allpass1::StateF32> for conjure_dsp_lib::allpass1::StateF32}::eq]:
+    Source: 'src/allpass1.rs', lines 59:38-59:47
+    Visibility: public -/
+def allpass1.StateF32.Insts.CoreCmpPartialEqStateF32.eq
+  (self : allpass1.StateF32) (other : allpass1.StateF32) : Result Bool := do
+  if self.x1 == other.x1
+  then ok (self.y1 == other.y1)
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::allpass1::{impl core::cmp::PartialEq<conjure_dsp_lib::allpass1::StateF32> for conjure_dsp_lib::allpass1::StateF32}]
+    Source: 'src/allpass1.rs', lines 59:38-59:47 -/
+@[reducible]
+def allpass1.StateF32.Insts.CoreCmpPartialEqStateF32 : core.cmp.PartialEq
+  allpass1.StateF32 allpass1.StateF32 := {
+  eq := allpass1.StateF32.Insts.CoreCmpPartialEqStateF32.eq
+}
+
+/-- [conjure_dsp_lib::allpass1::coeff_f64]:
+    Source: 'src/allpass1.rs', lines 77:0-80:1
+    Visibility: public -/
+def allpass1.coeff_f64
+  (corner_hz : Float) (sample_rate_hz : Float) : Result Float := do
+  let t ←
+    libm.math.tan.tan (Float.div (Float.mul core.f64.consts.PI corner_hz)
+      sample_rate_hz)
+  ok (Float.div (Float.sub t (Float.ofBits 4607182418800017408)) (Float.add t
+    (Float.ofBits 4607182418800017408)))
+
+/-- [conjure_dsp_lib::allpass1::coeff_f32]:
+    Source: 'src/allpass1.rs', lines 84:0-87:1
+    Visibility: public -/
+def allpass1.coeff_f32
+  (corner_hz : Float32) (sample_rate_hz : Float32) : Result Float32 := do
+  let t ←
+    libm.math.tanf.tanf (Float32.div (Float32.mul core.f32.consts.PI corner_hz)
+      sample_rate_hz)
+  ok (Float32.div (Float32.sub t (Float32.ofBits 1065353216)) (Float32.add t
+    (Float32.ofBits 1065353216)))
+
+/-- [conjure_dsp_lib::allpass1::step_f64]:
+    Source: 'src/allpass1.rs', lines 92:0-97:1
+    Visibility: public -/
+def allpass1.step_f64
+  (c : Float) (state : allpass1.StateF64) (x : Float) :
+  Result (Float × allpass1.StateF64)
+  := do
+  ok (Float.add (Float.mul c (Float.sub x state.y1)) state.x1,
+    { x1 := x, y1 := (Float.add (Float.mul c (Float.sub x state.y1)) state.x1)
+    })
+
+/-- [conjure_dsp_lib::allpass1::process_f64]: loop body 0:
+    Source: 'src/allpass1.rs', lines 104:4-107:5
+    Visibility: public -/
+@[rust_loop_body]
+def allpass1.process_f64_loop.body
+  (c : Float) (state : allpass1.StateF64) (buf : Slice Float) (i : Std.Usize) :
+  Result (ControlFlow (allpass1.StateF64 × (Slice Float) × Std.Usize)
+    (allpass1.StateF64 × (Slice Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← allpass1.step_f64 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::allpass1::process_f64]: loop 0:
+    Source: 'src/allpass1.rs', lines 104:4-107:5
+    Visibility: public -/
+@[rust_loop]
+def allpass1.process_f64_loop
+  (c : Float) (state : allpass1.StateF64) (buf : Slice Float) (i : Std.Usize) :
+  Result (allpass1.StateF64 × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => allpass1.process_f64_loop.body c state1 buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::allpass1::process_f64]:
+    Source: 'src/allpass1.rs', lines 101:0-108:1
+    Visibility: public -/
+@[reducible]
+def allpass1.process_f64
+  (c : Float) (state : allpass1.StateF64) (buf : Slice Float) :
+  Result (allpass1.StateF64 × (Slice Float))
+  := do
+  allpass1.process_f64_loop c state buf 0#usize
+
+/-- [conjure_dsp_lib::allpass1::step_f32]:
+    Source: 'src/allpass1.rs', lines 113:0-118:1
+    Visibility: public -/
+def allpass1.step_f32
+  (c : Float32) (state : allpass1.StateF32) (x : Float32) :
+  Result (Float32 × allpass1.StateF32)
+  := do
+  ok (Float32.add (Float32.mul c (Float32.sub x state.y1)) state.x1,
+    {
+      x1 := x,
+      y1 := (Float32.add (Float32.mul c (Float32.sub x state.y1)) state.x1)
+    })
+
+/-- [conjure_dsp_lib::allpass1::process_f32]: loop body 0:
+    Source: 'src/allpass1.rs', lines 125:4-128:5
+    Visibility: public -/
+@[rust_loop_body]
+def allpass1.process_f32_loop.body
+  (c : Float32) (state : allpass1.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (ControlFlow (allpass1.StateF32 × (Slice Float32) × Std.Usize)
+    (allpass1.StateF32 × (Slice Float32)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← allpass1.step_f32 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::allpass1::process_f32]: loop 0:
+    Source: 'src/allpass1.rs', lines 125:4-128:5
+    Visibility: public -/
+@[rust_loop]
+def allpass1.process_f32_loop
+  (c : Float32) (state : allpass1.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (allpass1.StateF32 × (Slice Float32))
+  := do
+  loop
+    (fun (state1, buf1, i1) => allpass1.process_f32_loop.body c state1 buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::allpass1::process_f32]:
+    Source: 'src/allpass1.rs', lines 122:0-129:1
+    Visibility: public -/
+@[reducible]
+def allpass1.process_f32
+  (c : Float32) (state : allpass1.StateF32) (buf : Slice Float32) :
+  Result (allpass1.StateF32 × (Slice Float32))
+  := do
+  allpass1.process_f32_loop c state buf 0#usize
+
+/-- [conjure_dsp_lib::allpass1::step_fma_f64]:
+    Source: 'src/allpass1.rs', lines 138:0-143:1
+    Visibility: public -/
+def allpass1.step_fma_f64
+  (c : Float) (state : allpass1.StateF64) (x : Float) :
+  Result (Float × allpass1.StateF64)
+  := do
+  let y ← lift (std.f64.mul_add c (Float.sub x state.y1) state.x1)
+  ok (y, { x1 := x, y1 := y })
+
+/-- [conjure_dsp_lib::allpass1::process_fma_f64]: loop body 0:
+    Source: 'src/allpass1.rs', lines 151:4-154:5
+    Visibility: public -/
+@[rust_loop_body]
+def allpass1.process_fma_f64_loop.body
+  (c : Float) (state : allpass1.StateF64) (buf : Slice Float) (i : Std.Usize) :
+  Result (ControlFlow (allpass1.StateF64 × (Slice Float) × Std.Usize)
+    (allpass1.StateF64 × (Slice Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← allpass1.step_fma_f64 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::allpass1::process_fma_f64]: loop 0:
+    Source: 'src/allpass1.rs', lines 151:4-154:5
+    Visibility: public -/
+@[rust_loop]
+def allpass1.process_fma_f64_loop
+  (c : Float) (state : allpass1.StateF64) (buf : Slice Float) (i : Std.Usize) :
+  Result (allpass1.StateF64 × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => allpass1.process_fma_f64_loop.body c state1 buf1
+      i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::allpass1::process_fma_f64]:
+    Source: 'src/allpass1.rs', lines 148:0-155:1
+    Visibility: public -/
+@[reducible]
+def allpass1.process_fma_f64
+  (c : Float) (state : allpass1.StateF64) (buf : Slice Float) :
+  Result (allpass1.StateF64 × (Slice Float))
+  := do
+  allpass1.process_fma_f64_loop c state buf 0#usize
+
+/-- [conjure_dsp_lib::allpass1::step_fma_f32]:
+    Source: 'src/allpass1.rs', lines 161:0-166:1
+    Visibility: public -/
+def allpass1.step_fma_f32
+  (c : Float32) (state : allpass1.StateF32) (x : Float32) :
+  Result (Float32 × allpass1.StateF32)
+  := do
+  let y ← lift (std.f32.mul_add c (Float32.sub x state.y1) state.x1)
+  ok (y, { x1 := x, y1 := y })
+
+/-- [conjure_dsp_lib::allpass1::process_fma_f32]: loop body 0:
+    Source: 'src/allpass1.rs', lines 174:4-177:5
+    Visibility: public -/
+@[rust_loop_body]
+def allpass1.process_fma_f32_loop.body
+  (c : Float32) (state : allpass1.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (ControlFlow (allpass1.StateF32 × (Slice Float32) × Std.Usize)
+    (allpass1.StateF32 × (Slice Float32)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let fl ← Slice.index_usize buf i
+    let (fl1, state1) ← allpass1.step_fma_f32 c state fl
+    let s ← Slice.update buf i fl1
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::allpass1::process_fma_f32]: loop 0:
+    Source: 'src/allpass1.rs', lines 174:4-177:5
+    Visibility: public -/
+@[rust_loop]
+def allpass1.process_fma_f32_loop
+  (c : Float32) (state : allpass1.StateF32) (buf : Slice Float32)
+  (i : Std.Usize) :
+  Result (allpass1.StateF32 × (Slice Float32))
+  := do
+  loop
+    (fun (state1, buf1, i1) => allpass1.process_fma_f32_loop.body c state1 buf1
+      i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::allpass1::process_fma_f32]:
+    Source: 'src/allpass1.rs', lines 171:0-178:1
+    Visibility: public -/
+@[reducible]
+def allpass1.process_fma_f32
+  (c : Float32) (state : allpass1.StateF32) (buf : Slice Float32) :
+  Result (allpass1.StateF32 × (Slice Float32))
+  := do
+  allpass1.process_fma_f32_loop c state buf 0#usize
+
 /-- [conjure_dsp_lib::biquad::{impl core::clone::Clone for conjure_dsp_lib::biquad::CoeffsF64}::clone]:
     Source: 'src/biquad.rs', lines 58:9-58:14
     Visibility: public -/
@@ -528,7 +858,7 @@ def biquad.process_fma_f32
   biquad.process_fma_f32_loop c state buf 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop body 0:
-    Source: 'src/delay.rs', lines 95:4-107:5
+    Source: 'src/delay.rs', lines 102:4-114:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f64_loop.body
@@ -557,7 +887,7 @@ def delay.process_f64_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f64]: loop 0:
-    Source: 'src/delay.rs', lines 95:4-107:5
+    Source: 'src/delay.rs', lines 102:4-114:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f64_loop
@@ -571,7 +901,7 @@ def delay.process_f64_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f64]:
-    Source: 'src/delay.rs', lines 74:0-109:1
+    Source: 'src/delay.rs', lines 81:0-116:1
     Visibility: public -/
 def delay.process_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -594,7 +924,7 @@ def delay.process_f64
     delay.process_f64_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop body 0:
-    Source: 'src/delay.rs', lines 134:4-146:5
+    Source: 'src/delay.rs', lines 141:4-153:5
     Visibility: public -/
 @[rust_loop_body]
 def delay.process_f32_loop.body
@@ -623,7 +953,7 @@ def delay.process_f32_loop.body
   else ok (done (buffer, w, audio))
 
 /-- [conjure_dsp_lib::delay::process_f32]: loop 0:
-    Source: 'src/delay.rs', lines 134:4-146:5
+    Source: 'src/delay.rs', lines 141:4-153:5
     Visibility: public -/
 @[rust_loop]
 def delay.process_f32_loop
@@ -637,7 +967,7 @@ def delay.process_f32_loop
     (buffer, audio, w, r, i)
 
 /-- [conjure_dsp_lib::delay::process_f32]:
-    Source: 'src/delay.rs', lines 113:0-148:1
+    Source: 'src/delay.rs', lines 120:0-155:1
     Visibility: public -/
 def delay.process_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize)
@@ -660,7 +990,7 @@ def delay.process_f32
     delay.process_f32_loop buffer audio len w r 0#usize
 
 /-- [conjure_dsp_lib::delay::read_f64]:
-    Source: 'src/delay.rs', lines 164:0-178:1
+    Source: 'src/delay.rs', lines 171:0-185:1
     Visibility: public -/
 def delay.read_f64
   (buffer : Slice Float) (position : Std.Usize) (delay_samples : Std.Usize) :
@@ -682,7 +1012,7 @@ def delay.read_f64
     Slice.index_usize buffer r
 
 /-- [conjure_dsp_lib::delay::write_f64]:
-    Source: 'src/delay.rs', lines 186:0-195:1
+    Source: 'src/delay.rs', lines 193:0-202:1
     Visibility: public -/
 def delay.write_f64
   (buffer : Slice Float) (position : Std.Usize) (x : Float) :
@@ -702,7 +1032,7 @@ def delay.write_f64
          ok (buffer1, next)
 
 /-- [conjure_dsp_lib::delay::read_f32]:
-    Source: 'src/delay.rs', lines 199:0-213:1
+    Source: 'src/delay.rs', lines 206:0-220:1
     Visibility: public -/
 def delay.read_f32
   (buffer : Slice Float32) (position : Std.Usize) (delay_samples : Std.Usize) :
@@ -724,7 +1054,7 @@ def delay.read_f32
     Slice.index_usize buffer r
 
 /-- [conjure_dsp_lib::delay::write_f32]:
-    Source: 'src/delay.rs', lines 217:0-226:1
+    Source: 'src/delay.rs', lines 224:0-233:1
     Visibility: public -/
 def delay.write_f32
   (buffer : Slice Float32) (position : Std.Usize) (x : Float32) :
@@ -742,6 +1072,127 @@ def delay.write_f32
          ok (buffer1, 0#usize)
     else let buffer1 := index_mut_back x
          ok (buffer1, next)
+
+/-- [conjure_dsp_lib::delay::read_interp_f64]:
+    Source: 'src/delay.rs', lines 272:0-306:1
+    Visibility: public -/
+def delay.read_interp_f64
+  (buffer : Slice Float) (position : Std.Usize) (delay : Float) :
+  Result Float
+  := do
+  let len := Slice.len buffer
+  if len < 5#usize
+  then ok (Float.ofBits 0)
+  else
+    let whole ← lift (Float.toUScalar .Usize delay)
+    let (n, t) ←
+      if whole < 2#usize
+      then ok (2#usize, (Float.ofBits 0))
+      else
+        do
+        let i ← len - 3#usize
+        if whole > i
+        then ok (i, (Float.ofBits 4607182418800017408))
+        else
+          let fl ← lift (UScalar.toFloat whole)
+          ok (whole, Float.sub delay fl)
+    let w ← position % len
+    let k ← n + 2#usize
+    let r ← if k <= w
+              then w - k
+              else do
+                   let i ← len - k
+                   w + i
+    let x2 ← Slice.index_usize buffer r
+    let i ← r + 1#usize
+    let r1 ← if i = len
+               then ok 0#usize
+               else ok i
+    let x1 ← Slice.index_usize buffer r1
+    let i1 ← r1 + 1#usize
+    let r2 ← if i1 = len
+               then ok 0#usize
+               else ok i1
+    let x0 ← Slice.index_usize buffer r2
+    let i2 ← r2 + 1#usize
+    let r3 ← if i2 = len
+               then ok 0#usize
+               else ok i2
+    let xm1 ← Slice.index_usize buffer r3
+    ok (Float.add (Float.add (Float.add (Float.mul (Float.div (Float.neg
+      (Float.mul (Float.mul t (Float.sub t (Float.ofBits 4607182418800017408)))
+      (Float.sub t (Float.ofBits 4611686018427387904))))
+      (Float.ofBits 4618441417868443648)) xm1) (Float.mul (Float.mul (Float.mul
+      (Float.mul (Float.add t (Float.ofBits 4607182418800017408)) (Float.sub t
+      (Float.ofBits 4607182418800017408))) (Float.sub t
+      (Float.ofBits 4611686018427387904))) (Float.ofBits 4602678819172646912))
+      x0)) (Float.mul (Float.mul (Float.neg (Float.mul (Float.mul (Float.add t
+      (Float.ofBits 4607182418800017408)) t) (Float.sub t
+      (Float.ofBits 4611686018427387904)))) (Float.ofBits 4602678819172646912))
+      x1)) (Float.mul (Float.div (Float.mul (Float.mul (Float.add t
+      (Float.ofBits 4607182418800017408)) t) (Float.sub t
+      (Float.ofBits 4607182418800017408))) (Float.ofBits 4618441417868443648))
+      x2))
+
+/-- [conjure_dsp_lib::delay::read_interp_f32]:
+    Source: 'src/delay.rs', lines 312:0-346:1
+    Visibility: public -/
+def delay.read_interp_f32
+  (buffer : Slice Float32) (position : Std.Usize) (delay : Float32) :
+  Result Float32
+  := do
+  let len := Slice.len buffer
+  if len < 5#usize
+  then ok (Float32.ofBits 0)
+  else
+    let whole ← lift (Float32.toUScalar .Usize delay)
+    let (n, t) ←
+      if whole < 2#usize
+      then ok (2#usize, (Float32.ofBits 0))
+      else
+        do
+        let i ← len - 3#usize
+        if whole > i
+        then ok (i, (Float32.ofBits 1065353216))
+        else
+          let fl ← lift (UScalar.toFloat32 whole)
+          ok (whole, Float32.sub delay fl)
+    let w ← position % len
+    let k ← n + 2#usize
+    let r ← if k <= w
+              then w - k
+              else do
+                   let i ← len - k
+                   w + i
+    let x2 ← Slice.index_usize buffer r
+    let i ← r + 1#usize
+    let r1 ← if i = len
+               then ok 0#usize
+               else ok i
+    let x1 ← Slice.index_usize buffer r1
+    let i1 ← r1 + 1#usize
+    let r2 ← if i1 = len
+               then ok 0#usize
+               else ok i1
+    let x0 ← Slice.index_usize buffer r2
+    let i2 ← r2 + 1#usize
+    let r3 ← if i2 = len
+               then ok 0#usize
+               else ok i2
+    let xm1 ← Slice.index_usize buffer r3
+    ok (Float32.add (Float32.add (Float32.add (Float32.mul (Float32.div
+      (Float32.neg (Float32.mul (Float32.mul t (Float32.sub t
+      (Float32.ofBits 1065353216))) (Float32.sub t
+      (Float32.ofBits 1073741824)))) (Float32.ofBits 1086324736)) xm1)
+      (Float32.mul (Float32.mul (Float32.mul (Float32.mul (Float32.add t
+      (Float32.ofBits 1065353216)) (Float32.sub t (Float32.ofBits 1065353216)))
+      (Float32.sub t (Float32.ofBits 1073741824))) (Float32.ofBits 1056964608))
+      x0)) (Float32.mul (Float32.mul (Float32.neg (Float32.mul (Float32.mul
+      (Float32.add t (Float32.ofBits 1065353216)) t) (Float32.sub t
+      (Float32.ofBits 1073741824)))) (Float32.ofBits 1056964608)) x1))
+      (Float32.mul (Float32.div (Float32.mul (Float32.mul (Float32.add t
+      (Float32.ofBits 1065353216)) t) (Float32.sub t
+      (Float32.ofBits 1065353216))) (Float32.ofBits 1086324736)) x2))
 
 /-- [conjure_dsp_lib::gain::apply_f64]:
     Source: 'src/gain.rs', lines 6:0-8:1
@@ -847,6 +1298,296 @@ def gain.ramp_f32
     let fl ← lift (UScalar.toFloat32 n)
     gain.ramp_f32_loop start buf (Float32.div (Float32.sub «end» start) fl)
       0#usize
+
+/-- [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF64}::clone]:
+    Source: 'src/linear_smoother.rs', lines 49:9-49:14
+    Visibility: public -/
+def linear_smoother.StateF64.Insts.CoreCloneClone.clone
+  (self : linear_smoother.StateF64) : Result linear_smoother.StateF64 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF64}]
+    Source: 'src/linear_smoother.rs', lines 49:9-49:14 -/
+@[reducible]
+def linear_smoother.StateF64.Insts.CoreCloneClone : core.clone.Clone
+  linear_smoother.StateF64 := {
+  clone := linear_smoother.StateF64.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::Copy for conjure_dsp_lib::linear_smoother::StateF64}]
+    Source: 'src/linear_smoother.rs', lines 49:16-49:20 -/
+@[reducible]
+def linear_smoother.StateF64.Insts.CoreMarkerCopy : core.marker.Copy
+  linear_smoother.StateF64 := {
+  cloneInst := linear_smoother.StateF64.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::linear_smoother::StateF64}]
+    Source: 'src/linear_smoother.rs', lines 49:38-49:47 -/
+@[reducible]
+def linear_smoother.StateF64.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq linear_smoother.StateF64 := {
+}
+
+/-- [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF64> for conjure_dsp_lib::linear_smoother::StateF64}::eq]:
+    Source: 'src/linear_smoother.rs', lines 49:38-49:47
+    Visibility: public -/
+def linear_smoother.StateF64.Insts.CoreCmpPartialEqStateF64.eq
+  (self : linear_smoother.StateF64) (other : linear_smoother.StateF64) :
+  Result Bool
+  := do
+  if self.value == other.value
+  then
+    if self.step == other.step
+    then
+      if self.target == other.target
+      then ok (self.remaining = other.remaining)
+      else ok false
+    else ok false
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF64> for conjure_dsp_lib::linear_smoother::StateF64}]
+    Source: 'src/linear_smoother.rs', lines 49:38-49:47 -/
+@[reducible]
+def linear_smoother.StateF64.Insts.CoreCmpPartialEqStateF64 :
+  core.cmp.PartialEq linear_smoother.StateF64 linear_smoother.StateF64 := {
+  eq := linear_smoother.StateF64.Insts.CoreCmpPartialEqStateF64.eq
+}
+
+/-- [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF32}::clone]:
+    Source: 'src/linear_smoother.rs', lines 63:9-63:14
+    Visibility: public -/
+def linear_smoother.StateF32.Insts.CoreCloneClone.clone
+  (self : linear_smoother.StateF32) : Result linear_smoother.StateF32 := do
+  ok self
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::clone::Clone for conjure_dsp_lib::linear_smoother::StateF32}]
+    Source: 'src/linear_smoother.rs', lines 63:9-63:14 -/
+@[reducible]
+def linear_smoother.StateF32.Insts.CoreCloneClone : core.clone.Clone
+  linear_smoother.StateF32 := {
+  clone := linear_smoother.StateF32.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::Copy for conjure_dsp_lib::linear_smoother::StateF32}]
+    Source: 'src/linear_smoother.rs', lines 63:16-63:20 -/
+@[reducible]
+def linear_smoother.StateF32.Insts.CoreMarkerCopy : core.marker.Copy
+  linear_smoother.StateF32 := {
+  cloneInst := linear_smoother.StateF32.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::marker::StructuralPartialEq for conjure_dsp_lib::linear_smoother::StateF32}]
+    Source: 'src/linear_smoother.rs', lines 63:38-63:47 -/
+@[reducible]
+def linear_smoother.StateF32.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq linear_smoother.StateF32 := {
+}
+
+/-- [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF32> for conjure_dsp_lib::linear_smoother::StateF32}::eq]:
+    Source: 'src/linear_smoother.rs', lines 63:38-63:47
+    Visibility: public -/
+def linear_smoother.StateF32.Insts.CoreCmpPartialEqStateF32.eq
+  (self : linear_smoother.StateF32) (other : linear_smoother.StateF32) :
+  Result Bool
+  := do
+  if self.value == other.value
+  then
+    if self.step == other.step
+    then
+      if self.target == other.target
+      then ok (self.remaining = other.remaining)
+      else ok false
+    else ok false
+  else ok false
+
+/-- Trait implementation: [conjure_dsp_lib::linear_smoother::{impl core::cmp::PartialEq<conjure_dsp_lib::linear_smoother::StateF32> for conjure_dsp_lib::linear_smoother::StateF32}]
+    Source: 'src/linear_smoother.rs', lines 63:38-63:47 -/
+@[reducible]
+def linear_smoother.StateF32.Insts.CoreCmpPartialEqStateF32 :
+  core.cmp.PartialEq linear_smoother.StateF32 linear_smoother.StateF32 := {
+  eq := linear_smoother.StateF32.Insts.CoreCmpPartialEqStateF32.eq
+}
+
+/-- [conjure_dsp_lib::linear_smoother::set_target_f64]:
+    Source: 'src/linear_smoother.rs', lines 79:0-89:1
+    Visibility: public -/
+def linear_smoother.set_target_f64
+  (state : linear_smoother.StateF64) (target : Float) (steps : Std.Usize) :
+  Result linear_smoother.StateF64
+  := do
+  if steps = 0#usize
+  then
+    ok
+      { value := target, step := (Float.ofBits 0), remaining := 0#usize, target
+      }
+  else
+    let fl ← lift (UScalar.toFloat steps)
+    ok
+      {
+        state
+          with
+          step := (Float.div (Float.sub target state.value) fl),
+          remaining := steps,
+          target
+      }
+
+/-- [conjure_dsp_lib::linear_smoother::step_f64]:
+    Source: 'src/linear_smoother.rs', lines 96:0-106:1
+    Visibility: public -/
+def linear_smoother.step_f64
+  (state : linear_smoother.StateF64) :
+  Result (Float × linear_smoother.StateF64)
+  := do
+  if state.remaining > 0#usize
+  then
+    let i ← state.remaining - 1#usize
+    if i = 0#usize
+    then
+      ok (state.target, { state with value := state.target, remaining := i })
+    else
+      let fl ← lift (UScalar.toFloat i)
+      ok (Float.sub state.target (Float.mul state.step fl),
+        {
+          state
+            with
+            value := (Float.sub state.target (Float.mul state.step fl)),
+            remaining := i
+        })
+  else ok (state.value, state)
+
+/-- [conjure_dsp_lib::linear_smoother::process_f64]: loop body 0:
+    Source: 'src/linear_smoother.rs', lines 114:4-117:5
+    Visibility: public -/
+@[rust_loop_body]
+def linear_smoother.process_f64_loop.body
+  (state : linear_smoother.StateF64) (buf : Slice Float) (i : Std.Usize) :
+  Result (ControlFlow (linear_smoother.StateF64 × (Slice Float) × Std.Usize)
+    (linear_smoother.StateF64 × (Slice Float)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let (fl, state1) ← linear_smoother.step_f64 state
+    let s ← Slice.update buf i fl
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::linear_smoother::process_f64]: loop 0:
+    Source: 'src/linear_smoother.rs', lines 114:4-117:5
+    Visibility: public -/
+@[rust_loop]
+def linear_smoother.process_f64_loop
+  (state : linear_smoother.StateF64) (buf : Slice Float) (i : Std.Usize) :
+  Result (linear_smoother.StateF64 × (Slice Float))
+  := do
+  loop
+    (fun (state1, buf1, i1) => linear_smoother.process_f64_loop.body state1
+      buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::linear_smoother::process_f64]:
+    Source: 'src/linear_smoother.rs', lines 111:0-118:1
+    Visibility: public -/
+@[reducible]
+def linear_smoother.process_f64
+  (state : linear_smoother.StateF64) (buf : Slice Float) :
+  Result (linear_smoother.StateF64 × (Slice Float))
+  := do
+  linear_smoother.process_f64_loop state buf 0#usize
+
+/-- [conjure_dsp_lib::linear_smoother::set_target_f32]:
+    Source: 'src/linear_smoother.rs', lines 121:0-131:1
+    Visibility: public -/
+def linear_smoother.set_target_f32
+  (state : linear_smoother.StateF32) (target : Float32) (steps : Std.Usize) :
+  Result linear_smoother.StateF32
+  := do
+  if steps = 0#usize
+  then
+    ok
+      {
+        value := target,
+        step := (Float32.ofBits 0),
+        remaining := 0#usize,
+        target
+      }
+  else
+    let fl ← lift (UScalar.toFloat32 steps)
+    ok
+      {
+        state
+          with
+          step := (Float32.div (Float32.sub target state.value) fl),
+          remaining := steps,
+          target
+      }
+
+/-- [conjure_dsp_lib::linear_smoother::step_f32]:
+    Source: 'src/linear_smoother.rs', lines 136:0-146:1
+    Visibility: public -/
+def linear_smoother.step_f32
+  (state : linear_smoother.StateF32) :
+  Result (Float32 × linear_smoother.StateF32)
+  := do
+  if state.remaining > 0#usize
+  then
+    let i ← state.remaining - 1#usize
+    if i = 0#usize
+    then
+      ok (state.target, { state with value := state.target, remaining := i })
+    else
+      let fl ← lift (UScalar.toFloat32 i)
+      ok (Float32.sub state.target (Float32.mul state.step fl),
+        {
+          state
+            with
+            value := (Float32.sub state.target (Float32.mul state.step fl)),
+            remaining := i
+        })
+  else ok (state.value, state)
+
+/-- [conjure_dsp_lib::linear_smoother::process_f32]: loop body 0:
+    Source: 'src/linear_smoother.rs', lines 153:4-156:5
+    Visibility: public -/
+@[rust_loop_body]
+def linear_smoother.process_f32_loop.body
+  (state : linear_smoother.StateF32) (buf : Slice Float32) (i : Std.Usize) :
+  Result (ControlFlow (linear_smoother.StateF32 × (Slice Float32) ×
+    Std.Usize) (linear_smoother.StateF32 × (Slice Float32)))
+  := do
+  let i1 := Slice.len buf
+  if i < i1
+  then
+    let (fl, state1) ← linear_smoother.step_f32 state
+    let s ← Slice.update buf i fl
+    let i2 ← i + 1#usize
+    ok (cont (state1, s, i2))
+  else ok (done (state, buf))
+
+/-- [conjure_dsp_lib::linear_smoother::process_f32]: loop 0:
+    Source: 'src/linear_smoother.rs', lines 153:4-156:5
+    Visibility: public -/
+@[rust_loop]
+def linear_smoother.process_f32_loop
+  (state : linear_smoother.StateF32) (buf : Slice Float32) (i : Std.Usize) :
+  Result (linear_smoother.StateF32 × (Slice Float32))
+  := do
+  loop
+    (fun (state1, buf1, i1) => linear_smoother.process_f32_loop.body state1
+      buf1 i1)
+    (state, buf, i)
+
+/-- [conjure_dsp_lib::linear_smoother::process_f32]:
+    Source: 'src/linear_smoother.rs', lines 150:0-157:1
+    Visibility: public -/
+@[reducible]
+def linear_smoother.process_f32
+  (state : linear_smoother.StateF32) (buf : Slice Float32) :
+  Result (linear_smoother.StateF32 × (Slice Float32))
+  := do
+  linear_smoother.process_f32_loop state buf 0#usize
 
 /-- [conjure_dsp_lib::one_pole::step_f64]:
     Source: 'src/one_pole.rs', lines 36:0-38:1

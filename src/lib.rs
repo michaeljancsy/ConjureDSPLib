@@ -13,9 +13,10 @@
 //! otherwise proved in Lean. The crate's one dependency is `libm` (pinned exactly, default
 //! features off), for `tan`, `pow` and `sqrt` in filter design.
 //!
-//! The optional `std` feature adds fused multiply-add versions of the one-pole, smoother, biquad
-//! and SVF (`step_fma_f64`, `process_fma_f64` and the `f32` ones, and for the smoother
-//! `step_coeff_fma_*` and `process_coeff_fma_*`), which call `f64::mul_add` and `f32::mul_add`;
+//! The optional `std` feature adds fused multiply-add versions of the one-pole, smoother,
+//! first-order all-pass, biquad and SVF (`step_fma_f64`, `process_fma_f64` and the `f32` ones, and
+//! for the smoother `step_coeff_fma_*` and `process_coeff_fma_*`), which call `f64::mul_add` and
+//! `f32::mul_add`;
 //! those are in `std`, not `core`, on stable Rust. With it on, the crate is not `no_std` and links
 //! the standard library, so the build no longer rules out allocation and system calls as above;
 //! every other function's source is the same (a property of the code, not proved).
@@ -30,9 +31,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod allpass1;
 pub mod biquad;
 pub mod delay;
 pub mod gain;
+pub mod linear_smoother;
 pub mod one_pole;
 pub mod smoother;
 pub mod svf;

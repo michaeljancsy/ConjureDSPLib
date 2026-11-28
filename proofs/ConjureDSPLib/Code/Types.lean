@@ -20,6 +20,20 @@ set_option maxRecDepth 2048
 
 namespace conjure_dsp_lib
 
+/-- [conjure_dsp_lib::allpass1::StateF64]
+    Source: 'src/allpass1.rs', lines 50:0-55:1
+    Visibility: public -/
+structure allpass1.StateF64 where
+  x1 : Float
+  y1 : Float
+
+/-- [conjure_dsp_lib::allpass1::StateF32]
+    Source: 'src/allpass1.rs', lines 60:0-65:1
+    Visibility: public -/
+structure allpass1.StateF32 where
+  x1 : Float32
+  y1 : Float32
+
 /-- [conjure_dsp_lib::biquad::CoeffsF64]
     Source: 'src/biquad.rs', lines 59:0-70:1
     Visibility: public -/
@@ -53,6 +67,24 @@ structure biquad.CoeffsF32 where
 structure biquad.StateF32 where
   s1 : Float32
   s2 : Float32
+
+/-- [conjure_dsp_lib::linear_smoother::StateF64]
+    Source: 'src/linear_smoother.rs', lines 50:0-59:1
+    Visibility: public -/
+structure linear_smoother.StateF64 where
+  value : Float
+  step : Float
+  remaining : Std.Usize
+  target : Float
+
+/-- [conjure_dsp_lib::linear_smoother::StateF32]
+    Source: 'src/linear_smoother.rs', lines 64:0-73:1
+    Visibility: public -/
+structure linear_smoother.StateF32 where
+  value : Float32
+  step : Float32
+  remaining : Std.Usize
+  target : Float32
 
 /-- [conjure_dsp_lib::svf::CoeffsF64]
     Source: 'src/svf.rs', lines 77:0-91:1

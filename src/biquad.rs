@@ -25,8 +25,9 @@
 //! With the `std` feature, `step_fma_f64` / `process_fma_f64` (and the `f32` ones) compute
 //! the same steps with fused multiply-adds, in the grouping their documentation gives
 //! (`biquad.step_fma_f64_eq`), with the same whole-block error bounds
-//! (`biquad.process_fma_f64_block_error`). Where the processor has no fused multiply-add
-//! instruction, `mul_add` is a slow software routine (not measured here).
+//! (`biquad.process_fma_f64_block_error`).
+//! Where the build cannot assume a fused multiply-add instruction, `mul_add` is expected to be a
+//! call to the C library's `fma`, which can be much slower (expected, not measured).
 //!
 //! One set of coefficients can be shared by several channels, each with its own state. The
 //! coefficients can change between calls; the state is kept.
@@ -183,7 +184,7 @@ pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
 /// s2 = b2.mul_add(x, -(a2·y))
 /// ```
 ///
-/// Six roundings instead of nine. Needs the `std` feature.
+/// Six roundings instead of nine (a property of the code, not proved). Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f64(c: &CoeffsF64, state: &mut StateF64, x: f64) -> f64 {
@@ -217,7 +218,7 @@ pub fn process_fma_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
 /// s2 = b2.mul_add(x, -(a2·y))
 /// ```
 ///
-/// Six roundings instead of nine. Needs the `std` feature.
+/// Six roundings instead of nine (a property of the code, not proved). Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f32(c: &CoeffsF32, state: &mut StateF32, x: f32) -> f32 {

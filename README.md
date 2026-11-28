@@ -97,7 +97,7 @@ which contains every function of the other build too.
 On processors with a fused multiply-add instruction (64-bit Arm, Apple silicon included, and
 x86-64 built with the `fma` target feature), each `mul_add` is expected to compile to that one
 instruction; otherwise it is expected to be a call to the platform C library's `fma` routine
-(not measured, and not proved).
+(expected, not measured).
 
 ## Fused multiply-add (the `std` feature)
 
@@ -118,8 +118,9 @@ This is how clang contracts the unfused expressions with its default `-ffp-contr
 Apple silicon each fused step computes the same as the same step written in C or C++ and built
 with clang (worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). For
 the SVF that is the step only: clang also fuses `1 + g·(g + k)` in the coefficient calculation,
-so a C or C++ SVF gets a different `d` from this crate's unfused `CoeffsF64::new`, and the whole
-filter matches only if `d` is computed unfused there too.
+so a C or C++ SVF can get a different `d` from this crate's unfused `CoeffsF64::new`, and the
+whole filter matches only if `d` is computed unfused there too (worked out outside Lean, not
+proved).
 
 The proofs show that each fused function computes exactly this grouping, never fails, and meets
 the same whole-block error bounds (and, for the smoother, the same settling bounds) as its unfused

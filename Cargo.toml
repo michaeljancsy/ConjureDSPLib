@@ -15,7 +15,8 @@ include = ["/src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-APACHE", "/NOT
 [features]
 # Adds the fused multiply-add functions (`step_fma_f64`, `process_fma_f64` and the others), which
 # call `f64::mul_add` and `f32::mul_add`. Those are in `std`, not `core`, on stable Rust, so this
-# feature links the standard library. Off by default; it adds functions and changes nothing else.
+# feature links the standard library. Off by default; it adds functions and links std, and changes
+# no other function.
 std = []
 
 [package.metadata.docs.rs]

@@ -24,8 +24,9 @@
 //!
 //! With the `std` feature, `step_fma_f64` / `process_fma_f64` (and the `f32` ones) compute the
 //! same filter with one fused multiply-add per sample (`one_pole.step_fma_f64_eq`), with the same
-//! whole-block error bound (`one_pole.process_fma_f64_block_error`). Where the processor has no
-//! fused multiply-add instruction, `mul_add` is a slow software routine (not measured here).
+//! whole-block error bound (`one_pole.process_fma_f64_block_error`).
+//! Where the build cannot assume a fused multiply-add instruction, `mul_add` is expected to be a
+//! call to the C library's `fma`, which can be much slower (expected, not measured).
 //!
 //! Call these through the module, as `one_pole::process_f32`.
 

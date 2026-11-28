@@ -463,13 +463,14 @@ processor:
 
 This is the grouping clang gives the unfused expressions under its default `-ffp-contract=on`,
 which fuses a product into the addition or subtraction that uses it, within one expression,
-trying the left operand first; on Apple silicon each `fma` is then one instruction. So each fused
+trying the left operand first; on Apple silicon each `fma` is then one instruction (worked out
+outside Lean, not proved). So each fused
 step computes the same as the same step written that way in C or C++ and compiled by clang there
 (worked out outside Lean, not proved: checked against Apple clang 17, arm64, -O2). For the SVF
 this is the step only. Its coefficients, `d` included, come from `CoeffsF64::new` and the design
 functions, which do not fuse, while clang also fuses `1 + g·(g + k)` in `d = 1/(1 + g·(g + k))`;
-so a C or C++ SVF built that way gets a different `d`, and the whole filter matches only if `d`
-is computed unfused there too.
+so a C or C++ SVF built that way can get a different `d`, and the whole filter matches only if
+`d` is computed unfused there too (worked out outside Lean, not proved).
 
 | Rust function | Theorem | File | Says |
 |---|---|---|---|
@@ -479,7 +480,7 @@ is computed unfused there too.
 | (the same) | `real_fma_eq_floatLib_fma_f64`, `real_fma_eq_floatLib_fma_f32` | `FmaFacts.lean` | When `x`, `y`, `z`, `x.fma y z` and FloatLib's own `Model.fma` of the three are finite, the two have the same real value. |
 | (Lean's negation) | `real_neg_f64`, `real_neg_f32`, `isFinite_neg_f64`, `isFinite_neg_f32` | `FmaFacts.lean` | Negating a finite float is exact: the result is finite, with the negated real value. |
 | `one_pole::step_fma_f64`, `process_fma_f64` | `one_pole.step_fma_f64_eq`, `one_pole.process_fma_f64_spec` | `OnePole/FmaF64.lean` | Exactly `a.fma state x` in binary64; never fails; the block's outputs and final state are those of applying it to each sample in turn (`filt_fma_f64`). |
-| `one_pole::step_fma_f64` | `one_pole.step_fma_f64_error` | `OnePole/FmaF64.lean` | When `a`, `state`, `x` and the result are finite, one fused step is within `u·\|x + a·y\| + η`, and so within the unfused step's bound `stepErr`, of exact real arithmetic. |
+| `one_pole::step_fma_f64` | `one_pole.step_fma_f64_error` | `OnePole/FmaF64.lean` | When `a`, `state`, `x` and the result are finite, one fused step is within `u·\|x + a·state\| + η` (`abs_real_fma_sub_le_f64`), and so within the unfused step's bound `stepErr` (`one_pole.step_fma_f64_error`), of exact real arithmetic. |
 | `one_pole::process_fma_f64` | `one_pole.process_fma_f64_block_error`, `one_pole.process_fma_f64_block_error_of_inputs` | `OnePole/FmaF64.lean` | **Whole-block error.** The conditions and the bound `E` of `process_f64_block_error` and `process_f64_block_error_of_inputs`, with no fused step overflowing (`NoOverflowFma_f64`: every input and output finite) in place of `NoOverflow_f64`, or proved from the inputs under the same cap. The one-pole table rows above are about `E` and `B` alone, so they hold for the fused filter too. |
 | `one_pole::*_fma_f32` | the `_f32` versions of the four theorems above | `OnePole/FmaF32.lean` | The same in binary32. |
 | `smoother::step_fma_f64`, `process_fma_f64`, `step_coeff_fma_f64`, `process_coeff_fma_f64` | `smoother.step_fma_f64_eq`, `smoother.step_coeff_fma_f64_eq`, `smoother.process_fma_f64_spec`, `smoother.process_coeff_fma_f64_spec` | `Smoother/FmaF64.lean` | Exactly `(1 - a).fma (target - state) state` and `c.fma (target - state) state` in binary64; never fail; the blocks give exactly `filt_fma_f64 (1 - a)` (with `1 - a` computed once) and `filt_fma_f64 c`. |
@@ -495,9 +496,10 @@ is computed unfused there too.
 | `svf::process_fma_f64` | `svf.process_fma_f64_block_error`, `svf.process_fma_f64_block_error_of_inputs` | `Svf/FmaF64.lean` | **Whole-block error.** The statements of `process_f64_block_error` and `process_f64_block_error_of_inputs`, with the same constants and conditions (`NoOverflowFma_f64` in place of `NoOverflow_f64`), for the fused function; so the SVF table's bounds hold for it too. |
 | `svf::*_fma_f32` | the `_f32` versions of the theorems above | `Svf/FmaF32.lean` | The same in binary32. |
 
-The fused functions round less often (one, two, six and eleven roundings per step for the
-one-pole, the smoother, the biquad and the SVF, against two, three, nine and sixteen), but the
-bounds proved for them are the unfused ones: correct, and no tighter. Tighter bounds for the fused
+The fused functions round less often (one, two, six and eleven distinct rounded results per step
+for the one-pole, the smoother, the biquad and the SVF, against two, three, nine and sixteen; a
+property of the code, not proved), but the bounds proved for them are the unfused ones: correct,
+and no tighter. Tighter bounds for the fused
 functions are not proved.
 
 ## Observations (not proofs)
@@ -661,8 +663,8 @@ What is listed here is observed or expected behaviour, not proved.
   rounding of `x·y + z`), with its error bound and finiteness, and holds the facts about exact
   negation the fused filters use. `OnePole/FmaF64.lean`, `Smoother/FmaF64.lean`,
   `Biquad/FmaF64.lean`, `Svf/FmaF64.lean` and their `F32` versions prove the fused functions'
-  spec and whole-block bounds; `Biquad/Fma.lean` and `Svf/Fma.lean` (real numbers only) give a
-  fused step the unfused step's bounds.
+  spec, whole-block bounds and the smoother's settling bounds; `Biquad/Fma.lean` and
+  `Svf/Fma.lean` (real numbers only) give a fused step the unfused step's bounds.
 - `FloatFacts.lean` holds facts about floats shared by every module's proofs, including
   `real_f64` / `real_f32` (the exact real value of a float), the size of one rounding, and how
   infinity, NaN and signed zeros pass through one operation.

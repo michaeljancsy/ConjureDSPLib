@@ -22,8 +22,9 @@
 //! With the `std` feature, `step_fma_f64` / `process_fma_f64` (and the `f32` ones) compute
 //! the same steps with fused multiply-adds, in the grouping their documentation gives
 //! (`svf.step_fma_f64_eq`), with the same whole-block error bounds
-//! (`svf.process_fma_f64_block_error`). Where the processor has no fused multiply-add
-//! instruction, `mul_add` is a slow software routine (not measured here).
+//! (`svf.process_fma_f64_block_error`).
+//! Where the build cannot assume a fused multiply-add instruction, `mul_add` is expected to be a
+//! call to the C library's `fma`, which can be much slower (expected, not measured).
 //!
 //! The Lean proofs bound the floating-point error of each output and of the final state of a
 //! block, of any length, against the same filter in exact arithmetic
@@ -372,10 +373,11 @@ pub fn process_f32(c: &CoeffsF32, state: &mut StateF32, buf: &mut [f32]) {
 /// y   = m_lp.mul_add(lp, m_hp.mul_add(hp, m_bp·bp))
 /// ```
 ///
-/// Eleven roundings instead of sixteen. This matches the step only: the coefficients, including
-/// `d`, are those of [`CoeffsF64::new`] and the design functions, which do not fuse, while
-/// clang also fuses `1 + g·(g + k)` when computing `d`. So the whole filter matches a C or C++ one
-/// built that way only if `d` is also computed unfused there. Needs the `std` feature.
+/// Eleven rounded results instead of sixteen (a property of the code, not proved). This matches
+/// the step only: the coefficients, including `d`, are those of [`CoeffsF64::new`] and the design
+/// functions, which do not fuse, while clang also fuses `1 + g·(g + k)` when computing `d` (worked
+/// out outside Lean, not proved). So the whole filter matches a C or C++ one built that way only if
+/// `d` is also computed unfused there. Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f64(c: &CoeffsF64, state: &mut StateF64, x: f64) -> f64 {
@@ -414,10 +416,11 @@ pub fn process_fma_f64(c: &CoeffsF64, state: &mut StateF64, buf: &mut [f64]) {
 /// y   = m_lp.mul_add(lp, m_hp.mul_add(hp, m_bp·bp))
 /// ```
 ///
-/// Eleven roundings instead of sixteen. This matches the step only: the coefficients, including
-/// `d`, are those of [`CoeffsF32::new`] and the design functions, which do not fuse, while
-/// clang also fuses `1 + g·(g + k)` when computing `d`. So the whole filter matches a C or C++ one
-/// built that way only if `d` is also computed unfused there. Needs the `std` feature.
+/// Eleven rounded results instead of sixteen (a property of the code, not proved). This matches
+/// the step only: the coefficients, including `d`, are those of [`CoeffsF32::new`] and the design
+/// functions, which do not fuse, while clang also fuses `1 + g·(g + k)` when computing `d` (worked
+/// out outside Lean, not proved). So the whole filter matches a C or C++ one built that way only if
+/// `d` is also computed unfused there. Needs the `std` feature.
 #[cfg(feature = "std")]
 #[inline]
 pub fn step_fma_f32(c: &CoeffsF32, state: &mut StateF32, x: f32) -> f32 {

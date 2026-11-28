@@ -62,8 +62,9 @@
 //! sample, `c.mul_add(x - state, state)` (`smoother.process_fma_f64_spec`,
 //! `smoother.process_coeff_fma_f64_spec`), with the same whole-block error and settling bounds
 //! (`smoother.process_fma_f64_block_error_of_inputs`, `smoother.process_fma_f64_settle_of_inputs`,
-//! the `process_coeff_fma` ones and their `f32` versions). Where the processor has no fused
-//! multiply-add instruction, `mul_add` is expected to be a call to a slower routine (not measured).
+//! the `process_coeff_fma` ones and their `f32` versions).
+//! Where the build cannot assume a fused multiply-add instruction, `mul_add` is expected to be a
+//! call to the C library's `fma`, which can be much slower (expected, not measured).
 //!
 //! Call these through the module, as `smoother::process_f32` or `smoother::process_coeff_f64`.
 
